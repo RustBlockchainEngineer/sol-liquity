@@ -1,0 +1,37 @@
+[package]
+name = "sol-liquity"
+version = "1.0.0"
+description = "Solana Liquity Protocol"
+authors = ["Hongbo Li"]
+repository = "https://github.com/solana-labs/solana"
+license = "Apache-2.0"
+homepage = "https://solana.com/"
+edition = "2018"
+
+[features]
+no-entrypoint = []
+test-bpf = []
+
+[dependencies]
+arrayref = "0.3.6"
+bytemuck = "1.7.2"
+num-derive = "0.3"
+num-traits = "0.2"
+solana-program = "1.7.11"
+spl-token = { version = "3.2.0", features = [ "no-entrypoint" ] }
+thiserror = "1.0"
+uint = "0.9"
+
+[dev-dependencies]
+assert_matches = "1.5.0"
+base64 = "0.13"
+log = "0.4.14"
+proptest = "1.0"
+solana-program-test = "1.7.11"
+solana-sdk = "1.7.11"
+serde = "1.0"
+serde_yaml = "0.8"
+
+[lib]
+name = "sol-liquity"
+crate-type = ["cdylib", "lib"]
