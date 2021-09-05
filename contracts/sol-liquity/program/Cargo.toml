@@ -1,6 +1,6 @@
 [package]
 name = "sol-liquity"
-version = "1.0.0"
+version = "0.0.1"
 description = "Solana Liquity Protocol"
 authors = ["Hongbo Li"]
 repository = "https://github.com/solana-labs/solana"
@@ -33,5 +33,4 @@ serde = "1.0"
 serde_yaml = "0.8"
 
 [lib]
-name = "sol-liquity"
 crate-type = ["cdylib", "lib"]
