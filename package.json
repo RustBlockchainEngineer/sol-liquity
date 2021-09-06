@@ -9,9 +9,10 @@
     "switch-testnet":"solana config set --url testnet",
     "switch-mainnet-beta":"solana config set --url mainnet-beta",
     "start-server": "solana-test-validator",
-    "build": "cargo build-bpf --manifest-path=./contracts/sol-liquity/program/Cargo.toml --bpf-out-dir=contracts/sol-liquity/dist",
-    "clean": "cargo clean --manifest-path=./contracts/sol-liquity/program/Cargo.toml && rm -rf ./contracts/sol-liquity/dist",
-    "deploy":"solana program deploy contracts/sol-liquity/dist/sol-liquity.so",
-    "test": "cargo test-bpf --manifest-path=./contracts/sol-liquity/program/Cargo.toml"
+
+    "build:sp": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml --bpf-out-dir=contracts/stability-pool/dist",
+    "clean:sp": "cargo clean --manifest-path=./contracts/stability-pool/program/Cargo.toml && rm -rf ./contracts/stability-pool/dist",
+    "deploy:sp":"solana program deploy contracts/stability-pool/dist/stability-pool.so",
+    "test:sp": "cargo test-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml"
   }
 }

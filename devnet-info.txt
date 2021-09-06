@@ -1,0 +1,12 @@
+devnet paper wallet info:
+pubkey: A26qac64KuYnqyz7ndmeHYFJRUmoWYowKcDimyYS1Bt2
+=============================================================================
+Save this seed phrase and your BIP39 passphrase to recover your new keypair:
+cube horror child chapter angle capital width stamp knife dragon scrap mammal
+=============================================================================
+
+solUSD token:
+mint:4LYBL3LEUPfGdrYwArWt5gyd5Y9X3LQgwvcZM5DjKpE8
+
+SOLID token:
+mint:2wQXWUYw2Sq2T6kGJHRYA8fnixp7sXZMBC5mYQwrHGFJ
