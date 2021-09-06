@@ -3,9 +3,9 @@
 
 use {
     crate::{
-        error::StabilityPoolError,
-        instruction::{StabilityPoolInstruction},
-        state::{StabilityPool,FrontEnd,Deposit},
+        error::SOLIDStakingError,
+        instruction::{SOLIDStakingInstruction},
+        state::{SOLIDStaking,Snapshot,Deposit},
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
@@ -36,23 +36,23 @@ pub struct Processor {}
 impl Processor {  
     /// All instructions start from here and are processed by their type.
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
-        let instruction = StabilityPoolInstruction::try_from_slice(input)?;
+        let instruction = SOLIDStakingInstruction::try_from_slice(input)?;
 
         // determine instruction type
         match instruction {
-            StabilityPoolInstruction::Initialize{
+            SOLIDStakingInstruction::Initialize{
                 nonce,
             } => {
                 // Instruction: Initialize
                 Self::process_initialize(program_id, accounts, nonce)
             }
-            StabilityPoolInstruction::ProvideToSP(amount) => {
-                // Instruction: ProvideToSP
-                Self::process_provide_to_sp(program_id, accounts, amount)
+            SOLIDStakingInstruction::Stake(amount) => {
+                // Instruction: Stake
+                Self::process_stake(program_id, accounts, amount)
             }
-            StabilityPoolInstruction::WithdrawFromSP(amount) => {
-                // Instruction: WithdrawFromSP
-                Self::process_withdraw_from_sp(program_id, accounts, amount)
+            SOLIDStakingInstruction::Unstake(amount) => {
+                // Instruction: Unstake
+                Self::process_unstake(program_id, accounts, amount)
             }
         }
     }
@@ -63,49 +63,49 @@ impl Processor {
         accounts: &[AccountInfo],   // all account informations
         nonce: u8,                  // nonce for authorizing
     ) -> ProgramResult {
-        // start initializeing this stability pool ...
+        // start initializeing this SOLID staking pool ...
 
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
         
-        // stability pool account info to create newly
+        // SOLID staking pool account info to create newly
         let pool_id_info = next_account_info(account_info_iter)?;
 
-        // authority of stability pool account
+        // authority of SOLID staking pool account
         let authority_info = next_account_info(account_info_iter)?;
 
-        // pool solUsd token account
-        let sol_usd_pool_info = next_account_info(account_info_iter)?;
+        // pool SOLID token account
+        let solid_pool_info = next_account_info(account_info_iter)?;
 
         // spl-token program account information
         let token_program_info = next_account_info(account_info_iter)?;
 
-        // check if this stability pool account was created by this program with authority and nonce
+        // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
         if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+            return Err(SOLIDStakingError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
-        if *sol_usd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+        if *solid_pool_info.owner != *program_id {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         // borrow pool account data to initialize (mutable)
-        let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+        let mut pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
 
         pool_data.token_program_pubkey = *token_program_info.key;
-        pool_data.sol_usd_pool_token_pubkey = *sol_usd_pool_info.key;
+        pool_data.solid_pool_token_pubkey = *solid_pool_info.key;
         
-        // serialize/store this initialized stability pool again
+        // serialize/store this initialized SOLID staking pool again
         pool_data
             .serialize(&mut *pool_id_info.data.borrow_mut())
             .map_err(|e| e.into())
     } 
 
     /// process ProvideToSP instruction
-    pub fn process_provide_to_sp(
+    pub fn process_stake(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         amount: u64,
@@ -119,11 +119,11 @@ impl Processor {
         // authority information of this farm account
         let authority_info = next_account_info(account_info_iter)?;
 
-        // pool solUsd token account
-        let sol_usd_pool_info = next_account_info(account_info_iter)?;
+        // pool SOLID token account
+        let solid_pool_info = next_account_info(account_info_iter)?;
 
-        // user solUsd token account
-        let sol_usd_user_info = next_account_info(account_info_iter)?;
+        // user SOLID token account
+        let solid_user_info = next_account_info(account_info_iter)?;
 
         // user transfer authority
         let user_transfer_authority_info = next_account_info(account_info_iter)?;
@@ -131,48 +131,40 @@ impl Processor {
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
 
-        // front end account info
-        let frontend_info = next_account_info(account_info_iter)?;
+        // snapshot account info
+        let snapshot_info = next_account_info(account_info_iter)?;
 
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
 
         // borrow pool account data
-        let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+        let pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
 
-        // check if this stability pool account was created by this program with authority and nonce
+        // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
         if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+            return Err(SOLIDStakingError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
-        if *sol_usd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+        if *solid_pool_info.owner != *program_id {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
-        if *sol_usd_pool_info.key != pool_data.sol_usd_pool_token_pubkey {
-            return Err(StabilityPoolError::InvalidOwner.into());
+        if *solid_pool_info.key != pool_data.solid_pool_token_pubkey {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         // borrow user deposit data
         let mut user_deposit = try_from_slice_unchecked::<Deposit>(&user_deposit_info.data.borrow())?;
 
         // borrow frontend account data
-        let frontend_data = try_from_slice_unchecked::<FrontEnd>(&frontend_info.data.borrow())?;
+        let snapshot = try_from_slice_unchecked::<Snapshot>(&snapshot_info.data.borrow())?;
 
-        if frontend_data.registered == 0 {
-            return Err(StabilityPoolError::NotRegistered.into());
-        }
-
-        if frontend_data.pool_id_pubkey == *pool_id_info.key {
-            return Err(StabilityPoolError::InvalidOwner.into());
-        }
-
-        if user_deposit.initial_value == 0 {
-            user_deposit.front_end_tag = frontend_data.owner_pubkey;
+        if snapshot.pool_id_pubkey == *pool_id_info.key {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         if amount > 0 {
@@ -180,21 +172,21 @@ impl Processor {
             Self::token_transfer(
                 pool_id_info.key,
                 token_program_info.clone(), 
-                sol_usd_user_info.clone(), 
-                sol_usd_pool_info.clone(), 
+                solid_user_info.clone(), 
+                solid_pool_info.clone(), 
                 user_transfer_authority_info.clone(), 
                 pool_data.nonce, 
                 amount
             )?;
 
-            user_deposit.initial_value += amount;
+            user_deposit.deposit_amount += amount;
         }
 
         // serialize/store user info again
         user_deposit
             .serialize(&mut *user_deposit_info.data.borrow_mut())?;
 
-        // serialize/store this initialized stability pool again
+        // serialize/store this initialized SOLID staking pool again
         pool_data
             .serialize(&mut *pool_id_info.data.borrow_mut())
             .map_err(|e| e.into())
@@ -202,7 +194,7 @@ impl Processor {
     }
 
     /// process WithdrawFromSP instruction
-    pub fn process_withdraw_from_sp(
+    pub fn process_unstake(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         amount: u64,
@@ -216,11 +208,11 @@ impl Processor {
         // authority information of this farm account
         let authority_info = next_account_info(account_info_iter)?;
 
-        // pool solUsd token account
-        let sol_usd_pool_info = next_account_info(account_info_iter)?;
+        // pool SOLID token account
+        let solid_pool_info = next_account_info(account_info_iter)?;
 
-        // user solUsd token account
-        let sol_usd_user_info = next_account_info(account_info_iter)?;
+        // user SOLID token account
+        let solid_user_info = next_account_info(account_info_iter)?;
 
         // user transfer authority
         let user_transfer_authority_info = next_account_info(account_info_iter)?;
@@ -232,23 +224,23 @@ impl Processor {
         let token_program_info = next_account_info(account_info_iter)?;
 
         // borrow pool account data to initialize 
-        let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+        let pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
 
-        // check if this stability pool account was created by this program with authority and nonce
+        // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
         if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+            return Err(SOLIDStakingError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
-        if *sol_usd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+        if *solid_pool_info.owner != *program_id {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
-        if *sol_usd_pool_info.key != pool_data.sol_usd_pool_token_pubkey {
-            return Err(StabilityPoolError::InvalidOwner.into());
+        if *solid_pool_info.key != pool_data.solid_pool_token_pubkey {
+            return Err(SOLIDStakingError::InvalidOwner.into());
         }
 
         // borrow user deposit data
@@ -256,8 +248,8 @@ impl Processor {
 
         // check if given amount is small than deposit amount
         let mut _amount = amount;
-        if user_deposit.initial_value < amount {
-            _amount = user_deposit.initial_value;
+        if user_deposit.deposit_amount < amount {
+            _amount = user_deposit.deposit_amount;
         }
 
         if _amount > 0 {
@@ -265,20 +257,20 @@ impl Processor {
             Self::token_transfer(
                 pool_id_info.key,
                 token_program_info.clone(),
-                sol_usd_pool_info.clone(),
-                sol_usd_user_info.clone(),
+                solid_pool_info.clone(),
+                solid_user_info.clone(),
                 user_transfer_authority_info.clone(),
                 pool_data.nonce,
                 _amount
             )?;
-            user_deposit.initial_value -= _amount;
+            user_deposit.deposit_amount -= _amount;
         }
 
         // serialize/store user info again
         user_deposit
             .serialize(&mut *user_deposit_info.data.borrow_mut())?;
 
-        // serialize/store this initialized stability pool again
+        // serialize/store this initialized SOLID staking pool again
         pool_data
             .serialize(&mut *pool_id_info.data.borrow_mut())
             .map_err(|e| e.into())
@@ -290,9 +282,9 @@ impl Processor {
         program_id: &Pubkey,
         my_info: &Pubkey,
         nonce: u8,
-    ) -> Result<Pubkey, StabilityPoolError> {
+    ) -> Result<Pubkey, SOLIDStakingError> {
         Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
-            .or(Err(StabilityPoolError::InvalidProgramAddress))
+            .or(Err(SOLIDStakingError::InvalidProgramAddress))
     }
 
     /// issue a spl_token `Transfer` instruction.
@@ -326,18 +318,17 @@ impl Processor {
 }
 
 /// implement all farm error messages
-impl PrintProgramError for StabilityPoolError {
+impl PrintProgramError for SOLIDStakingError {
     fn print<E>(&self)
     where
         E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
     {
         match self {
-            StabilityPoolError::AlreadyInUse => msg!("Error: The account cannot be initialized because it is already being used"),
-            StabilityPoolError::InvalidProgramAddress => msg!("Error: The program address provided doesn't match the value generated by the program"),
-            StabilityPoolError::InvalidState => msg!("Error: The stake pool state is invalid"),
-            StabilityPoolError::InvalidOwner => msg!("Error: Pool token account's owner is invalid"),
-            StabilityPoolError::InvalidPoolToken => msg!("Error: Given pool token account isn't same with pool token account"),
-            StabilityPoolError::NotRegistered => msg!("Error: Given frontend is not registered"),
+            SOLIDStakingError::AlreadyInUse => msg!("Error: The account cannot be initialized because it is already being used"),
+            SOLIDStakingError::InvalidProgramAddress => msg!("Error: The program address provided doesn't match the value generated by the program"),
+            SOLIDStakingError::InvalidState => msg!("Error: The stake pool state is invalid"),
+            SOLIDStakingError::InvalidOwner => msg!("Error: Pool token account's owner is invalid"),
+            SOLIDStakingError::InvalidPoolToken => msg!("Error: Given pool token account isn't same with pool token account"),
         }
     }
 } 

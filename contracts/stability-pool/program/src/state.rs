@@ -17,7 +17,10 @@ pub struct StabilityPool {
     pub nonce: u8,
 
     /// solUSD token's mint address
-    pub sol_usd_mint_address: Pubkey,
+    pub token_program_pubkey: Pubkey,
+
+    /// solUSD token's mint address
+    pub sol_usd_pool_token_pubkey: Pubkey,
 
     /// Borrower Operations pubkey
     pub borrower_operations_pubkey: Pubkey,
@@ -27,12 +30,17 @@ pub struct StabilityPool {
 
     /// Tracker for solUSD held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
     pub total_sol_usd_deposits: u128,
-
 }
 
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct FrontEnd {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
     /// kickback rate
     pub kickback_rate:u64,
 
@@ -43,6 +51,12 @@ pub struct FrontEnd {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Deposit {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
     /// initial value
     pub initial_value:u64,
 
@@ -53,6 +67,12 @@ pub struct Deposit {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Snapshots {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
     /// S
     pub s:u64,
 

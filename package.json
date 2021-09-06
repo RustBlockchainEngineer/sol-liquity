@@ -13,6 +13,11 @@
     "build:sp": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml --bpf-out-dir=contracts/stability-pool/dist",
     "clean:sp": "cargo clean --manifest-path=./contracts/stability-pool/program/Cargo.toml && rm -rf ./contracts/stability-pool/dist",
     "deploy:sp":"solana program deploy contracts/stability-pool/dist/stability-pool.so",
-    "test:sp": "cargo test-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml"
+    "test:sp": "cargo test-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
+
+    "build:st": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml --bpf-out-dir=contracts/solid-staking/dist",
+    "clean:st": "cargo clean --manifest-path=./contracts/solid-staking/program/Cargo.toml && rm -rf ./contracts/solid-staking/dist",
+    "deploy:st":"solana program deploy contracts/solid-staking/dist/solid-staking.so",
+    "test:st": "cargo test-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml"
   }
 }
