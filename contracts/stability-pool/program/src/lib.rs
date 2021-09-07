@@ -17,6 +17,8 @@ pub mod instruction;
 pub mod processor;
 /// state modulesolana-keygen new
 pub mod state;
+/// constants
+pub mod liquitiy_math;
 
 // Declare and export the program's entrypoint
 entrypoint!(process_instruction);

@@ -23,9 +23,18 @@ pub enum StabilityPoolError {
     /// given pool token account isn't same with pool token account
     #[error("InvalidPoolToken")]
     InvalidPoolToken,
-    /// given frontend isn't registered
+    /// given frontend wasn't registered
     #[error("NotRegistered")]
     NotRegistered,
+    /// given frontend was registered already
+    #[error("AlreadyRegistered")]
+    AlreadyRegistered,
+    /// given user has deposit balance, but it requires no deposit
+    #[error("HasDeposit")]
+    HasDeposit,
+    /// given kickback rate is invalid
+    #[error("InvalidKickbackRate")]
+    InvalidKickbackRate,
 }
 impl From<StabilityPoolError> for ProgramError {
     fn from(e: StabilityPoolError) -> Self {

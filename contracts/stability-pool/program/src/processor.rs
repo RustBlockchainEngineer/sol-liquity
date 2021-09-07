@@ -6,6 +6,9 @@ use {
         error::StabilityPoolError,
         instruction::{StabilityPoolInstruction},
         state::{StabilityPool,FrontEnd,Deposit},
+        liquitiy_math::{
+            DECIMAL_PRECISION,
+        }
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
@@ -53,6 +56,14 @@ impl Processor {
             StabilityPoolInstruction::WithdrawFromSP(amount) => {
                 // Instruction: WithdrawFromSP
                 Self::process_withdraw_from_sp(program_id, accounts, amount)
+            }
+            StabilityPoolInstruction::WithdrawSOLGainToTrove => {
+                // Instruction: WithdrawSOLGainToTrove
+                Self::process_withdraw_sol_gain_to_trove(program_id, accounts)
+            }
+            StabilityPoolInstruction::RegisterFrontEnd(kickback_rate) => {
+                // Instruction: RegisterFrontEnd
+                Self::process_register_frontend(program_id, accounts, kickback_rate)
             }
         }
     }
@@ -213,7 +224,7 @@ impl Processor {
         // pool account information to withdraw
         let pool_id_info = next_account_info(account_info_iter)?;
 
-        // authority information of this farm account
+        // authority information of this pool account
         let authority_info = next_account_info(account_info_iter)?;
 
         // pool solUsd token account
@@ -284,6 +295,75 @@ impl Processor {
             .map_err(|e| e.into())
         
     }
+    /// process WithdrawSOLGainToTrove instruction
+    pub fn process_withdraw_sol_gain_to_trove(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        Ok(())
+        
+    }
+    /// process RegisterFrontend instruction
+    pub fn process_register_frontend(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        kickback_rate: u64,
+    ) -> ProgramResult {
+        // get account informations
+        let account_info_iter = &mut accounts.iter();
+
+        // pool account information to withdraw
+        let pool_id_info = next_account_info(account_info_iter)?;
+
+        // authority information of this pool account
+        let authority_info = next_account_info(account_info_iter)?;
+
+        // frontend account
+        let frontend_info = next_account_info(account_info_iter)?;
+
+        // user deposit account
+        let user_deposit_info = next_account_info(account_info_iter)?;
+
+        // borrow frontend account data
+        let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+
+        // borrow frontend account data
+        let mut frontend_data = try_from_slice_unchecked::<FrontEnd>(&frontend_info.data.borrow())?;
+
+        if frontend_data.pool_id_pubkey != *pool_id_info.key {
+            return Err(StabilityPoolError::InvalidOwner.into());
+        }
+
+        if frontend_data.registered > 0 {
+            return Err(StabilityPoolError::AlreadyRegistered.into());
+        }
+
+        if kickback_rate > DECIMAL_PRECISION {
+            return Err(StabilityPoolError::InvalidKickbackRate.into());
+        }
+
+        // check if this stability pool account was created by this program with authority and nonce
+        // if fail, returns InvalidProgramAddress error
+        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        }
+
+        // borrow user deposit data
+        let user_deposit = try_from_slice_unchecked::<Deposit>(&user_deposit_info.data.borrow())?;
+
+        if user_deposit.initial_value > 0 {
+            return Err(StabilityPoolError::HasDeposit.into());
+        }
+
+        frontend_data.kickback_rate = kickback_rate;
+        frontend_data.registered = 1;
+
+        // serialize/store this initialized stability pool again
+        frontend_data
+            .serialize(&mut *frontend_info.data.borrow_mut())
+            .map_err(|e| e.into())
+        
+    }
 
     /// get authority by given program address.
     pub fn authority_id(
@@ -337,7 +417,10 @@ impl PrintProgramError for StabilityPoolError {
             StabilityPoolError::InvalidState => msg!("Error: The stake pool state is invalid"),
             StabilityPoolError::InvalidOwner => msg!("Error: Pool token account's owner is invalid"),
             StabilityPoolError::InvalidPoolToken => msg!("Error: Given pool token account isn't same with pool token account"),
-            StabilityPoolError::NotRegistered => msg!("Error: Given frontend is not registered"),
+            StabilityPoolError::NotRegistered => msg!("Error: Given frontend was not registered"),
+            StabilityPoolError::AlreadyRegistered => msg!("Error: Given frontend was registered already"),
+            StabilityPoolError::HasDeposit => msg!("Error: Given user has deposit balance already, but it requires no deposit"),
+            StabilityPoolError::InvalidKickbackRate => msg!("Error: Given kickback rate is invalid"),
         }
     }
 } 
