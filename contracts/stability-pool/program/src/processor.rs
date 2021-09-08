@@ -5,7 +5,7 @@ use {
     crate::{
         error::StabilityPoolError,
         instruction::{StabilityPoolInstruction},
-        state::{StabilityPool,FrontEnd,Deposit},
+        state::{StabilityPool,FrontEnd,Deposit,Snapshots},
         liquitiy_math::{
             DECIMAL_PRECISION,
         }
@@ -32,6 +32,9 @@ use {
     spl_token::state::Mint, 
 };
 use std::str::FromStr;
+use community_issuance::state::{
+    CommunityIssuance
+};
 
 /// Program state handler.
 /// Main logic of this program
@@ -88,6 +91,9 @@ impl Processor {
         // pool solUsd token account
         let sol_usd_pool_info = next_account_info(account_info_iter)?;
 
+        // pool solUsd token account
+        let community_issuance_info = next_account_info(account_info_iter)?;
+
         // spl-token program account information
         let token_program_info = next_account_info(account_info_iter)?;
 
@@ -108,6 +114,7 @@ impl Processor {
 
         pool_data.token_program_pubkey = *token_program_info.key;
         pool_data.sol_usd_pool_token_pubkey = *sol_usd_pool_info.key;
+        pool_data.community_issuance_pubkey = *community_issuance_info.key;
         
         // serialize/store this initialized stability pool again
         pool_data
@@ -145,12 +152,31 @@ impl Processor {
         // front end account info
         let frontend_info = next_account_info(account_info_iter)?;
 
+        // snapshotsaccount info
+        let snapshots_info = next_account_info(account_info_iter)?;
+
+        let community_issuance_info = next_account_info(account_info_iter)?;
+
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
 
+        // clock account information to use timestamp
+        let clock_sysvar_info = next_account_info(account_info_iter)?;
+
+        // get clock from clock sysvar account information
+        let clock = &Clock::from_account_info(clock_sysvar_info)?;
+
+        // get current timestamp(second)
+        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+
         // borrow pool account data
-        let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
-        
+        let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+
+        let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
+
+        let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
+
+        pool_data.trigger_solid_issuance(issue_solid);
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
@@ -186,6 +212,15 @@ impl Processor {
         if user_deposit.initial_value == 0 {
             user_deposit.front_end_tag = frontend_data.owner_pubkey;
         }
+        let initial_deposit = user_deposit.initial_value;
+        let snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+
+        let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
+        let solusd_loss = initial_deposit - compounded_solusd_deposit;
+
+        // First pay out any SOLID gains
+        
 
         if amount > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool

@@ -345,6 +345,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "community-issuance"
+version = "0.0.1"
+dependencies = [
+ "borsh",
+ "borsh-derive",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2501,6 +2514,7 @@ version = "0.0.1"
 dependencies = [
  "borsh",
  "borsh-derive",
+ "community-issuance",
  "num-derive",
  "num-traits",
  "solana-program",

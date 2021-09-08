@@ -1,5 +1,5 @@
 [package]
-name = "solid-staking"
+name = "community-issuance"
 version = "0.0.1"
 description = "Solana Liquity Protocol"
 authors = ["Hongbo Li"]

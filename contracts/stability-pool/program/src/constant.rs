@@ -1,0 +1,1 @@
+pub const SCALE_FACTOR:u64 = 1_000_000_000;
