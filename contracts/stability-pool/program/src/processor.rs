@@ -150,6 +150,7 @@ impl Processor {
 
         // borrow pool account data
         let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+        
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
