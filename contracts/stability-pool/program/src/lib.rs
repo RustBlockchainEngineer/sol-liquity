@@ -19,7 +19,8 @@ pub mod processor;
 pub mod state;
 /// constants
 pub mod constant;
-pub mod liquitiy_math;
+pub mod pyth;
+pub mod math;
 
 // Declare and export the program's entrypoint
 entrypoint!(process_instruction);
