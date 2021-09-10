@@ -35,6 +35,18 @@ pub enum StabilityPoolError {
     /// given kickback rate is invalid
     #[error("InvalidKickbackRate")]
     InvalidKickbackRate,
+    /// require no under collateralized troves
+    #[error("RequireNoUnderCollateralizedTroves")]
+    RequireNoUnderCollateralizedTroves,
+    /// Oracle config is invalid
+    #[error("Input oracle config is invalid")]
+    InvalidOracleConfig,
+    /// Math operation overflow
+    #[error("Math operation overflow")]
+    MathOverflow,
+    /// Invalid account input
+    #[error("Invalid account input")]
+    InvalidAccountInput,
 }
 impl From<StabilityPoolError> for ProgramError {
     fn from(e: StabilityPoolError) -> Self {

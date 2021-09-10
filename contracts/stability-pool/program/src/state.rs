@@ -9,13 +9,15 @@ use {
     },
 };
 use crate::{
-    liquitiy_math::{
-        DECIMAL_PRECISION,
-    },
     constant::{
-        SCALE_FACTOR
+        DECIMAL_PRECISION,
+        SCALE_FACTOR,
+        ZERO_ADDRESS,
     }
 };
+use std::str::FromStr;
+
+
 /// Stability Pool struct
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -53,6 +55,17 @@ pub struct StabilityPool {
     pub current_scale:u128,
 
     pub current_epoch:u128,
+
+    // deposited sol tracker
+    pub sol: u64,
+
+    /// Oracle (Pyth) program id
+    pub oracle_program_id: Pubkey,
+    
+    /// Currency market prices are quoted in
+    /// e.g. "USD" null padded (`*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"`) or a SPL token mint pubkey
+    pub quote_currency: [u8; 32],
+
 }
 impl StabilityPool{
     pub fn trigger_solid_issuance(&mut self,solid_issuance:u64){
@@ -110,6 +123,50 @@ impl StabilityPool{
         let sol_gain = self.get_sol_gain_from_snapshots(initial_deposit, snapshots);
         return sol_gain;
     }
+
+    /*
+    * Return the SOLID gain earned by the front end. Given by the formula:  E = D0 * (G - G(0))/P(0)
+    * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
+    *
+    * D0 is the last recorded value of the front end's total tagged deposits.
+    */
+    pub fn get_frontend_solid_gain(&self, snapshots:&Snapshots, frontend:&FrontEnd)->u64{
+        let frontend_stake = frontend.frontend_stake;
+        if frontend_stake == 0 {
+            return 0;
+        }
+
+        let kickback_rate = frontend.kickback_rate;
+        let frontend_share = DECIMAL_PRECISION - kickback_rate;
+
+        let solid_gain = frontend_share * self.get_solid_gain_from_snapshots(frontend_stake, snapshots);
+        return solid_gain;
+    }
+
+    /*
+    * Calculate the SOLID gain earned by a deposit since its last snapshots were taken.
+    * Given by the formula:  SOLID = d0 * (G - G(0))/P(0)
+    * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
+    * d0 is the last recorded deposit value.
+    */
+    pub fn get_depositor_solid_gain(&self, snapshots:&Snapshots, user_deposit:&Deposit, frontend:&FrontEnd)->u64{
+        let initial_deposit = user_deposit.initial_value;
+        if initial_deposit == 0 {
+            return 0;
+        }
+        let frontend_tag = user_deposit.front_end_tag;
+
+        /*
+        * If not tagged with a front end, the depositor gets a 100% cut of what their deposit earned.
+        * Otherwise, their cut of the deposit's earnings is equal to the kickbackRate, set by the front end through
+        * which they made their deposit.
+        */
+        let kickback_rate = if frontend_tag == Pubkey::from_str(ZERO_ADDRESS).unwrap() {DECIMAL_PRECISION} else {frontend.kickback_rate};
+
+        let solid_gain = kickback_rate * self.get_solid_gain_from_snapshots(initial_deposit, snapshots);
+        return solid_gain;
+
+    }
     pub fn get_sol_gain_from_snapshots(&self, initial_deposit:u64, snapshots:&Snapshots) ->u64{
         /*
         * Grab the sum 'S' from the epoch at which the stake was made. The SOL gain may span up to one scale change.
@@ -128,12 +185,46 @@ impl StabilityPool{
         let sol_gain = initial_deposit * (first_portion + second_portion) / p_snapshot / DECIMAL_PRECISION;
         return sol_gain;
     }
+    pub fn get_solid_gain_from_snapshots(&self, initial_deposit:u64, snapshots:&Snapshots) ->u64{
+        /*
+        * Grab the sum 'S' from the epoch at which the stake was made. The SOLID gain may span up to one scale change.
+        * If it does, the second portion of the SOLID gain is scaled by 1e9.
+        * If the gain spans no scale change, the second portion will be 0.
+        */
+        let epoch_snapshot = snapshots.epoch;
+        let scale_snapshot = snapshots.scale;
+
+        let g_snapshot = snapshots.g;
+        let p_snapshot = snapshots.p;
+
+        let first_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot].sub(S_Snapshot);
+        let second_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot.add(1)].div(SCALE_FACTOR);
+
+        let solid_gain = initial_deposit * (first_portion + second_portion) / p_snapshot / DECIMAL_PRECISION;
+        return solid_gain;
+    }
     pub fn get_compounded_solusd_deposit(&self, initial_deposit:u64, snapshots:&Snapshots) -> u64 {
         if initial_deposit == 0 {
             return 0;
         }
         let compounded_deposit = self.get_compounded_stake_from_snapshots(initial_deposit, snapshots);
         return compounded_deposit;
+    }
+    /*
+    * Return the front end's compounded stake. Given by the formula:  D = D0 * P/P(0)
+    * where P(0) is the depositor's snapshot of the product P, taken at the last time
+    * when one of the front end's tagged deposits updated their deposit.
+    *
+    * The front end's compounded stake is equal to the sum of its depositors' compounded deposits.
+    */
+    pub fn get_compounded_frontend_stake(&self, frontend:&FrontEnd, snapshots:&Snapshots)->u64{
+        let frontend_stake = frontend.frontend_stake;
+        if frontend_stake == 0 {
+            return 0;
+        }
+        let compounded_frontend_stake = self.get_compounded_stake_from_snapshots(frontend_stake, snapshots);
+        return compounded_frontend_stake;
+
     }
     pub fn get_compounded_stake_from_snapshots(&self, initial_stake:u64, snapshots:&Snapshots) -> u64{
         let snapshot_p = snapshots.p;
@@ -190,6 +281,15 @@ pub struct FrontEnd {
 
     /// flag for registered frontend
     pub registered: u8,
+
+    /// last recorded total deposits, tagged with that front end
+    pub frontend_stake:u64,
+}
+
+impl FrontEnd {
+    pub fn update_frontend_stake(&mut self,new_value:u64){
+        self.frontend_stake = new_value;
+    }
 }
 
 #[repr(C)]
@@ -206,6 +306,9 @@ pub struct Deposit {
 
     /// tag public key of this frontend
     pub front_end_tag: Pubkey,
+}
+
+impl Deposit{
 }
 
 #[repr(C)]
@@ -231,4 +334,47 @@ pub struct Snapshots {
 
     /// epoch
     pub epoch: u128,
+}
+
+impl Snapshots{
+    pub fn update_snapshots_with_frontendstake(&mut self,new_value:u64, pool_data:&StabilityPool){
+        if new_value == 0{
+            return;
+        }
+
+        let current_scale_cached = pool_data.current_scale;
+        let current_epoch_cached = pool_data.current_epoch;
+        let current_p = pool_data.p;
+
+        // Get G for the current epoch and current scale
+        let current_g = 0;//epochToScaleToG[currentEpochCached][currentScaleCached];
+
+        // Record new snapshots of the latest running product p and sum g for the front end
+        self.p = current_p;
+        self.g = current_g;
+        self.scale = current_scale_cached;
+        self.epoch = current_epoch_cached;
+
+    }
+    pub fn update_snapshots_with_deposit(&mut self,new_value:u64, pool_data:&StabilityPool){
+        if new_value == 0{
+            return;
+        }
+
+        let current_scale_cached = pool_data.current_scale;
+        let current_epoch_cached = pool_data.current_epoch;
+        let current_p = pool_data.p;
+
+        // Get S and G for the current epoch and current scale
+        let current_s = 0;//epochToScaleToSum[currentEpochCached][currentScaleCached];
+        let current_g = 0;//epochToScaleToG[currentEpochCached][currentScaleCached];
+
+        // Record new snapshots of the latest running product P, sum S, and sum G, for the depositor
+        self.p = current_p;
+        self.s = current_s;
+        self.g = current_g;
+        self.scale = current_scale_cached;
+        self.epoch = current_epoch_cached;
+
+    }
 }
