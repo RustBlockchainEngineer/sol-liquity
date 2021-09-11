@@ -46,6 +46,9 @@ impl Processor {
                 // Instruction: Initialize
                 Self::process_initialize(program_id, accounts, nonce)
             }
+            TroveManagerInstruction::ApplyPendingRewards => {
+                Self::process_apply_pending_rewards(program_id, accounts)
+            }
         }
     }
 
@@ -83,6 +86,14 @@ impl Processor {
         if *solid_pool_info.owner != *program_id {
             return Err(TroveManagerError::InvalidOwner.into());
         }
+        Ok(())
+    } 
+    /// process `ApplyPendingRewards` instruction.
+    pub fn process_apply_pending_rewards(
+        program_id: &Pubkey,        // this program id
+        accounts: &[AccountInfo],   // all account informations
+    ) -> ProgramResult {
+        
         Ok(())
     } 
 

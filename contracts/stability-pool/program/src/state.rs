@@ -69,9 +69,9 @@ pub struct StabilityPool {
 }
 impl StabilityPool{
     pub fn trigger_solid_issuance(&mut self,solid_issuance:u64){
-        self.updateG(solid_issuance);
+        self.update_g(solid_issuance);
     }
-    pub fn updateG(&mut self,solid_issuance:u64){
+    pub fn update_g(&mut self,solid_issuance:u64){
         // cached to save an SLOAD
         let total_solusd = self.total_sol_usd_deposits;
 

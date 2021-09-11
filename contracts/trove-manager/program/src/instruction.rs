@@ -22,6 +22,7 @@ pub enum TroveManagerInstruction {
         /// nonce
         nonce: u8,
     },
+    ApplyPendingRewards,
     //Liquidate(u64),
     //LiquidateTroves(u64),
     //RedeemCollateral(u64),

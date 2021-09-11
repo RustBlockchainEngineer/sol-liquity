@@ -72,6 +72,13 @@ pub enum StabilityPoolInstruction {
     ///   8. `[]` amount
     WithdrawFromSP(u64),
 
+    /* withdrawSOLGainToTrove:
+    * - Triggers a SOLID issuance, based on time passed since the last issuance. The SOLID issuance is shared between *all* depositors and front ends
+    * - Sends all depositor's SOLID gain to  depositor
+    * - Sends all tagged front end's SOLID gain to the tagged front end
+    * - Transfers the depositor's entire ETH gain from the Stability Pool to the caller's trove
+    * - Leaves their compounded deposit in the Stability Pool
+    * - Updates snapshots for deposit and tagged front end stake */
     WithdrawSOLGainToTrove,
     
     RegisterFrontEnd(u64),

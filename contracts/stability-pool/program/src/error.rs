@@ -35,7 +35,7 @@ pub enum StabilityPoolError {
     /// given kickback rate is invalid
     #[error("InvalidKickbackRate")]
     InvalidKickbackRate,
-    /// require no under collateralized troves
+    /// require no under collateralized troves. Cannot withdraw while there are troves with ICR < MCR
     #[error("RequireNoUnderCollateralizedTroves")]
     RequireNoUnderCollateralizedTroves,
     /// Oracle config is invalid

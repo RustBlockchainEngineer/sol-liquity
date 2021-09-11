@@ -8,6 +8,7 @@ use {
         state::{StabilityPool,FrontEnd,Deposit,Snapshots},
         constant::{
             DECIMAL_PRECISION,
+            MCR,
         },
         pyth,
         math::{Decimal, Rate, TryAdd, TryDiv, TryMul, WAD},
@@ -217,14 +218,14 @@ impl Processor {
         if frontend_data.pool_id_pubkey == *pool_id_info.key {
             return Err(StabilityPoolError::InvalidOwner.into());
         }
+        if user_deposit.initial_value == 0 {
+            user_deposit.front_end_tag = frontend_data.owner_pubkey;
+        }
 
         // borrow depositor's frontend account data
         let depositor_frontend = try_from_slice_unchecked::<FrontEnd>(&depositor_frontend_info.data.borrow());
         let depositor_frontend_data = depositor_frontend.unwrap();
 
-        if user_deposit.initial_value == 0 {
-            user_deposit.front_end_tag = frontend_data.owner_pubkey;
-        }
         let initial_deposit = user_deposit.initial_value;
         let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
         let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
@@ -299,6 +300,18 @@ impl Processor {
         // user solUsd token account
         let solusd_user_info = next_account_info(account_info_iter)?;
 
+        // front end account info
+        let frontend_info = next_account_info(account_info_iter)?;
+
+        // depositor's frontend account info
+        let depositor_frontend_info = next_account_info(account_info_iter)?;
+
+        // snapshotsaccount info
+        let snapshots_info = next_account_info(account_info_iter)?;
+
+        // user community issuance account
+        let community_issuance_info = next_account_info(account_info_iter)?;
+
         // user transfer authority
         let user_transfer_authority_info = next_account_info(account_info_iter)?;
 
@@ -312,8 +325,17 @@ impl Processor {
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
+        // get current timestamp(second)
+        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+
         // borrow pool account data to initialize 
-        let pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+        let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+
+        let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
+
+        let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
+
+        pool_data.trigger_solid_issuance(issue_solid);
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
@@ -376,7 +398,12 @@ impl Processor {
         }
     
         let market_price = Self::get_pyth_price(pyth_price_info, clock)?;
-
+        //address lowestTrove = sortedTroves.getLast();
+        let icr = 0;//troveManager.getCurrentICR(lowestTrove, price);
+        if icr < MCR {
+            return Err(StabilityPoolError::RequireNoUnderCollateralizedTroves.into());
+        }
+        
         // borrow user deposit data
         let mut user_deposit = try_from_slice_unchecked::<Deposit>(&user_deposit_info.data.borrow())?;
 
@@ -386,7 +413,35 @@ impl Processor {
             _amount = user_deposit.initial_value;
         }
 
-        if _amount > 0 {
+        // borrow frontend account data
+        let frontend = try_from_slice_unchecked::<FrontEnd>(&frontend_info.data.borrow());
+        let mut frontend_data = frontend.unwrap();
+
+        // borrow depositor's frontend account data
+        let depositor_frontend = try_from_slice_unchecked::<FrontEnd>(&depositor_frontend_info.data.borrow());
+        let depositor_frontend_data = depositor_frontend.unwrap();
+
+        let initial_deposit = user_deposit.initial_value;
+        let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+
+        let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
+        let solusd_to_withdraw = if _amount < compounded_solusd_deposit {_amount} else {compounded_solusd_deposit};
+        let solusd_loss = initial_deposit - compounded_solusd_deposit;
+
+        // First pay out any SOLID gains
+        Self::payout_solid_gains(&community_issuance_data, &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+
+        // Update frontend stake
+        let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
+        let new_frontend_stake = compounded_frontend_stake - solusd_to_withdraw;
+        
+        // update frontend stake and snaphots
+        frontend_data.update_frontend_stake(new_frontend_stake);
+        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data);
+
+
+        if solusd_to_withdraw > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool
             Self::token_transfer(
                 pool_id_info.key,
@@ -395,9 +450,15 @@ impl Processor {
                 solusd_user_info.clone(),
                 user_transfer_authority_info.clone(),
                 pool_data.nonce,
-                _amount
+                solusd_to_withdraw
             )?;
-            user_deposit.initial_value -= _amount;
+            user_deposit.initial_value -= solusd_to_withdraw;
+            snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data)
+        }
+
+        if depositor_sol_gain > 0 {
+            pool_data.sol -=  depositor_sol_gain;
+            //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);)
         }
 
         // serialize/store user info again
@@ -415,8 +476,88 @@ impl Processor {
         program_id: &Pubkey,
         accounts: &[AccountInfo],
     ) -> ProgramResult {
-        Ok(())
+        let account_info_iter = &mut accounts.iter();
+
+        // pool account information to withdraw
+        let pool_id_info = next_account_info(account_info_iter)?;
+
+        // authority information of this pool account
+        let authority_info = next_account_info(account_info_iter)?;
+
+        // front end account info
+        let frontend_info = next_account_info(account_info_iter)?;
+
+        // depositor's frontend account info
+        let depositor_frontend_info = next_account_info(account_info_iter)?;
+
+        // snapshotsaccount info
+        let snapshots_info = next_account_info(account_info_iter)?;
+
+        // user community issuance account
+        let community_issuance_info = next_account_info(account_info_iter)?;
+
+        // user deposit info
+        let user_deposit_info = next_account_info(account_info_iter)?;
+
+        let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
+
+        // get current timestamp(second)
+        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+
+        // borrow pool account data to initialize 
+        let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
+
+        let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
+
+        let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
+
+        pool_data.trigger_solid_issuance(issue_solid);
+
+        // check if this stability pool account was created by this program with authority and nonce
+        // if fail, returns InvalidProgramAddress error
+        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        }
+
+        // borrow user deposit data
+        let user_deposit = try_from_slice_unchecked::<Deposit>(&user_deposit_info.data.borrow())?;
+
+        // borrow frontend account data
+        let frontend = try_from_slice_unchecked::<FrontEnd>(&frontend_info.data.borrow());
+        let mut frontend_data = frontend.unwrap();
+
+        // borrow depositor's frontend account data
+        let depositor_frontend = try_from_slice_unchecked::<FrontEnd>(&depositor_frontend_info.data.borrow());
+        let depositor_frontend_data = depositor_frontend.unwrap();
+
+        let initial_deposit = user_deposit.initial_value;
+        let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+
+        let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
+        let solusd_loss = initial_deposit - compounded_solusd_deposit;
+
+        // First pay out any SOLID gains
+        Self::payout_solid_gains(&community_issuance_data, &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+
+        // Update frontend stake
+        let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
+        let new_frontend_stake = compounded_frontend_stake;
         
+        // update frontend stake and snaphots
+        frontend_data.update_frontend_stake(new_frontend_stake);
+        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data);
+        
+        if depositor_sol_gain > 0 {
+            pool_data.sol -=  depositor_sol_gain;
+        }
+
+        //borrowerOperations.moveETHGainToTrove{ value: depositorETHGain }(msg.sender, _upperHint, _lowerHint);
+
+        // serialize/store this initialized stability pool again
+        pool_data
+            .serialize(&mut *pool_id_info.data.borrow_mut())
+            .map_err(|e| e.into())
     }
     /// process RegisterFrontend instruction
     pub fn process_register_frontend(
