@@ -78,9 +78,6 @@ impl Processor {
         // authority of SOLID staking pool account
         let authority_info = next_account_info(account_info_iter)?;
 
-        // pool SOLID token account
-        let solid_pool_info = next_account_info(account_info_iter)?;
-
         // spl-token program account information
         let token_program_info = next_account_info(account_info_iter)?;
 
@@ -88,12 +85,6 @@ impl Processor {
         // if fail, returns InvalidProgramAddress error
         if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, nonce)? {
             return Err(BorrowerOperationsError::InvalidProgramAddress.into());
-        }
-
-        // check if pool token account's owner is this program
-        // if not, returns InvalidOwner error
-        if *solid_pool_info.owner != *program_id {
-            return Err(BorrowerOperationsError::InvalidOwner.into());
         }
 
         // borrow pool account data to initialize (mutable)
@@ -107,7 +98,7 @@ impl Processor {
             .map_err(|e| e.into())
     } 
 
-    /// process ProvideToSP instruction
+    /// process OpenTrove instruction
     pub fn process_open_trove(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
