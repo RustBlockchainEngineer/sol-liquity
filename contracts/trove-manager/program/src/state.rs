@@ -10,8 +10,14 @@ use {
     num_traits::FromPrimitive,
     num_derive::FromPrimitive, 
 };
+use std::u64::MAX;
+use crate::{
+    constant::{
+        CCR
+    }
+};
 
-/// SOLID Staking struct
+
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct TroveManager {
@@ -51,7 +57,24 @@ pub struct TroveManager {
     pub last_solusd_debt_error_redistribution:u64,
 
 }
-
+impl TroveManager{
+    pub fn check_recovery_mode(&self, price: u64, active_pool_data: &ActivePool, default_pool_data: &DefaultPool)->u8{
+        let entire_system_coll = active_pool_data.sol + default_pool_data.sol;
+        let entire_system_debt = active_pool_data.solusd_debt + default_pool_data.solusd_debt;
+        let tcr = self.compute_cr(entire_system_coll, entire_system_debt, price);
+        return if tcr < CCR {1} else {0};
+    }
+    pub fn compute_cr(&self, coll: u64, debt: u64, price: u64)->u64{
+        if debt > 0 {
+            let new_coll_ratio = coll * price / debt;
+            return new_coll_ratio;
+        }
+        // Return the maximal value for uint256 if the Trove has a debt of 0. Represents "infinite" CR.
+        else {// if (_debt == 0)
+            return MAX;
+        }
+    }
+}
 #[repr(C)]
 #[derive(FromPrimitive, Clone, Debug, PartialEq, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum Status {

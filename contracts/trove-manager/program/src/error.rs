@@ -23,6 +23,18 @@ pub enum TroveManagerError {
     /// invalid borrower operations.
     #[error("InvalidBorrwerOperations")]
     InvalidBorrwerOperations,
+    /// borrower trove is not active yet
+    #[error("TroveNotActive")]
+    TroveNotActive,
+    /// Oracle config is invalid
+    #[error("Input oracle config is invalid")]
+    InvalidOracleConfig,
+    /// Invalid account input
+    #[error("Invalid account input")]
+    InvalidAccountInput,
+    /// Math operation overflow
+    #[error("Math operation overflow")]
+    MathOverflow,
 }
 impl From<TroveManagerError> for ProgramError {
     fn from(e: TroveManagerError) -> Self {

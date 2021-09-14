@@ -23,7 +23,7 @@ use {
         },
         constant::{
             DECIMAL_PRECISION
-        }
+        },
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
@@ -47,7 +47,15 @@ use {
     },
     spl_token::state::Mint, 
 };
+use std::convert::TryInto;
 use std::str::FromStr;
+use stability_pool::{
+    state::{
+        StabilityPool
+    },
+    pyth,
+    math::{Decimal, Rate, TryAdd, TryDiv, TryMul, WAD},
+};
 
 /// Program state handler.
 /// Main logic of this program
@@ -136,7 +144,7 @@ impl Processor {
         let caller_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
 
-        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
+        let trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
         let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
         let mut reward_snapshot = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
 
@@ -155,11 +163,76 @@ impl Processor {
         Ok(())
     } 
 
+    /*
+    * Attempt to liquidate a custom list of troves provided by the caller.
+    */
     pub fn process_liquidate(
         program_id: &Pubkey,        // this program id
         accounts: &[AccountInfo],   // all account informations
     ) -> ProgramResult {
-        
+        let account_info_iter = &mut accounts.iter();
+        let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let borrower_trove_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let stability_pool_info = next_account_info(account_info_iter)?;
+        let pyth_product_info = next_account_info(account_info_iter)?;
+        let pyth_price_info = next_account_info(account_info_iter)?;
+        let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
+
+        let trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
+        let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
+        let default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
+        let active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+        let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
+
+        if !borrower_trove.is_active() {
+            return Err(TroveManagerError::TroveNotActive.into());
+        }
+
+        let pyth_product_data = pyth_product_info.try_borrow_data()?;
+        let pyth_product = pyth::load::<pyth::Product>(&pyth_product_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+        if pyth_product.magic != pyth::MAGIC {
+            msg!("Pyth product account provided is not a valid Pyth account");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+        if pyth_product.ver != pyth::VERSION_2 {
+            msg!("Pyth product account provided has a different version than expected");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+        if pyth_product.atype != pyth::AccountType::Product as u32 {
+            msg!("Pyth product account provided is not a valid Pyth product account");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+    
+        let pyth_price_pubkey_bytes: &[u8; 32] = pyth_price_info
+            .key
+            .as_ref()
+            .try_into()
+            .map_err(|_| TroveManagerError::InvalidAccountInput)?;
+        if &pyth_product.px_acc.val != pyth_price_pubkey_bytes {
+            msg!("Pyth product price account does not match the Pyth price provided");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+    
+        let market_price = Self::get_pyth_price(pyth_price_info, clock)?;
+
+        let mut vars = LocalVariablesOuterLiquidationFunction{
+            price:0,
+            solusd_in_stab_pool:0,
+            recovery_mode_at_start:0,
+            liquidated_debt:0,
+            liquidated_coll:0,
+        };
+
+        vars.price = market_price.try_round_u64().unwrap();
+        vars.solusd_in_stab_pool = stability_pool_data.total_sol_usd_deposits;
+        vars.recovery_mode_at_start = trove_manager_data.check_recovery_mode(vars.price, &active_pool_data, &default_pool_data);
+
+        // Perform the appropriate liquidation sequence - tally values and obtain their totals.
+
+
         Ok(())
     }
     pub fn process_redeem_collateral(
@@ -263,6 +336,56 @@ impl Processor {
             }
         }
         return reward_snapshot.sol < trove_manager_data.l_sol;
+    }
+    pub fn get_pyth_price(pyth_price_info: &AccountInfo, clock: &Clock) -> Result<Decimal, ProgramError> {
+        const STALE_AFTER_SLOTS_ELAPSED: u64 = 5;
+
+        let pyth_price_data = pyth_price_info.try_borrow_data()?;
+        let pyth_price = pyth::load::<pyth::Price>(&pyth_price_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+
+        if pyth_price.ptype != pyth::PriceType::Price {
+            msg!("Oracle price type is invalid");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+
+        let slots_elapsed = clock
+            .slot
+            .checked_sub(pyth_price.valid_slot)
+            .ok_or(TroveManagerError::MathOverflow)?;
+        if slots_elapsed >= STALE_AFTER_SLOTS_ELAPSED {
+            msg!("Oracle price is stale");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+
+        let price: u64 = pyth_price.agg.price.try_into().map_err(|_| {
+            msg!("Oracle price cannot be negative");
+            TroveManagerError::InvalidOracleConfig
+        })?;
+
+        let market_price = if pyth_price.expo >= 0 {
+            let exponent = pyth_price
+                .expo
+                .try_into()
+                .map_err(|_| TroveManagerError::MathOverflow)?;
+            let zeros = 10u64
+                .checked_pow(exponent)
+                .ok_or(TroveManagerError::MathOverflow)?;
+            Decimal::from(price).try_mul(zeros)?
+        } else {
+            let exponent = pyth_price
+                .expo
+                .checked_abs()
+                .ok_or(TroveManagerError::MathOverflow)?
+                .try_into()
+                .map_err(|_| TroveManagerError::MathOverflow)?;
+            let decimals = 10u64
+                .checked_pow(exponent)
+                .ok_or(TroveManagerError::MathOverflow)?;
+            Decimal::from(price).try_div(decimals)?
+        };
+
+        Ok(market_price)
     }
     
 
