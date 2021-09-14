@@ -13,7 +13,7 @@ use {
     },
 };
 
-/// Instructions supported by the SOLID Staking program.
+/// Instructions supported by the Trove Manager program
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum TroveManagerInstruction {
@@ -23,8 +23,21 @@ pub enum TroveManagerInstruction {
         nonce: u8,
     },
     ApplyPendingRewards,
-    //Liquidate(u64),
-    //LiquidateTroves(u64),
-    //RedeemCollateral(u64),
+    Liquidate,
+    RedeemCollateral{
+        #[allow(dead_code)]
+        solusd_amount: u64,
+
+        #[allow(dead_code)]
+        partial_redemption_hint_nicr: u64,
+
+        #[allow(dead_code)]
+        max_iterations: u64,
+
+        #[allow(dead_code)]
+        max_fee_percentage: u64,
+    },
+    LiquidateTroves(u64),
+    
 
 }
