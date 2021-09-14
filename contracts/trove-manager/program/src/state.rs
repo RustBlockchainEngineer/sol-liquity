@@ -7,6 +7,8 @@ use {
     solana_program::{
         pubkey::{Pubkey},
     },
+    num_traits::FromPrimitive,
+    num_derive::FromPrimitive, 
 };
 
 /// SOLID Staking struct
@@ -25,14 +27,17 @@ pub struct TroveManager {
     /// Gas Pool publickey
     pub gas_pool_id: Pubkey,
 
-    /// solUSD token publickey
     pub solusd_token_pubkey: Pubkey,
 
-    /// solid token publickey
     pub solid_token_pubkey: Pubkey,
 
-    /// solid staking account publickey
     pub solid_staking_pubkey: Pubkey,
+
+    pub token_program_id: Pubkey,
+
+    pub default_pool_id: Pubkey,
+
+    pub active_pool_id: Pubkey,
 
     pub base_rate:u64,
 
@@ -48,8 +53,8 @@ pub struct TroveManager {
 }
 
 #[repr(C)]
-#[derive(Clone, Debug, PartialEq, BorshSerialize, BorshDeserialize, BorshSchema)]
-enum Status {
+#[derive(FromPrimitive, Clone, Debug, PartialEq, BorshSerialize, BorshDeserialize, BorshSchema)]
+pub enum Status {
     NonExistent,
     Active,
     ClosedByOwner,
@@ -72,6 +77,19 @@ pub struct Trove {
     pub status:u8,
     pub array_index:u128,
 }
+impl Trove {
+    pub fn is_active(&self)->bool {
+        let status = Status::from_u8(self.status).unwrap();
+        match status {
+            Status::Active =>{
+                return true
+            }
+            _ =>{
+                return false;
+            }
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -84,6 +102,12 @@ pub struct RewardSnapshot {
 
     pub sol:u64,
     pub solusd_debt:u64,
+}
+impl RewardSnapshot{
+    pub fn update_trove_reward_snapshots(&mut self, trove_manager:&TroveManager){
+        self.sol = trove_manager.l_sol;
+        self.solusd_debt = trove_manager.l_solusd_debt;
+    }
 }
 
 #[repr(C)]
@@ -171,4 +195,64 @@ pub struct SingleRedemptionValues {
     pub solusd_lot:u64,
     pub sol_lot:u64,
     pub cancelled_partial:u8,
+}
+
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct ActivePool {
+    pub borrower_operations_address: Pubkey,
+    pub trove_manager_address: Pubkey,
+    pub stability_pool_address: Pubkey,
+    pub default_pool_address: Pubkey,
+    pub sol: u64,
+    pub solusd_debt: u64,
+}
+impl ActivePool{
+    pub fn set_addresses(
+        &mut self, 
+        borrower_operatins_address: &Pubkey,
+        trove_manager_address: &Pubkey,
+        stability_pool_address: &Pubkey,
+        default_pool_address: &Pubkey,
+    ){
+        self.borrower_operations_address = *borrower_operatins_address;
+        self.trove_manager_address = *trove_manager_address;
+        self.stability_pool_address = *stability_pool_address;
+        self.default_pool_address = *default_pool_address;
+
+    }
+    pub fn increase_solusd_debt(&mut self, amount:u64){
+        self.solusd_debt += amount;
+    }
+    pub fn decrease_solusd_debt(&mut self, amount:u64){
+        self.solusd_debt -= amount;
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct DefaultPool {
+    pub trove_manager_address: Pubkey,
+    pub active_pool_address: Pubkey,
+    pub sol: u64,
+    pub solusd_debt: u64,
+}
+impl DefaultPool{
+    pub fn set_addresses(
+        &mut self, 
+        trove_manager_address: &Pubkey,
+        active_pool_address: &Pubkey,
+    ){
+        self.trove_manager_address = *trove_manager_address;
+        self.active_pool_address = *active_pool_address;
+
+    }
+    pub fn increase_solusd_debt(&mut self, amount:u64){
+        self.solusd_debt += amount;
+    }
+    pub fn decrease_solusd_debt(&mut self, amount:u64){
+        self.solusd_debt -= amount;
+    }
 }

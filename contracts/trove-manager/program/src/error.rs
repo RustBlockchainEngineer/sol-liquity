@@ -20,6 +20,9 @@ pub enum TroveManagerError {
     /// account's owner is invalid.
     #[error("InvalidOwner")]
     InvalidOwner,
+    /// invalid borrower operations.
+    #[error("InvalidBorrwerOperations")]
+    InvalidBorrwerOperations,
 }
 impl From<TroveManagerError> for ProgramError {
     fn from(e: TroveManagerError) -> Self {

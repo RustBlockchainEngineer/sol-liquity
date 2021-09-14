@@ -5,10 +5,29 @@ use {
     crate::{
         error::TroveManagerError,
         instruction::{TroveManagerInstruction},
-        state::{TroveManager},
+        state::{
+            TroveManager, 
+            Trove, 
+            RewardSnapshot, 
+            LocalVariablesOuterLiquidationFunction,
+            LocalVariablesInnerSingleLiquidateFunction,
+            LocalVariablesLiquidationSequence,
+            LiquidationValues,
+            LiquidationTotals,
+            ContractsCache,
+            RedemptionTotals,
+            SingleRedemptionValues,
+            ActivePool,
+            DefaultPool,
+            Status
+        },
+        constant::{
+            DECIMAL_PRECISION
+        }
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
+    num_derive::FromPrimitive, 
     solana_program::{
         account_info::{
             next_account_info,
@@ -80,29 +99,26 @@ impl Processor {
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
         
-        // SOLID staking pool account info to create newly
-        let pool_id_info = next_account_info(account_info_iter)?;
-
-        // authority of SOLID staking pool account
+        let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let default_pool_id_info = next_account_info(account_info_iter)?;
+        let active_pool_id_info = next_account_info(account_info_iter)?;
+        let borrow_operations_id_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
-
-        // pool SOLID token account
-        let solid_pool_info = next_account_info(account_info_iter)?;
-
-        // spl-token program account information
         let token_program_info = next_account_info(account_info_iter)?;
 
         // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, nonce)? {
+        if *authority_info.key != Self::authority_id(program_id, trove_manager_id_info.key, nonce)? {
             return Err(TroveManagerError::InvalidProgramAddress.into());
         }
 
-        // check if pool token account's owner is this program
-        // if not, returns InvalidOwner error
-        if *solid_pool_info.owner != *program_id {
-            return Err(TroveManagerError::InvalidOwner.into());
-        }
+        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&trove_manager_id_info.data.borrow())?;
+
+        trove_manager_data.borrower_operations_id = *borrow_operations_id_info.key;
+        trove_manager_data.default_pool_id = *default_pool_id_info.key;
+        trove_manager_data.active_pool_id = *active_pool_id_info.key;
+        trove_manager_data.token_program_id = *token_program_info.key;
+
         Ok(())
     } 
     /// process `ApplyPendingRewards` instruction.
@@ -110,7 +126,32 @@ impl Processor {
         program_id: &Pubkey,        // this program id
         accounts: &[AccountInfo],   // all account informations
     ) -> ProgramResult {
-        
+        let account_info_iter = &mut accounts.iter();
+        let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let borrower_info = next_account_info(account_info_iter)?;
+        let borrower_trove_info = next_account_info(account_info_iter)?;
+        let reward_snapshots_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let caller_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+
+        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
+        let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
+        let mut reward_snapshot = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
+
+        if *caller_info.key != trove_manager_data.borrower_operations_id {
+            return Err(TroveManagerError::InvalidBorrwerOperations.into());
+        }
+
+        Self::apply_pending_rewards(
+            &trove_manager_data, 
+            &mut borrower_trove,
+            &mut reward_snapshot, 
+            default_pool_info, 
+            active_pool_info
+        );
+
         Ok(())
     } 
 
@@ -139,6 +180,91 @@ impl Processor {
     ) -> ProgramResult {
         Ok(())
     }
+
+    pub fn apply_pending_rewards(
+        trove_manager_data:&TroveManager, 
+        borrower_trove:&mut Trove, 
+        reward_snapshot:&mut RewardSnapshot, 
+        default_pool_id_info:&AccountInfo, 
+        active_pool_id_info:&AccountInfo)
+    {
+        if Self::has_pending_rewards(trove_manager_data, borrower_trove, reward_snapshot) {
+            if borrower_trove.is_active() {
+                // Compute pending rewards
+                let pending_sol_reward = Self::get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
+                let pending_solusd_debt_reward = Self::get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
+
+                // Apply pending rewards to trove's state
+                borrower_trove.coll = borrower_trove.coll + pending_sol_reward;
+                borrower_trove.debt = borrower_trove.debt + pending_solusd_debt_reward;
+
+                reward_snapshot.update_trove_reward_snapshots(trove_manager_data);
+
+                // Transfer from DefaultPool to ActivePool
+                Self::move_pending_trove_reward_to_active_pool(
+                    trove_manager_data, 
+                    pending_sol_reward, 
+                    pending_solusd_debt_reward,
+                    default_pool_id_info,
+                    active_pool_id_info
+                );
+            }
+        }
+    }
+    pub fn move_pending_trove_reward_to_active_pool(
+        trove_manager_data:&TroveManager,
+        _solusd:u64, 
+        _sol:u64,
+        default_pool_id_info:&AccountInfo,
+        active_pool_id_info:&AccountInfo
+    ){
+        let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_id_info.data.borrow()).unwrap();
+        let mut active_pool_data = try_from_slice_unchecked::<DefaultPool>(&active_pool_id_info.data.borrow()).unwrap();
+        default_pool_data.decrease_solusd_debt(_solusd);
+        default_pool_data.increase_solusd_debt(_sol);
+
+        // _defaultPool.sendETHToActivePool(_ETH);
+    }
+    
+    pub fn get_pending_sol_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u64{
+        let snapshot_sol = reward_snapshot.sol;
+        let reward_per_unit_staked = trove_manager_data.l_sol - snapshot_sol;
+
+        if reward_per_unit_staked == 0 || !borrower_trove.is_active() {
+            return 0;
+        }
+        let stake = borrower_trove.stake;
+        let pending_sol_reward = stake * reward_per_unit_staked / DECIMAL_PRECISION;
+        return pending_sol_reward;
+    }
+    pub fn get_pending_solusd_debt_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u64{
+        let snapshot_solusd_debt = reward_snapshot.solusd_debt;
+        let reward_per_unit_staked = trove_manager_data.l_solusd_debt - snapshot_solusd_debt;
+
+        if reward_per_unit_staked == 0 || !borrower_trove.is_active() {
+            return 0;
+        }
+        let stake = borrower_trove.stake;
+        let pending_solusd_debt_reward = stake * reward_per_unit_staked / DECIMAL_PRECISION;
+        return pending_solusd_debt_reward;
+    }
+    pub fn has_pending_rewards(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->bool{
+        /*
+        * A Trove has pending rewards if its snapshot is less than the current rewards per-unit-staked sum:
+        * this indicates that rewards have occured since the snapshot was made, and the user therefore has
+        * pending rewards
+        */
+        let status = Status::from_u8(borrower_trove.status).unwrap();
+        match status {
+            Status::Active =>{
+            }
+            _ =>{
+                return false;
+            }
+        }
+        return reward_snapshot.sol < trove_manager_data.l_sol;
+    }
+    
 
     /// get authority by given program address.
     pub fn authority_id(
@@ -180,17 +306,13 @@ impl Processor {
     
 }
 
-/// implement all farm error messages
+
+/// implement all stability pool error messages
 impl PrintProgramError for TroveManagerError {
     fn print<E>(&self)
     where
         E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
     {
-        match self {
-            TroveManagerError::AlreadyInUse => msg!("Error: The account cannot be initialized because it is already being used"),
-            TroveManagerError::InvalidProgramAddress => msg!("Error: The program address provided doesn't match the value generated by the program"),
-            TroveManagerError::InvalidState => msg!("Error: The stake pool state is invalid"),
-            TroveManagerError::InvalidOwner => msg!("Error: Pool token account's owner is invalid"),
-        }
+        msg!(&self.to_string());
     }
-} 
+}
