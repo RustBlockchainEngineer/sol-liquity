@@ -49,6 +49,23 @@ impl Processor {
             TroveManagerInstruction::ApplyPendingRewards => {
                 Self::process_apply_pending_rewards(program_id, accounts)
             }
+            TroveManagerInstruction::Liquidate => {
+                // Instruction: Initialize
+                Self::process_liquidate(program_id, accounts)
+            }
+            TroveManagerInstruction::RedeemCollateral{
+                solusd_amount,
+                partial_redemption_hint_nicr,
+                max_iterations,
+                max_fee_percentage,
+            } => {
+                // Instruction: Initialize
+                Self::process_redeem_collateral(program_id, accounts, solusd_amount, partial_redemption_hint_nicr, max_iterations, max_fee_percentage)
+            }
+            TroveManagerInstruction::LiquidateTroves(number) => {
+                // Instruction: Initialize
+                Self::process_liquidate_troves(program_id, accounts, number)
+            }
         }
     }
 
@@ -96,6 +113,32 @@ impl Processor {
         
         Ok(())
     } 
+
+    pub fn process_liquidate(
+        program_id: &Pubkey,        // this program id
+        accounts: &[AccountInfo],   // all account informations
+    ) -> ProgramResult {
+        
+        Ok(())
+    }
+    pub fn process_redeem_collateral(
+        program_id: &Pubkey,        // this program id
+        accounts: &[AccountInfo],   // all account informations
+        solusd_amount:u64,
+        partial_redemption_hint_nicr:u64,
+        max_iterations:u64,
+        max_fee_percentage:u64
+    ) -> ProgramResult {
+        
+        Ok(())
+    } 
+    pub fn process_liquidate_troves(
+        program_id: &Pubkey,        // this program id
+        accounts: &[AccountInfo],   // all account informations
+        number: u64,                  // nonce for authorizing
+    ) -> ProgramResult {
+        Ok(())
+    }
 
     /// get authority by given program address.
     pub fn authority_id(
