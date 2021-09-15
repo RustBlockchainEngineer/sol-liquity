@@ -22,7 +22,9 @@ use {
             Status
         },
         constant::{
-            DECIMAL_PRECISION
+            DECIMAL_PRECISION,
+            MCR,
+            CCR
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -230,8 +232,11 @@ impl Processor {
         vars.solusd_in_stab_pool = stability_pool_data.total_sol_usd_deposits;
         vars.recovery_mode_at_start = trove_manager_data.check_recovery_mode(vars.price, &active_pool_data, &default_pool_data);
 
+        
         // Perform the appropriate liquidation sequence - tally values and obtain their totals.
-
+        if vars.recovery_mode_at_start == 1 {
+            trove_manager_data.totals = 
+        }
 
         Ok(())
     }
@@ -253,7 +258,73 @@ impl Processor {
     ) -> ProgramResult {
         Ok(())
     }
+    pub fn get_total_from_batch_liquidate_recovery_mode(
+        trove_manager_data:&TroveManager,
+        active_pool:&ActivePool,
+        default_pool:&DefaultPool,
+        price:u64,
+        solusd_in_stab_pool: u64,
+        borrower_address:&Pubkey,
+        borrower_trove:&mut Trove,
+        reward_snapshot:&mut RewardSnapshot
+    )->u64{
+        let vars = LocalVariablesLiquidationSequence::new();
+        let single_liquidation = LiquidationValues::new();
 
+        vars.remaining_solusd_in_stab_pool = solusd_in_stab_pool;
+        vars.back_to_normal_mode = 0;
+        vars.entire_system_debt = active_pool.solusd_debt + default_pool.solusd_debt;
+        vars.entire_system_coll = active_pool.sol + default_pool.sol;
+        vars.user = Option::from(*borrower_address);
+
+        if borrower_trove.is_active() {
+            vars.icr = Self::get_current_icr(trove_manager_data, borrower_trove, reward_snapshot, price);
+
+            if vars.back_to_normal_mode == 0 {
+                if vars.icr < MCR || vars.remaining_solusd_in_stab_pool > 0 {
+                    let tcr = trove_manager_data.compute_cr(vars.entire_system_coll, vars.entire_system_debt, price);
+                    single_liquidation = 
+                }
+            }
+        }
+
+    }
+    pub fn liquidate_recovery_mode(
+        active_pool:&ActivePool,
+        default_pool:&DefaultPool,
+        borrower_trove:&mut Trove,
+        _icr:u64,
+        _solusd_in_stab_pool:u64,
+        _tcr:u64,
+        _price:u64
+
+    )->LiquidationValues{
+        let vars = LocalVariablesInnerSingleLiquidateFunction::new();
+        
+    }
+    pub fn get_current_icr(
+        trove_manager_data:&TroveManager, 
+        borrower_trove:&mut Trove, 
+        reward_snapshot:&mut RewardSnapshot, 
+        price:u64
+    )->u64{
+        let (current_sol, current_solusd_debt) = Self::get_current_trove_amounts(trove_manager_data, borrower_trove, reward_snapshot);
+        let icr = trove_manager_data.compute_cr(current_sol, current_solusd_debt, price);
+        return icr;
+    }
+    pub fn get_current_trove_amounts(
+        trove_manager_data:&TroveManager, 
+        borrower_trove:&mut Trove, 
+        reward_snapshot:&mut RewardSnapshot, 
+    )->(u64,u64){
+        let pending_sol_reward = Self::get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
+        let pending_solusd_debt_reward = Self::get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
+
+        let current_sol = borrower_trove.coll + pending_sol_reward;
+        let current_solusd = borrower_trove.debt + pending_solusd_debt_reward;
+
+        return (current_sol, current_solusd);
+    }
     pub fn apply_pending_rewards(
         trove_manager_data:&TroveManager, 
         borrower_trove:&mut Trove, 

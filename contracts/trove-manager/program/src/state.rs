@@ -151,17 +151,38 @@ pub struct LocalVariablesInnerSingleLiquidateFunction {
     pub pending_debt_reward:u64,
     pub pending_coll_reward:u64,
 }
-
+impl LocalVariablesInnerSingleLiquidateFunction{
+    pub fn new()->LocalVariablesInnerSingleLiquidateFunction{
+        LocalVariablesInnerSingleLiquidateFunction{
+            coll_to_liquidate:0,
+            pending_debt_reward:0,
+            pending_coll_reward:0
+        }
+    }
+}
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesLiquidationSequence {
     pub remaining_solusd_in_stab_pool:u64,
     pub i:u64,
     pub icr:u64,
-    pub user:Pubkey,
+    pub user:Option<Pubkey>,
     pub back_to_normal_mode:u8,
     pub entire_system_debt:u64,
     pub entire_system_coll:u64,
+}
+impl LocalVariablesLiquidationSequence{
+    pub fn new()->LocalVariablesLiquidationSequence{
+        return LocalVariablesLiquidationSequence{
+            remaining_solusd_in_stab_pool:0,
+            i:0,
+            icr:0,
+            user:None,
+            back_to_normal_mode:0,
+            entire_system_debt:0,
+            entire_system_coll:0
+        };
+    }
 }
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -175,6 +196,21 @@ pub struct LiquidationValues {
     pub debt_to_redistribute:u64,
     pub coll_to_redistribute:u64,
     pub coll_surplus:u64,
+}
+impl LiquidationValues{
+    pub fn new()->LiquidationValues{
+        return LiquidationValues{
+            entire_trove_debt:0,
+            entire_trove_coll:0,
+            coll_gas_compensation:0,
+            solusd_gas_compensation:0,
+            debt_to_offset:0,
+            coll_to_send_to_sp:0,
+            debt_to_redistribute:0,
+            coll_to_redistribute:0,
+            coll_surplus:0
+        };
+    }
 }
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
