@@ -12,7 +12,7 @@ This Will be converted for Solana
       - [Liquidations in Normal Mode: TCR >= 150%](#liquidations-in-normal-mode-tcr--150)
       - [Liquidations in Recovery Mode: TCR < 150%](#liquidations-in-recovery-mode-tcr--150)
   - [Gains From Liquidations](#gains-from-liquidations)
-  - [LUSD Token Redemption](#lusd-token-redemption)
+  - [SOLUSD Token Redemption](#lusd-token-redemption)
     - [Partial redemption](#partial-redemption)
     - [Full redemption](#full-redemption)
     - [Redemptions create a price floor](#redemptions-create-a-price-floor)
@@ -20,11 +20,11 @@ This Will be converted for Solana
   - [Project Structure](#project-structure)
     - [Directories](#directories)
     - [Branches](#branches)
-  - [LQTY Token Architecture](#lqty-token-architecture)
-    - [LQTY Lockup contracts and token vesting](#lqty-lockup-contracts-and-token-vesting)
+  - [SOLID Token Architecture](#lqty-token-architecture)
+    - [SOLID Lockup contracts and token vesting](#lqty-lockup-contracts-and-token-vesting)
     - [Lockup Implementation and admin transfer restriction](#lockup-implementation-and-admin-transfer-restriction)
     - [Launch sequence and vesting process](#launch-sequence-and-vesting-process)
-      - [Deploy LQTY Contracts](#deploy-lqty-contracts)
+      - [Deploy SOLID Contracts](#deploy-lqty-contracts)
       - [Deploy and fund Lockup Contracts](#deploy-and-fund-lockup-contracts)
       - [Deploy Liquity Core](#deploy-liquity-core)
       - [During one year lockup period](#during-one-year-lockup-period)
@@ -40,8 +40,8 @@ This Will be converted for Solana
     - [PriceFeed limitations and known issues](#pricefeed-limitations-and-known-issues)
     - [Keeping a sorted list of Troves ordered by ICR](#keeping-a-sorted-list-of-troves-ordered-by-icr)
     - [Flow of Ether in Liquity](#flow-of-ether-in-liquity)
-    - [Flow of LUSD tokens in Liquity](#flow-of-lusd-tokens-in-liquity)
-    - [Flow of LQTY Tokens in Liquity](#flow-of-lqty-tokens-in-liquity)
+    - [Flow of SOLUSD tokens in Liquity](#flow-of-lusd-tokens-in-liquity)
+    - [Flow of SOLID Tokens in Liquity](#flow-of-lqty-tokens-in-liquity)
   - [Expected User Behaviors](#expected-user-behaviors)
   - [Contract Ownership and Function Permissions](#contract-ownership-and-function-permissions)
   - [Deployment to a Development Blockchain](#deployment-to-a-development-blockchain)
@@ -54,10 +54,10 @@ This Will be converted for Solana
     - [TroveManager Functions - `TroveManager.sol`](#trovemanager-functions---trovemanagersol)
     - [Hint Helper Functions - `HintHelpers.sol`](#hint-helper-functions---hinthelperssol)
     - [Stability Pool Functions - `StabilityPool.sol`](#stability-pool-functions---stabilitypoolsol)
-    - [LQTY Staking Functions  `LQTYStaking.sol`](#lqty-staking-functions--lqtystakingsol)
+    - [SOLID Staking Functions  `SOLIDStaking.sol`](#lqty-staking-functions--lqtystakingsol)
     - [Lockup Contract Factory `LockupContractFactory.sol`](#lockup-contract-factory-lockupcontractfactorysol)
     - [Lockup contract - `LockupContract.sol`](#lockup-contract---lockupcontractsol)
-    - [LUSD token `LUSDToken.sol` and LQTY token `LQTYToken.sol`](#lusd-token-lusdtokensol-and-lqty-token-lqtytokensol)
+    - [SOLUSD token `SOLUSDToken.sol` and SOLID token `SOLIDToken.sol`](#lusd-token-lusdtokensol-and-lqty-token-lqtytokensol)
   - [Supplying Hints to Trove operations](#supplying-hints-to-trove-operations)
     - [Hints for `redeemCollateral`](#hints-for-redeemcollateral)
       - [First redemption hint](#first-redemption-hint)
@@ -69,23 +69,23 @@ This Will be converted for Solana
     - [Gas compensation helper functions](#gas-compensation-helper-functions)
   - [The Stability Pool](#the-stability-pool)
     - [Mixed liquidations: offset and redistribution](#mixed-liquidations-offset-and-redistribution)
-    - [Stability Pool deposit losses and ETH gains - implementation](#stability-pool-deposit-losses-and-eth-gains---implementation)
+    - [Stability Pool deposit losses and SOL gains - implementation](#stability-pool-deposit-losses-and-eth-gains---implementation)
     - [Stability Pool example](#stability-pool-example)
     - [Stability Pool implementation](#stability-pool-implementation)
-    - [How deposits and ETH gains are tracked](#how-deposits-and-eth-gains-are-tracked)
-  - [LQTY Issuance to Stability Providers](#lqty-issuance-to-stability-providers)
-    - [LQTY Issuance schedule](#lqty-issuance-schedule)
-    - [LQTY Issuance implementation](#lqty-issuance-implementation)
-    - [Handling the front end LQTY gain](#handling-the-front-end-lqty-gain)
-    - [LQTY reward events and payouts](#lqty-reward-events-and-payouts)
-  - [LQTY issuance to liquity providers](#lqty-issuance-to-liquity-providers)
+    - [How deposits and SOL gains are tracked](#how-deposits-and-eth-gains-are-tracked)
+  - [SOLID Issuance to Stability Providers](#lqty-issuance-to-stability-providers)
+    - [SOLID Issuance schedule](#lqty-issuance-schedule)
+    - [SOLID Issuance implementation](#lqty-issuance-implementation)
+    - [Handling the front end SOLID gain](#handling-the-front-end-lqty-gain)
+    - [SOLID reward events and payouts](#lqty-reward-events-and-payouts)
+  - [SOLID issuance to liquity providers](#lqty-issuance-to-liquity-providers)
   - [Liquity System Fees](#liquity-system-fees)
     - [Redemption Fee](#redemption-fee)
     - [Issuance fee](#issuance-fee)
     - [Fee Schedule](#fee-schedule)
     - [Intuition behind fees](#intuition-behind-fees)
     - [Fee decay Implementation](#fee-decay-implementation)
-    - [Staking LQTY and earning fees](#staking-lqty-and-earning-fees)
+    - [Staking SOLID and earning fees](#staking-lqty-and-earning-fees)
   - [Redistributions and Corrected Stakes](#redistributions-and-corrected-stakes)
     - [Corrected Stake Solution](#corrected-stake-solution)
   - [Math Proofs](#math-proofs)
@@ -104,37 +104,37 @@ This Will be converted for Solana
 
 ## Liquity Overview
 
-Liquity is a collateralized debt platform. Users can lock up Ether, and issue stablecoin tokens (LUSD) to their own Ethereum address, and subsequently transfer those tokens to any other Ethereum address. The individual collateralized debt positions are called Troves.
+Liquity is a collateralized debt platform. Users can lock up Ether, and issue stablecoin tokens (SOLUSD) to their own Ethereum address, and subsequently transfer those tokens to any other Ethereum address. The individual collateralized debt positions are called Troves.
 
-The stablecoin tokens are economically geared towards maintaining value of 1 LUSD = \$1 USD, due to the following properties:
+The stablecoin tokens are economically geared towards maintaining value of 1 SOLUSD = \$1 USD, due to the following properties:
 
 1. The system is designed to always be over-collateralized - the dollar value of the locked Ether exceeds the dollar value of the issued stablecoins
 
-2. The stablecoins are fully redeemable - users can always swap $x worth of LUSD for $x worth of ETH (minus fees), directly with the system.
+2. The stablecoins are fully redeemable - users can always swap $x worth of SOLUSD for $x worth of SOL (minus fees), directly with the system.
 
-3. The system algorithmically controls the generation of LUSD through a variable issuance fee.
+3. The system algorithmically controls the generation of SOLUSD through a variable issuance fee.
 
-After opening a Trove with some Ether, users may issue ("borrow") tokens such that the collateralization ratio of their Trove remains above 110%. A user with $1000 worth of ETH in a Trove can issue up to 909.09 LUSD.
+After opening a Trove with some Ether, users may issue ("borrow") tokens such that the collateralization ratio of their Trove remains above 110%. A user with $1000 worth of SOL in a Trove can issue up to 909.09 SOLUSD.
 
-The tokens are freely exchangeable - anyone with an Ethereum address can send or receive LUSD tokens, whether they have an open Trove or not. The tokens are burned upon repayment of a Trove's debt.
+The tokens are freely exchangeable - anyone with an Ethereum address can send or receive SOLUSD tokens, whether they have an open Trove or not. The tokens are burned upon repayment of a Trove's debt.
 
-The Liquity system regularly updates the ETH:USD price via a decentralized data feed. When a Trove falls below a minimum collateralization ratio (MCR) of 110%, it is considered under-collateralized, and is vulnerable to liquidation.
+The Liquity system regularly updates the SOL:USD price via a decentralized data feed. When a Trove falls below a minimum collateralization ratio (MCR) of 110%, it is considered under-collateralized, and is vulnerable to liquidation.
 
 ## Liquidation and the Stability Pool
 
 Liquity utilizes a two-step liquidation mechanism in the following order of priority: 
 
-1. Offset under-collateralized Troves against the Stability Pool containing LUSD tokens
+1. Offset under-collateralized Troves against the Stability Pool containing SOLUSD tokens
 
 2. Redistribute under-collateralized Troves to other borrowers if the Stability Pool is emptied
 
-Liquity primarily uses the LUSD tokens in its Stability Pool to absorb the under-collateralized debt, i.e. to repay the liquidated borrower's liability.
+Liquity primarily uses the SOLUSD tokens in its Stability Pool to absorb the under-collateralized debt, i.e. to repay the liquidated borrower's liability.
 
-Any user may deposit LUSD tokens to the Stability Pool. This allows them to earn the collateral from the liquidated Trove. When a liquidation occurs, the liquidated debt is cancelled with the same amount of LUSD in the Pool (which is burned as a result), and the liquidated Ether is proportionally distributed to depositors.
+Any user may deposit SOLUSD tokens to the Stability Pool. This allows them to earn the collateral from the liquidated Trove. When a liquidation occurs, the liquidated debt is cancelled with the same amount of SOLUSD in the Pool (which is burned as a result), and the liquidated Ether is proportionally distributed to depositors.
 
 Stability Pool depositors can expect to earn net gains from liquidations, as in most cases, the value of the liquidated Ether will be greater than the value of the cancelled debt (since a liquidated Trove will likely have an ICR just slightly below 110%).
 
-If the liquidated debt is higher than the amount of LUSD in the Stability Pool, the system tries to cancel as much debt as possible with the tokens in the Stability Pool, and then redistributes the remaining liquidated collateral and debt across all active Troves.
+If the liquidated debt is higher than the amount of SOLUSD in the Stability Pool, the system tries to cancel as much debt as possible with the tokens in the Stability Pool, and then redistributes the remaining liquidated collateral and debt across all active Troves.
 
 Anyone may call the public `liquidateTroves()` function, which will check for under-collateralized Troves, and liquidate them. Alternatively they can call `batchLiquidateTroves()` with a custom list of trove addresses to attempt to liquidate.
 
@@ -146,44 +146,44 @@ Currently, mass liquidations performed via the above functions cost 60-65k gas p
 
 The precise behavior of liquidations depends on the ICR of the Trove being liquidated and global system conditions:  the total collateralization ratio (TCR) of the system, the size of the Stability Pool, etc.  
 
-Here is the liquidation logic for a single Trove in Normal Mode and Recovery Mode.  `SP.LUSD` represents the LUSD in the Stability Pool.
+Here is the liquidation logic for a single Trove in Normal Mode and Recovery Mode.  `SP.SOLUSD` represents the SOLUSD in the Stability Pool.
 
 #### Liquidations in Normal Mode: TCR >= 150%
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Condition                      | Liquidation behavior                                                                                                                                                                                                                                                                                                |
 |----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ICR < MCR & SP.LUSD >= trove.debt | LUSD in the StabilityPool equal to the Trove's debt is offset with the Trove's debt. The Trove's ETH collateral is shared between depositors.                                                                                                                                                                       |
-| ICR < MCR & SP.LUSD < trove.debt | The total StabilityPool LUSD is offset with an equal amount of debt from the Trove.  A fraction of the Trove's collateral (equal to the ratio of its offset debt to its entire debt) is shared between depositors. The remaining debt and collateral (minus ETH gas compensation) is redistributed to active Troves |
-| ICR < MCR & SP.LUSD = 0          | Redistribute all debt and collateral (minus ETH gas compensation) to active Troves.                                                                                                                                                                                                                                 |
+| ICR < MCR & SP.SOLUSD >= trove.debt | SOLUSD in the StabilityPool equal to the Trove's debt is offset with the Trove's debt. The Trove's SOL collateral is shared between depositors.                                                                                                                                                                       |
+| ICR < MCR & SP.SOLUSD < trove.debt | The total StabilityPool SOLUSD is offset with an equal amount of debt from the Trove.  A fraction of the Trove's collateral (equal to the ratio of its offset debt to its entire debt) is shared between depositors. The remaining debt and collateral (minus SOL gas compensation) is redistributed to active Troves |
+| ICR < MCR & SP.SOLUSD = 0          | Redistribute all debt and collateral (minus SOL gas compensation) to active Troves.                                                                                                                                                                                                                                 |
 | ICR  >= MCR                      | Do nothing.                                                                                                                                                                                                                                                                                                         |
 #### Liquidations in Recovery Mode: TCR < 150%
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Condition                                | Liquidation behavior                                                                                                                                                                                                                                                                                                                                                                                         |
 |------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| ICR <=100%                               | Redistribute all debt and collateral (minus ETH gas compensation) to active Troves.                                                                                                                                                                                                                                                                                                                          |
-| 100% < ICR < MCR & SP.LUSD > trove.debt  | LUSD in the StabilityPool equal to the Trove's debt is offset with the Trove's debt. The Trove's ETH collateral (minus ETH gas compensation) is shared between depsitors.                                                                                                                                                                                                                                    |
-| 100% < ICR < MCR & SP.LUSD < trove.debt  | The total StabilityPool LUSD is offset with an equal amount of debt from the Trove.  A fraction of the Trove's collateral (equal to the ratio of its offset debt to its entire debt) is shared between depositors. The remaining debt and collateral (minus ETH gas compensation) is redistributed to active troves                                                                                          |
-| MCR <= ICR < TCR & SP.LUSD >= trove.debt  |  The Pool LUSD is offset with an equal amount of debt from the Trove. A fraction of ETH collateral with dollar value equal to `1.1 * debt` is shared between depositors. Nothing is redistributed to other active Troves. Since it's ICR was > 1.1, the Trove has a collateral remainder, which is sent to the `CollSurplusPool` and is claimable by the borrower. The Trove is closed. |
-| MCR <= ICR < TCR & SP.LUSD  < trove.debt | Do nothing.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ICR <=100%                               | Redistribute all debt and collateral (minus SOL gas compensation) to active Troves.                                                                                                                                                                                                                                                                                                                          |
+| 100% < ICR < MCR & SP.SOLUSD > trove.debt  | SOLUSD in the StabilityPool equal to the Trove's debt is offset with the Trove's debt. The Trove's SOL collateral (minus SOL gas compensation) is shared between depsitors.                                                                                                                                                                                                                                    |
+| 100% < ICR < MCR & SP.SOLUSD < trove.debt  | The total StabilityPool SOLUSD is offset with an equal amount of debt from the Trove.  A fraction of the Trove's collateral (equal to the ratio of its offset debt to its entire debt) is shared between depositors. The remaining debt and collateral (minus SOL gas compensation) is redistributed to active troves                                                                                          |
+| MCR <= ICR < TCR & SP.SOLUSD >= trove.debt  |  The Pool SOLUSD is offset with an equal amount of debt from the Trove. A fraction of SOL collateral with dollar value equal to `1.1 * debt` is shared between depositors. Nothing is redistributed to other active Troves. Since it's ICR was > 1.1, the Trove has a collateral remainder, which is sent to the `CollSurplusPool` and is claimable by the borrower. The Trove is closed. |
+| MCR <= ICR < TCR & SP.SOLUSD  < trove.debt | Do nothing.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ICR >= TCR                               | Do nothing.                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## Gains From Liquidations
 
-Stability Pool depositors gain Ether over time, as liquidated debt is cancelled with their deposit. When they withdraw all or part of their deposited tokens, or top up their deposit, the system sends them their accumulated ETH gains.
+Stability Pool depositors gain Ether over time, as liquidated debt is cancelled with their deposit. When they withdraw all or part of their deposited tokens, or top up their deposit, the system sends them their accumulated SOL gains.
 
-Similarly, a Trove's accumulated gains from liquidations are automatically applied to the Trove when the owner performs any operation - e.g. adding/withdrawing collateral, or issuing/repaying LUSD.
+Similarly, a Trove's accumulated gains from liquidations are automatically applied to the Trove when the owner performs any operation - e.g. adding/withdrawing collateral, or issuing/repaying SOLUSD.
 
-## LUSD Token Redemption
+## SOLUSD Token Redemption
 
-Any LUSD holder (whether or not they have an active Trove) may redeem their LUSD directly with the system. Their LUSD is exchanged for ETH, at face value: redeeming x LUSD tokens returns \$x worth of ETH (minus a [redemption fee](#redemption-fee)).
+Any SOLUSD holder (whether or not they have an active Trove) may redeem their SOLUSD directly with the system. Their SOLUSD is exchanged for SOL, at face value: redeeming x SOLUSD tokens returns \$x worth of SOL (minus a [redemption fee](#redemption-fee)).
 
-When LUSD is redeemed for ETH, the system cancels the LUSD with debt from Troves, and the ETH is drawn from their collateral.
+When SOLUSD is redeemed for SOL, the system cancels the SOLUSD with debt from Troves, and the SOL is drawn from their collateral.
 
 In order to fulfill the redemption request, Troves are redeemed from in ascending order of their collateralization ratio.
 
 A redemption sequence of `n` steps will **fully** redeem from up to `n-1` Troves, and, and **partially** redeems from up to 1 Trove, which is always the last Trove in the redemption sequence.
 
-Redemptions are blocked when TCR < 110% (there is no need to restrict ICR < TCR). At that TCR redemptions would likely be unprofitable, as LUSD is probably trading above $1 if the system has crashed that badly, but it could be a way for an attacker with a lot of LUSD to lower the TCR even further.
+Redemptions are blocked when TCR < 110% (there is no need to restrict ICR < TCR). At that TCR redemptions would likely be unprofitable, as SOLUSD is probably trading above $1 if the system has crashed that badly, but it could be a way for an attacker with a lot of SOLUSD to lower the TCR even further.
 
 Note that redemptions are disabled during the first 14 days of operation since deployment of the Liquity protocol to protect the monetary system in its infancy.
 
@@ -195,23 +195,23 @@ The partially redeemed Trove is re-inserted into the sorted list of Troves, and 
 
 ### Full redemption
 
-A Trove is defined as “fully redeemed from” when the redemption has caused (debt-50) of its debt to absorb (debt-50) LUSD. Then, its 50 LUSD Liquidation Reserve is cancelled with its remaining 50 debt: the Liquidation Reserve is burned from the gas address, and the 50 debt is zero’d.
+A Trove is defined as “fully redeemed from” when the redemption has caused (debt-50) of its debt to absorb (debt-50) SOLUSD. Then, its 50 SOLUSD Liquidation Reserve is cancelled with its remaining 50 debt: the Liquidation Reserve is burned from the gas address, and the 50 debt is zero’d.
 
-Before closing, we must handle the Trove’s **collateral surplus**: that is, the excess ETH collateral remaining after redemption, due to its initial over-collateralization.
+Before closing, we must handle the Trove’s **collateral surplus**: that is, the excess SOL collateral remaining after redemption, due to its initial over-collateralization.
 
 This collateral surplus is sent to the `CollSurplusPool`, and the borrower can reclaim it later. The Trove is then fully closed.
 
 ### Redemptions create a price floor
 
-Economically, the redemption mechanism creates a hard price floor for LUSD, ensuring that the market price stays at or near to $1 USD. 
+Economically, the redemption mechanism creates a hard price floor for SOLUSD, ensuring that the market price stays at or near to $1 USD. 
 
 ## Recovery Mode
 
 Recovery Mode kicks in when the total collateralization ratio (TCR) of the system falls below 150%.
 
-During Recovery Mode, liquidation conditions are relaxed, and the system blocks borrower transactions that would further decrease the TCR. New LUSD may only be issued by adjusting existing Troves in a way that improves their ICR, or by opening a new Trove with an ICR of >=150%. In general, if an existing Trove's adjustment reduces its ICR, the transaction is only executed if the resulting TCR is above 150%
+During Recovery Mode, liquidation conditions are relaxed, and the system blocks borrower transactions that would further decrease the TCR. New SOLUSD may only be issued by adjusting existing Troves in a way that improves their ICR, or by opening a new Trove with an ICR of >=150%. In general, if an existing Trove's adjustment reduces its ICR, the transaction is only executed if the resulting TCR is above 150%
 
-Recovery Mode is structured to incentivize borrowers to behave in ways that promptly raise the TCR back above 150%, and to incentivize LUSD holders to replenish the Stability Pool.
+Recovery Mode is structured to incentivize borrowers to behave in ways that promptly raise the TCR back above 150%, and to incentivize SOLUSD holders to replenish the Stability Pool.
 
 Economically, Recovery Mode is designed to encourage collateral top-ups and debt repayments, and also itself acts as a self-negating deterrent: the possibility of it occurring actually guides the system away from ever reaching it.
 
@@ -242,78 +242,78 @@ Backend development is done in the Hardhat framework, and allows Liquity to be d
 
 As of 18/01/2021, the current working branch is `main`. `master` is out of date.
 
-## LQTY Token Architecture
+## SOLID Token Architecture
 
-The Liquity system incorporates a secondary token, LQTY. This token entitles the holder to a share of the system revenue generated by redemption fees and  issuance fees.
+The Liquity system incorporates a secondary token, SOLID. This token entitles the holder to a share of the system revenue generated by redemption fees and  issuance fees.
 
-To earn a share of system fees, the LQTY holder must stake their LQTY in a staking contract.
+To earn a share of system fees, the SOLID holder must stake their SOLID in a staking contract.
 
-Liquity also issues LQTY to Stability Providers, in a continous time-based manner.
+Liquity also issues SOLID to Stability Providers, in a continous time-based manner.
 
-The LQTY contracts consist of:
+The SOLID contracts consist of:
 
-`LQTYStaking.sol` - the staking contract, containing stake and unstake functionality for LQTY holders. This contract receives ETH fees from redemptions, and LUSD fees from new debt issuance.
+`SOLIDStaking.sol` - the staking contract, containing stake and unstake functionality for SOLID holders. This contract receives SOL fees from redemptions, and SOLUSD fees from new debt issuance.
 
-`CommunityIssuance.sol` - This contract handles the issuance of LQTY tokens to Stability Providers as a function of time. It is controlled by the `StabilityPool`. Upon system launch, the `CommunityIssuance` automatically receives 32 million LQTY - the “community issuance” supply. The contract steadily issues these LQTY tokens to the Stability Providers over time.
+`CommunityIssuance.sol` - This contract handles the issuance of SOLID tokens to Stability Providers as a function of time. It is controlled by the `StabilityPool`. Upon system launch, the `CommunityIssuance` automatically receives 32 million SOLID - the “community issuance” supply. The contract steadily issues these SOLID tokens to the Stability Providers over time.
 
-`LQTYToken.sol` - This is the LQTY ERC20 contract. It has a hard cap supply of 100 million, and during the first year, restricts transfers from the Liquity admin address, a regular Ethereum address controlled by the project company Liquity AG. **Note that the Liquity admin address has no extra privileges and does not retain any control over the Liquity protocol once deployed.**
+`SOLIDToken.sol` - This is the SOLID ERC20 contract. It has a hard cap supply of 100 million, and during the first year, restricts transfers from the Liquity admin address, a regular Ethereum address controlled by the project company Liquity AG. **Note that the Liquity admin address has no extra privileges and does not retain any control over the Liquity protocol once deployed.**
 
-### LQTY Lockup contracts and token vesting
+### SOLID Lockup contracts and token vesting
 
-Some LQTY is reserved for team members and partners, and is locked up for one year upon system launch. Additionally, some team members receive LQTY vested on a monthly basis, which during the first year, is transferred directly to their lockup contract.
+Some SOLID is reserved for team members and partners, and is locked up for one year upon system launch. Additionally, some team members receive SOLID vested on a monthly basis, which during the first year, is transferred directly to their lockup contract.
 
 In the first year after launch:
 
-- All team members and partners are unable to access their locked up LQTY tokens
+- All team members and partners are unable to access their locked up SOLID tokens
 
 - The Liquity admin address may transfer tokens **only to verified lockup contracts with an unlock date at least one year after system deployment**
 
-Also, separate LQTY allocations are made at deployent to an EOA that will hold an amount of LQTY for bug bounties/hackathons and to a Uniswap LP reward contract. Aside from these allocations, the only LQTY made freely available in this first year is the LQTY that is publically issued to Stability Providers via the `CommunityIssuance` contract.
+Also, separate SOLID allocations are made at deployent to an EOA that will hold an amount of SOLID for bug bounties/hackathons and to a Uniswap LP reward contract. Aside from these allocations, the only SOLID made freely available in this first year is the SOLID that is publically issued to Stability Providers via the `CommunityIssuance` contract.
 
 ### Lockup Implementation and admin transfer restriction
 
-A `LockupContractFactory` is used to deploy `LockupContracts` in the first year. During the first year, the `LQTYToken` checks that any transfer from the Liquity admin address is to a valid `LockupContract` that is registered in and was deployed through the `LockupContractFactory`.
+A `LockupContractFactory` is used to deploy `LockupContracts` in the first year. During the first year, the `SOLIDToken` checks that any transfer from the Liquity admin address is to a valid `LockupContract` that is registered in and was deployed through the `LockupContractFactory`.
 
 ### Launch sequence and vesting process
 
-#### Deploy LQTY Contracts
+#### Deploy SOLID Contracts
 1. Liquity admin deploys `LockupContractFactory`
 2. Liquity admin deploys `CommunityIssuance`
-3. Liquity admin deploys `LQTYStaking` 
-4. Liquity admin creates a Pool in Uniswap for LUSD/ETH and deploys `Unipool` (LP rewards contract), which knows the address of the Pool
-5. Liquity admin deploys `LQTYToken`, which upon deployment:
+3. Liquity admin deploys `SOLIDStaking` 
+4. Liquity admin creates a Pool in Uniswap for SOLUSD/SOL and deploys `Unipool` (LP rewards contract), which knows the address of the Pool
+5. Liquity admin deploys `SOLIDToken`, which upon deployment:
 - Stores the `CommunityIssuance` and `LockupContractFactory` addresses
-- Mints LQTY tokens to `CommunityIssuance`, the Liquity admin address, the `Unipool` LP rewards address, and the bug bounty address
-6. Liquity admin sets `LQTYToken` address in `LockupContractFactory`, `CommunityIssuance`, `LQTYStaking`, and `Unipool`
+- Mints SOLID tokens to `CommunityIssuance`, the Liquity admin address, the `Unipool` LP rewards address, and the bug bounty address
+6. Liquity admin sets `SOLIDToken` address in `LockupContractFactory`, `CommunityIssuance`, `SOLIDStaking`, and `Unipool`
 
 #### Deploy and fund Lockup Contracts
 7. Liquity admin tells `LockupContractFactory` to deploy a `LockupContract` for each beneficiary, with an `unlockTime` set to exactly one year after system deployment
-8. Liquity admin transfers LQTY to each `LockupContract`, according to their entitlement
+8. Liquity admin transfers SOLID to each `LockupContract`, according to their entitlement
 
 #### Deploy Liquity Core
 9. Liquity admin deploys the Liquity core system
 10. Liquity admin connects Liquity core system internally (with setters)
-11. Liquity admin connects `LQTYStaking` to Liquity core contracts and `LQTYToken`
-13. Liquity admin connects `CommunityIssuance` to Liquity core contracts and `LQTYToken`
+11. Liquity admin connects `SOLIDStaking` to Liquity core contracts and `SOLIDToken`
+13. Liquity admin connects `CommunityIssuance` to Liquity core contracts and `SOLIDToken`
 
 #### During one year lockup period
 - Liquity admin periodically transfers newly vested tokens to team & partners’ `LockupContracts`, as per their vesting schedules
-- Liquity admin may only transfer LQTY to `LockupContracts`
+- Liquity admin may only transfer SOLID to `LockupContracts`
 - Anyone may deploy new `LockupContracts` via the Factory, setting any `unlockTime` that is >= 1 year from system deployment
 
 #### Upon end of one year lockup period
 - All beneficiaries may withdraw their entire entitlements
-- Liquity admin address restriction on LQTY transfers is automatically lifted, and Liquity admin may now transfer LQTY to any address
+- Liquity admin address restriction on SOLID transfers is automatically lifted, and Liquity admin may now transfer SOLID to any address
 - Anyone may deploy new `LockupContracts` via the Factory, setting any `unlockTime` in the future
 
 #### Post-lockup period
 - Liquity admin periodically transfers newly vested tokens to team & partners, directly to their individual addresses, or to a fresh lockup contract if required.
 
-_NOTE: In the final architecture, a multi-sig contract will be used to move LQTY Tokens, rather than the single Liquity admin EOA. It will be deployed at the start of the sequence, and have its address recorded in  `LQTYToken` in step 4, and receive LQTY tokens. It will be used to move LQTY in step 7, and during & after the lockup period. The Liquity admin EOA will only be used for deployment of contracts in steps 1-4 and 9._
+_NOTE: In the final architecture, a multi-sig contract will be used to move SOLID Tokens, rather than the single Liquity admin EOA. It will be deployed at the start of the sequence, and have its address recorded in  `SOLIDToken` in step 4, and receive SOLID tokens. It will be used to move SOLID in step 7, and during & after the lockup period. The Liquity admin EOA will only be used for deployment of contracts in steps 1-4 and 9._
 
 _The current code does not utilize a multi-sig. It implements the launch architecture outlined above._
 
-_Additionally, a LP staking contract will receive the initial LP staking reward allowance, rather than an EOA. It will be used to hold and issue LQTY to users who stake LP tokens that correspond to certain pools on DEXs._
+_Additionally, a LP staking contract will receive the initial LP staking reward allowance, rather than an EOA. It will be used to hold and issue SOLID to users who stake LP tokens that correspond to certain pools on DEXs._
 
 ## Core System Architecture
 
@@ -323,23 +323,23 @@ All application logic and data is contained in these contracts - there is no nee
 
 The system has no admin key or human governance. Once deployed, it is fully automated, decentralized and no user holds any special privileges in or control over the system.
 
-The three main contracts - `BorrowerOperations.sol`, `TroveManager.sol` and `StabilityPool.sol` - hold the user-facing public functions, and contain most of the internal system logic. Together they control Trove state updates and movements of Ether and LUSD tokens around the system.
+The three main contracts - `BorrowerOperations.sol`, `TroveManager.sol` and `StabilityPool.sol` - hold the user-facing public functions, and contain most of the internal system logic. Together they control Trove state updates and movements of Ether and SOLUSD tokens around the system.
 
 ### Core Smart Contracts
 
-`BorrowerOperations.sol` - contains the basic operations by which borrowers interact with their Trove: Trove creation, ETH top-up / withdrawal, stablecoin issuance and repayment. It also sends issuance fees to the `LQTYStaking` contract. BorrowerOperations functions call in to TroveManager, telling it to update Trove state, where necessary. BorrowerOperations functions also call in to the various Pools, telling them to move Ether/Tokens between Pools or between Pool <> user, where necessary.
+`BorrowerOperations.sol` - contains the basic operations by which borrowers interact with their Trove: Trove creation, SOL top-up / withdrawal, stablecoin issuance and repayment. It also sends issuance fees to the `SOLIDStaking` contract. BorrowerOperations functions call in to TroveManager, telling it to update Trove state, where necessary. BorrowerOperations functions also call in to the various Pools, telling them to move Ether/Tokens between Pools or between Pool <> user, where necessary.
 
-`TroveManager.sol` - contains functionality for liquidations and redemptions. It sends redemption fees to the `LQTYStaking` contract. Also contains the state of each Trove - i.e. a record of the Trove’s collateral and debt. TroveManager does not hold value (i.e. Ether / other tokens). TroveManager functions call in to the various Pools to tell them to move Ether/tokens between Pools, where necessary.
+`TroveManager.sol` - contains functionality for liquidations and redemptions. It sends redemption fees to the `SOLIDStaking` contract. Also contains the state of each Trove - i.e. a record of the Trove’s collateral and debt. TroveManager does not hold value (i.e. Ether / other tokens). TroveManager functions call in to the various Pools to tell them to move Ether/tokens between Pools, where necessary.
 
 `LiquityBase.sol` - Both TroveManager and BorrowerOperations inherit from the parent contract LiquityBase, which contains global constants and some common functions.
 
-`StabilityPool.sol` - contains functionality for Stability Pool operations: making deposits, and withdrawing compounded deposits and accumulated ETH and LQTY gains. Holds the LUSD Stability Pool deposits, and the ETH gains for depositors, from liquidations.
+`StabilityPool.sol` - contains functionality for Stability Pool operations: making deposits, and withdrawing compounded deposits and accumulated SOL and SOLID gains. Holds the SOLUSD Stability Pool deposits, and the SOL gains for depositors, from liquidations.
 
-`LUSDToken.sol` - the stablecoin token contract, which implements the ERC20 fungible token standard in conjunction with EIP-2612 and a mechanism that blocks (accidental) transfers to addresses like the StabilityPool and address(0) that are not supposed to receive funds through direct transfers. The contract mints, burns and transfers LUSD tokens.
+`SOLUSDToken.sol` - the stablecoin token contract, which implements the ERC20 fungible token standard in conjunction with EIP-2612 and a mechanism that blocks (accidental) transfers to addresses like the StabilityPool and address(0) that are not supposed to receive funds through direct transfers. The contract mints, burns and transfers SOLUSD tokens.
 
 `SortedTroves.sol` - a doubly linked list that stores addresses of Trove owners, sorted by their individual collateralization ratio (ICR). It inserts and re-inserts Troves at the correct position, based on their ICR.
 
-`PriceFeed.sol` - Contains functionality for obtaining the current ETH:USD price, which the system uses for calculating collateralization ratios.
+`PriceFeed.sol` - Contains functionality for obtaining the current SOL:USD price, which the system uses for calculating collateralization ratios.
 
 `HintHelpers.sol` - Helper contract, containing the read-only functionality for calculation of accurate hints to be supplied to borrower operations and redemptions.
 
@@ -351,9 +351,9 @@ Along with `StabilityPool.sol`, these contracts hold Ether and/or tokens for the
 
 `DefaultPool.sol` - holds the total Ether balance and records the total stablecoin debt of the liquidated Troves that are pending redistribution to active Troves. If a Trove has pending ether/debt “rewards” in the DefaultPool, then they will be applied to the Trove when it next undergoes a borrower operation, a redemption, or a liquidation.
 
-`CollSurplusPool.sol` - holds the ETH surplus from Troves that have been fully redeemed from as well as from Troves with an ICR > MCR that were liquidated in Recovery Mode. Sends the surplus back to the owning borrower, when told to do so by `BorrowerOperations.sol`.
+`CollSurplusPool.sol` - holds the SOL surplus from Troves that have been fully redeemed from as well as from Troves with an ICR > MCR that were liquidated in Recovery Mode. Sends the surplus back to the owning borrower, when told to do so by `BorrowerOperations.sol`.
 
-`GasPool.sol` - holds the total LUSD liquidation reserves. LUSD is moved into the `GasPool` when a Trove is opened, and moved out when a Trove is liquidated or closed.
+`GasPool.sol` - holds the total SOLUSD liquidation reserves. SOLUSD is moved into the `GasPool` when a Trove is opened, and moved out when a Trove is liquidated or closed.
 
 ### Contract Interfaces
 
@@ -361,7 +361,7 @@ Along with `StabilityPool.sol`, these contracts hold Ether and/or tokens for the
 
 ### PriceFeed and Oracle
 
-Liquity functions that require the most current ETH:USD price data fetch the price dynamically, as needed, via the core `PriceFeed.sol` contract using the Chainlink ETH:USD reference contract as its primary and Tellor's ETH:USD price feed as its secondary (fallback) data source. PriceFeed is stateful, i.e. it records the last good price that may come from either of the two sources based on the contract's current state.
+Liquity functions that require the most current SOL:USD price data fetch the price dynamically, as needed, via the core `PriceFeed.sol` contract using the Chainlink SOL:USD reference contract as its primary and Tellor's SOL:USD price feed as its secondary (fallback) data source. PriceFeed is stateful, i.e. it records the last good price that may come from either of the two sources based on the contract's current state.
 
 The fallback logic distinguishes 3 different failure modes for Chainlink and 2 failure modes for Tellor:
 
@@ -371,7 +371,7 @@ The fallback logic distinguishes 3 different failure modes for Chainlink and 2 f
 
 There is also a return condition `bothOraclesLiveAndUnbrokenAndSimilarPrice` which is a function returning true if both oracles are live and not broken, and the percentual difference between the two reported prices is below 5%.
 
-The current `PriceFeed.sol` contract has an external `fetchPrice()` function that is called by core Liquity functions which require a current ETH:USD price.  `fetchPrice()` calls each oracle's proxy, asserts on the responses, and converts returned prices to 18 digits.
+The current `PriceFeed.sol` contract has an external `fetchPrice()` function that is called by core Liquity functions which require a current SOL:USD price.  `fetchPrice()` calls each oracle's proxy, asserts on the responses, and converts returned prices to 18 digits.
 
 ### PriceFeed Logic
 
@@ -411,12 +411,12 @@ To summarize the Chainlink decimals issue:
 - If Liquity fetches the price at round `i`, it will not know if Chainlink decimals changed across round `i-1` to round `i`, and the consequent price scaling distortion may cause Liquity to fall back to Tellor
 - Liquity will always calculate the correct current price at 18-digit precision assuming the current return value of `decimals()` is correct (i.e. is the value used by the nodes).
 
-**Tellor Decimals**: Tellor uses 6 decimal precision for their ETHUSD price as determined by a social consensus of Tellor miners/data providers, and shown on Tellor's price feed page. Their decimals value is not offered in their on-chain contracts.  We rely on the continued social consensus around 6 decimals for their ETHUSD price feed. Tellor have informed us that if there was demand for an ETHUSD price at different precision, they would simply create a new `requestId`, and make no attempt to alter the social consensus around the precision of the current ETHUSD `requestId` (1) used by Liquity.
+**Tellor Decimals**: Tellor uses 6 decimal precision for their SOSOLUSD price as determined by a social consensus of Tellor miners/data providers, and shown on Tellor's price feed page. Their decimals value is not offered in their on-chain contracts.  We rely on the continued social consensus around 6 decimals for their SOSOLUSD price feed. Tellor have informed us that if there was demand for an SOSOLUSD price at different precision, they would simply create a new `requestId`, and make no attempt to alter the social consensus around the precision of the current SOSOLUSD `requestId` (1) used by Liquity.
 
 
 ### Keeping a sorted list of Troves ordered by ICR
 
-Liquity relies on a particular data structure: a sorted doubly-linked list of Troves that remains ordered by individual collateralization ratio (ICR), i.e. the amount of collateral (in USD) divided by the amount of debt (in LUSD).
+Liquity relies on a particular data structure: a sorted doubly-linked list of Troves that remains ordered by individual collateralization ratio (ICR), i.e. the amount of collateral (in USD) divided by the amount of debt (in SOLUSD).
 
 This ordered list is critical for gas-efficient redemption sequences and for the `liquidateTroves` sequence, both of which target Troves in ascending order of ICR.
 
@@ -426,7 +426,7 @@ Nodes map to active Troves in the system - the ID property is the address of a t
 
 ICRs are computed dynamically at runtime, and not stored on the node. This is because ICRs of active Troves change dynamically, when:
 
-- The ETH:USD price varies, altering the USD of the collateral of every Trove
+- The SOL:USD price varies, altering the USD of the collateral of every Trove
 - A liquidation that redistributes collateral and debt to active Troves occurs
 
 The list relies on the fact that a collateral and debt redistribution due to a liquidation preserves the ordering of all active Troves (though it does decrease the ICR of each active Trove above the MCR).
@@ -435,13 +435,13 @@ The fact that ordering is maintained as redistributions occur, is not immediatel
 
 A node inserted based on current ICR will maintain the correct position, relative to its peers, as liquidation gains accumulate, as long as its raw collateral and debt have not changed.
 
-Nodes also remain sorted as the ETH:USD price varies, since price fluctuations change the collateral value of each Trove by the same proportion.
+Nodes also remain sorted as the SOL:USD price varies, since price fluctuations change the collateral value of each Trove by the same proportion.
 
 Thus, nodes need only be re-inserted to the sorted list upon a Trove operation - when the owner adds or removes collateral or debt to their position.
 
 ### Flow of Ether in Liquity
 
-![Flow of Ether](images/ETH_flows.svg)
+![Flow of Ether](images/SOL_flows.svg)
 
 Ether in the system lives in three Pools: the ActivePool, the DefaultPool and the StabilityPool. When an operation is made, Ether is transferred in one of three ways:
 
@@ -451,23 +451,23 @@ Ether in the system lives in three Pools: the ActivePool, the DefaultPool and th
 
 Ether is recorded on an _individual_ level, but stored in _aggregate_ in a Pool. An active Trove with collateral and debt has a struct in the TroveManager that stores its ether collateral value in a uint, but its actual Ether is in the balance of the ActivePool contract.
 
-Likewise, the StabilityPool holds the total accumulated ETH gains from liquidations for all depositors.
+Likewise, the StabilityPool holds the total accumulated SOL gains from liquidations for all depositors.
 
 **Borrower Operations**
 
-| Function                     | ETH quantity                        | Path                                       |
+| Function                     | SOL quantity                        | Path                                       |
 |------------------------------|-------------------------------------|--------------------------------------------|
 | openTrove                    | msg.value                           | msg.sender->BorrowerOperations->ActivePool |
 | addColl                      | msg.value                           | msg.sender->BorrowerOperations->ActivePool |
 | withdrawColl                 | _collWithdrawal parameter           | ActivePool->msg.sender                     |
-| adjustTrove: adding ETH      | msg.value                           | msg.sender->BorrowerOperations->ActivePool |
-| adjustTrove: withdrawing ETH | _collWithdrawal parameter           | ActivePool->msg.sender                     |
+| adjustTrove: adding SOL      | msg.value                           | msg.sender->BorrowerOperations->ActivePool |
+| adjustTrove: withdrawing SOL | _collWithdrawal parameter           | ActivePool->msg.sender                     |
 | closeTrove                   | All remaining                       | ActivePool->msg.sender                     |
 | claimCollateral              | CollSurplusPool.balance[msg.sender] | CollSurplusPool->msg.sender                |
 
 **Trove Manager**
 
-| Function                                | ETH quantity                           | Path                          |
+| Function                                | SOL quantity                           | Path                          |
 |-----------------------------------------|----------------------------------------|-------------------------------|
 | liquidate (offset)                      | collateral to be offset                | ActivePool->StabilityPool     |
 | liquidate (redistribution)              | collateral to be redistributed         | ActivePool->DefaultPool       |
@@ -476,96 +476,96 @@ Likewise, the StabilityPool holds the total accumulated ETH gains from liquidati
 | batchLiquidateTroves (offset)           | collateral to be offset                | ActivePool->StabilityPool     |
 | batchLiquidateTroves (redistribution).  | collateral to be redistributed         | ActivePool->DefaultPool       |
 | redeemCollateral                        | collateral to be swapped with redeemer | ActivePool->msg.sender        |
-| redeemCollateral                        | redemption fee                         | ActivePool->LQTYStaking       |
+| redeemCollateral                        | redemption fee                         | ActivePool->SOLIDStaking       |
 | redeemCollateral                        | trove's collateral surplus             | ActivePool->CollSurplusPool |
 
 **Stability Pool**
 
-| Function               | ETH quantity                     | Path                                              |
+| Function               | SOL quantity                     | Path                                              |
 |------------------------|----------------------------------|---------------------------------------------------|
-| provideToSP            | depositor's accumulated ETH gain | StabilityPool -> msg.sender                       |
-| withdrawFromSP         | depositor's accumulated ETH gain | StabilityPool -> msg.sender                       |
-| withdrawETHGainToTrove | depositor's accumulated ETH gain | StabilityPool -> BorrowerOperations -> ActivePool |
+| provideToSP            | depositor's accumulated SOL gain | StabilityPool -> msg.sender                       |
+| withdrawFromSP         | depositor's accumulated SOL gain | StabilityPool -> msg.sender                       |
+| withdrawSOLGainToTrove | depositor's accumulated SOL gain | StabilityPool -> BorrowerOperations -> ActivePool |
 
-**LQTY Staking**
+**SOLID Staking**
 
-| Function    | ETH quantity                                   | Path                     |
+| Function    | SOL quantity                                   | Path                     |
 |-------------|------------------------------------------------|--------------------------|
-| stake       | staker's accumulated ETH gain from system fees | LQTYStaking ->msg.sender |
-| unstake     | staker's accumulated ETH gain from system fees | LQTYStaking ->msg.sender |
+| stake       | staker's accumulated SOL gain from system fees | SOLIDStaking ->msg.sender |
+| unstake     | staker's accumulated SOL gain from system fees | SOLIDStaking ->msg.sender |
 
-### Flow of LUSD tokens in Liquity
+### Flow of SOLUSD tokens in Liquity
 
-![Flow of LUSD](images/LUSD_flows.svg)
+![Flow of SOLUSD](images/SOLUSD_flows.svg)
 
-When a user issues debt from their Trove, LUSD tokens are minted to their own address, and a debt is recorded on the Trove. Conversely, when they repay their Trove’s LUSD debt, LUSD is burned from their address, and the debt on their Trove is reduced.
+When a user issues debt from their Trove, SOLUSD tokens are minted to their own address, and a debt is recorded on the Trove. Conversely, when they repay their Trove’s SOLUSD debt, SOLUSD is burned from their address, and the debt on their Trove is reduced.
 
-Redemptions burn LUSD from the redeemer’s balance, and reduce the debt of the Trove redeemed against.
+Redemptions burn SOLUSD from the redeemer’s balance, and reduce the debt of the Trove redeemed against.
 
-Liquidations that involve a Stability Pool offset burn tokens from the Stability Pool’s balance, and reduce the LUSD debt of the liquidated Trove.
+Liquidations that involve a Stability Pool offset burn tokens from the Stability Pool’s balance, and reduce the SOLUSD debt of the liquidated Trove.
 
-The only time LUSD is transferred to/from a Liquity contract, is when a user deposits LUSD to, or withdraws LUSD from, the StabilityPool.
+The only time SOLUSD is transferred to/from a Liquity contract, is when a user deposits SOLUSD to, or withdraws SOLUSD from, the StabilityPool.
 
 **Borrower Operations**
 
-| Function                      | LUSD Quantity | ERC20 Operation                      |
+| Function                      | SOLUSD Quantity | ERC20 Operation                      |
 |-------------------------------|---------------|--------------------------------------|
-| openTrove                     | Drawn LUSD    | LUSD._mint(msg.sender, _LUSDAmount)  |
-|                               | Issuance fee  | LUSD._mint(LQTYStaking,  LUSDFee)    |
-| withdrawLUSD                  | Drawn LUSD    | LUSD._mint(msg.sender, _LUSDAmount)  |
-|                               | Issuance fee  | LUSD._mint(LQTYStaking,  LUSDFee)    |
-| repayLUSD                     | Repaid LUSD   | LUSD._burn(msg.sender, _LUSDAmount)  |
-| adjustTrove: withdrawing LUSD | Drawn LUSD    | LUSD._mint(msg.sender, _LUSDAmount)  |
-|                               | Issuance fee  | LUSD._mint(LQTYStaking,  LUSDFee)    |
-| adjustTrove: repaying LUSD    | Repaid LUSD   | LUSD._burn(msg.sender, _LUSDAmount)  |
-| closeTrove                    | Repaid LUSD   | LUSD._burn(msg.sender, _LUSDAmount) |
+| openTrove                     | Drawn SOLUSD    | SOLUSD._mint(msg.sender, _SOLUSDAmount)  |
+|                               | Issuance fee  | SOLUSD._mint(SOLIDStaking,  SOLUSDFee)    |
+| withdrawSOLUSD                  | Drawn SOLUSD    | SOLUSD._mint(msg.sender, _SOLUSDAmount)  |
+|                               | Issuance fee  | SOLUSD._mint(SOLIDStaking,  SOLUSDFee)    |
+| repaySOLUSD                     | Repaid SOLUSD   | SOLUSD._burn(msg.sender, _SOLUSDAmount)  |
+| adjustTrove: withdrawing SOLUSD | Drawn SOLUSD    | SOLUSD._mint(msg.sender, _SOLUSDAmount)  |
+|                               | Issuance fee  | SOLUSD._mint(SOLIDStaking,  SOLUSDFee)    |
+| adjustTrove: repaying SOLUSD    | Repaid SOLUSD   | SOLUSD._burn(msg.sender, _SOLUSDAmount)  |
+| closeTrove                    | Repaid SOLUSD   | SOLUSD._burn(msg.sender, _SOLUSDAmount) |
 
 **Trove Manager**
 
-| Function                 | LUSD Quantity            | ERC20 Operation                                  |
+| Function                 | SOLUSD Quantity            | ERC20 Operation                                  |
 |--------------------------|--------------------------|--------------------------------------------------|
-| liquidate (offset)       | LUSD to offset with debt | LUSD._burn(stabilityPoolAddress, _debtToOffset); |
-| liquidateTroves (offset)   | LUSD to offset with debt | LUSD._burn(stabilityPoolAddress, _debtToOffset); |
-| batchLiquidateTroves (offset) | LUSD to offset with debt | LUSD._burn(stabilityPoolAddress, _debtToOffset); |
-| redeemCollateral         | LUSD to redeem           | LUSD._burn(msg.sender, _LUSD)                    |
+| liquidate (offset)       | SOLUSD to offset with debt | SOLUSD._burn(stabilityPoolAddress, _debtToOffset); |
+| liquidateTroves (offset)   | SOLUSD to offset with debt | SOLUSD._burn(stabilityPoolAddress, _debtToOffset); |
+| batchLiquidateTroves (offset) | SOLUSD to offset with debt | SOLUSD._burn(stabilityPoolAddress, _debtToOffset); |
+| redeemCollateral         | SOLUSD to redeem           | SOLUSD._burn(msg.sender, _SOLUSD)                    |
 
 **Stability Pool**
 
-| Function       | LUSD Quantity    | ERC20 Operation                                             |
+| Function       | SOLUSD Quantity    | ERC20 Operation                                             |
 |----------------|------------------|-------------------------------------------------------------|
-| provideToSP    | deposit / top-up | LUSD._transfer(msg.sender, stabilityPoolAddress, _amount);  |
-| withdrawFromSP | withdrawal       | LUSD._transfer(stabilityPoolAddress, msg.sender, _amount);  |
+| provideToSP    | deposit / top-up | SOLUSD._transfer(msg.sender, stabilityPoolAddress, _amount);  |
+| withdrawFromSP | withdrawal       | SOLUSD._transfer(stabilityPoolAddress, msg.sender, _amount);  |
 
-**LQTY Staking**
+**SOLID Staking**
 
-| Function | LUSD Quantity                                   | ERC20 Operation                                           |
+| Function | SOLUSD Quantity                                   | ERC20 Operation                                           |
 |----------|-------------------------------------------------|-----------------------------------------------------------|
-| stake    | staker's accumulated LUSD gain from system fees | LUSD._transfer(LQTYStakingAddress, msg.sender, LUSDGain); |
-| unstake  | staker's accumulated LUSD gain from system fees | LUSD._transfer(LQTYStakingAddress, msg.sender, LUSDGain); |
+| stake    | staker's accumulated SOLUSD gain from system fees | SOLUSD._transfer(SOLIDStakingAddress, msg.sender, SOLUSDGain); |
+| unstake  | staker's accumulated SOLUSD gain from system fees | SOLUSD._transfer(SOLIDStakingAddress, msg.sender, SOLUSDGain); |
 
-### Flow of LQTY Tokens in Liquity
+### Flow of SOLID Tokens in Liquity
 
-![Flow of LQTY](images/LQTY_flows.svg)
+![Flow of SOLID](images/SOLID_flows.svg)
 
-Stability Providers and Frontend Operators receive LQTY gains according to their share of the total LUSD deposits, and the LQTY community issuance schedule.  Once obtained, LQTY can be staked and unstaked with the `LQTYStaking` contract.
+Stability Providers and Frontend Operators receive SOLID gains according to their share of the total SOLUSD deposits, and the SOLID community issuance schedule.  Once obtained, SOLID can be staked and unstaked with the `SOLIDStaking` contract.
 
 **Stability Pool**
 
-| Function               | LQTY Quantity       | ERC20 Operation                                                       |
+| Function               | SOLID Quantity       | ERC20 Operation                                                       |
 |------------------------|---------------------|-----------------------------------------------------------------------|
-| provideToSP            | depositor LQTY gain | LQTY._transfer(stabilityPoolAddress, msg.sender, depositorLQTYGain); |
-|                        | front end LQTY gain | LQTY._transfer(stabilityPoolAddress, _frontEnd, frontEndLQTYGain);   |
-| withdrawFromSP         | depositor LQTY gain | LQTY._transfer(stabilityPoolAddress, msg.sender, depositorLQTYGain); |
-|                        | front end LQTY gain | LQTY._transfer(stabilityPoolAddress, _frontEnd, frontEndLQTYGain);   |
-| withdrawETHGainToTrove | depositor LQTY gain | LQTY._transfer(stabilityPoolAddress, msg.sender, depositorLQTYGain); |
-|                        | front end LQTY gain | LQTY._transfer(stabilityPoolAddress, _frontEnd, frontEndLQTYGain);   |
+| provideToSP            | depositor SOLID gain | SOLID._transfer(stabilityPoolAddress, msg.sender, depositorSOLIDGain); |
+|                        | front end SOLID gain | SOLID._transfer(stabilityPoolAddress, _frontEnd, frontEndSOLIDGain);   |
+| withdrawFromSP         | depositor SOLID gain | SOLID._transfer(stabilityPoolAddress, msg.sender, depositorSOLIDGain); |
+|                        | front end SOLID gain | SOLID._transfer(stabilityPoolAddress, _frontEnd, frontEndSOLIDGain);   |
+| withdrawSOLGainToTrove | depositor SOLID gain | SOLID._transfer(stabilityPoolAddress, msg.sender, depositorSOLIDGain); |
+|                        | front end SOLID gain | SOLID._transfer(stabilityPoolAddress, _frontEnd, frontEndSOLIDGain);   |
 
-**LQTY Staking Contract**
+**SOLID Staking Contract**
 
-| Function | LQTY Quantity                  | ERC20 Operation                                           |
+| Function | SOLID Quantity                  | ERC20 Operation                                           |
 |----------|--------------------------------|-----------------------------------------------------------|
-| stake    | staker's LQTY deposit / top-up | LQTY._transfer(msg.sender, LQTYStakingAddress, _amount); |
-| unstake  | staker's LQTY withdrawal       | LQTY._transfer(LQTYStakingAddress, msg.sender, _amount); |
+| stake    | staker's SOLID deposit / top-up | SOLID._transfer(msg.sender, SOLIDStakingAddress, _amount); |
+| unstake  | staker's SOLID withdrawal       | SOLID._transfer(SOLIDStakingAddress, msg.sender, _amount); |
 
 
 ## Expected User Behaviors
@@ -574,9 +574,9 @@ Generally, borrowers call functions that trigger Trove operations on their own T
 
 Anyone may call the public liquidation functions, and attempt to liquidate one or several Troves.
 
-LUSD token holders may also redeem their tokens, and swap an amount of tokens 1-for-1 in value (minus fees) with Ether.
+SOLUSD token holders may also redeem their tokens, and swap an amount of tokens 1-for-1 in value (minus fees) with Ether.
 
-LQTY token holders may stake their LQTY, to earn a share of the system fee revenue, in ETH and LUSD.
+SOLID token holders may stake their SOLID, to earn a share of the system fee revenue, in SOL and SOLUSD.
 
 ## Contract Ownership and Function Permissions
 
@@ -600,7 +600,7 @@ Tests are run against the Hardhat EVM.
 
 ### Integer representations of decimals
 
-Several ratios and the ETH:USD price are integer representations of decimals, to 18 digits of precision. For example:
+Several ratios and the SOL:USD price are integer representations of decimals, to 18 digits of precision. For example:
 
 | **uint representation of decimal** | **Number**    |
 | ---------------------------------- | ------------- |
@@ -622,21 +622,21 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 ### Borrower (Trove) Operations - `BorrowerOperations.sol`
 
-`openTrove(uint _maxFeePercentage, uint _LUSDAmount, address _upperHint, address _lowerHint)`: payable function that creates a Trove for the caller with the requested debt, and the Ether received as collateral. Successful execution is conditional mainly on the resulting collateralization ratio which must exceed the minimum (110% in Normal Mode, 150% in Recovery Mode). In addition to the requested debt, extra debt is issued to pay the issuance fee, and cover the gas compensation. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee. 
+`openTrove(uint _maxFeePercentage, uint _SOLUSDAmount, address _upperHint, address _lowerHint)`: payable function that creates a Trove for the caller with the requested debt, and the Ether received as collateral. Successful execution is conditional mainly on the resulting collateralization ratio which must exceed the minimum (110% in Normal Mode, 150% in Recovery Mode). In addition to the requested debt, extra debt is issued to pay the issuance fee, and cover the gas compensation. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee. 
 
 `addColl(address _upperHint, address _lowerHint))`: payable function that adds the received Ether to the caller's active Trove.
 
 `withdrawColl(uint _amount, address _upperHint, address _lowerHint)`: withdraws `_amount` of collateral from the caller’s Trove. Executes only if the user has an active Trove, the withdrawal would not pull the user’s Trove below the minimum collateralization ratio, and the resulting total collateralization ratio of the system is above 150%. 
 
-`function withdrawLUSD(uint _maxFeePercentage, uint _LUSDAmount, address _upperHint, address _lowerHint)`: issues `_amount` of LUSD from the caller’s Trove to the caller. Executes only if the Trove's collateralization ratio would remain above the minimum, and the resulting total collateralization ratio is above 150%. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee.
+`function withdrawSOLUSD(uint _maxFeePercentage, uint _SOLUSDAmount, address _upperHint, address _lowerHint)`: issues `_amount` of SOLUSD from the caller’s Trove to the caller. Executes only if the Trove's collateralization ratio would remain above the minimum, and the resulting total collateralization ratio is above 150%. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee.
 
-`repayLUSD(uint _amount, address _upperHint, address _lowerHint)`: repay `_amount` of LUSD to the caller’s Trove, subject to leaving 50 debt in the Trove (which corresponds to the 50 LUSD gas compensation).
+`repaySOLUSD(uint _amount, address _upperHint, address _lowerHint)`: repay `_amount` of SOLUSD to the caller’s Trove, subject to leaving 50 debt in the Trove (which corresponds to the 50 SOLUSD gas compensation).
 
 `_adjustTrove(address _borrower, uint _collWithdrawal, uint _debtChange, bool _isDebtIncrease, address _upperHint, address _lowerHint, uint _maxFeePercentage)`: enables a borrower to simultaneously change both their collateral and debt, subject to all the restrictions that apply to individual increases/decreases of each quantity with the following particularity: if the adjustment reduces the collateralization ratio of the Trove, the function only executes if the resulting total collateralization ratio is above 150%. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee. The parameter is ignored if the debt is not increased with the transaction.
 
-`closeTrove()`: allows a borrower to repay all debt, withdraw all their collateral, and close their Trove. Requires the borrower have a LUSD balance sufficient to repay their trove's debt, excluding gas compensation - i.e. `(debt - 50)` LUSD.
+`closeTrove()`: allows a borrower to repay all debt, withdraw all their collateral, and close their Trove. Requires the borrower have a SOLUSD balance sufficient to repay their trove's debt, excluding gas compensation - i.e. `(debt - 50)` SOLUSD.
 
-`claimCollateral(address _user)`: when a borrower’s Trove has been fully redeemed from and closed, or liquidated in Recovery Mode with a collateralization ratio above 110%, this function allows the borrower to claim their ETH collateral surplus that remains in the system (collateral - debt upon redemption; collateral - 110% of the debt upon liquidation).
+`claimCollateral(address _user)`: when a borrower’s Trove has been fully redeemed from and closed, or liquidated in Recovery Mode with a collateralization ratio above 110%, this function allows the borrower to claim their SOL collateral surplus that remains in the system (collateral - debt upon redemption; collateral - 110% of the debt upon liquidation).
 
 ### TroveManager Functions - `TroveManager.sol`
 
@@ -646,21 +646,21 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 `batchLiquidateTroves(address[] calldata _troveArray)`: callable by anyone, accepts a custom list of Troves addresses as an argument. Steps through the provided list and attempts to liquidate every Trove, until it reaches the end or it runs out of gas. A Trove is liquidated only if it meets the conditions for liquidation. For a batch of 10 Troves, the gas costs per liquidated Trove are roughly between 75K-83K, for a batch of 50 Troves between 54K-69K.
 
-`redeemCollateral(uint _LUSDAmount, address _firstRedemptionHint, address _upperPartialRedemptionHint, address _lowerPartialRedemptionHint, uint _partialRedemptionHintNICR, uint _maxIterations, uint _maxFeePercentage)`: redeems `_LUSDamount` of stablecoins for ether from the system. Decreases the caller’s LUSD balance, and sends them the corresponding amount of ETH. Executes successfully if the caller has sufficient LUSD to redeem. The number of Troves redeemed from is capped by `_maxIterations`. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when another redemption transaction is processed first, driving up the redemption fee.
+`redeemCollateral(uint _SOLUSDAmount, address _firstRedemptionHint, address _upperPartialRedemptionHint, address _lowerPartialRedemptionHint, uint _partialRedemptionHintNICR, uint _maxIterations, uint _maxFeePercentage)`: redeems `_SOLUSDamount` of stablecoins for ether from the system. Decreases the caller’s SOLUSD balance, and sends them the corresponding amount of SOL. Executes successfully if the caller has sufficient SOLUSD to redeem. The number of Troves redeemed from is capped by `_maxIterations`. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when another redemption transaction is processed first, driving up the redemption fee.
 
-`getCurrentICR(address _user, uint _price)`: computes the user’s individual collateralization ratio (ICR) based on their total collateral and total LUSD debt. Returns 2^256 -1 if they have 0 debt.
+`getCurrentICR(address _user, uint _price)`: computes the user’s individual collateralization ratio (ICR) based on their total collateral and total SOLUSD debt. Returns 2^256 -1 if they have 0 debt.
 
 `getTroveOwnersCount()`: get the number of active Troves in the system.
 
-`getPendingETHReward(address _borrower)`: get the pending ETH reward from liquidation redistribution events, for the given Trove.
+`getPendingSOLReward(address _borrower)`: get the pending SOL reward from liquidation redistribution events, for the given Trove.
 
-`getPendingLUSDDebtReward(address _borrower)`: get the pending Trove debt "reward" (i.e. the amount of extra debt assigned to the Trove) from liquidation redistribution events.
+`getPendingSOLUSDDebtReward(address _borrower)`: get the pending Trove debt "reward" (i.e. the amount of extra debt assigned to the Trove) from liquidation redistribution events.
 
-`getEntireDebtAndColl(address _borrower)`: returns a Trove’s entire debt and collateral, which respectively include any pending debt rewards and ETH rewards from prior redistributions.
+`getEntireDebtAndColl(address _borrower)`: returns a Trove’s entire debt and collateral, which respectively include any pending debt rewards and SOL rewards from prior redistributions.
 
-`getEntireSystemColl()`:  Returns the systemic entire collateral allocated to Troves, i.e. the sum of the ETH in the Active Pool and the Default Pool.
+`getEntireSystemColl()`:  Returns the systemic entire collateral allocated to Troves, i.e. the sum of the SOL in the Active Pool and the Default Pool.
 
-`getEntireSystemDebt()` Returns the systemic entire debt assigned to Troves, i.e. the sum of the LUSDDebt in the Active Pool and the Default Pool.
+`getEntireSystemDebt()` Returns the systemic entire debt assigned to Troves, i.e. the sum of the SOLUSDDebt in the Active Pool and the Default Pool.
 
 `getTCR()`: returns the total collateralization ratio (TCR) of the system.  The TCR is based on the the entire system debt and collateral (including pending rewards).
 
@@ -670,43 +670,43 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 `function getApproxHint(uint _CR, uint _numTrials, uint _inputRandomSeed)`: helper function, returns a positional hint for the sorted list. Used for transactions that must efficiently re-insert a Trove to the sorted list.
 
-`getRedemptionHints(uint _LUSDamount, uint _price, uint _maxIterations)`: helper function specifically for redemptions. Returns two hints - the first is a positional hint for the first redeemable Trove (i.e. Trove with the lowest ICR >= MCR), the second is the final nominal ICR of the last Trove after being hit by partial redemption, or zero in case of no partial redemption (see [Hints for `redeemCollateral`](#hints-for-redeemcollateral)). The number of Troves to consider for redemption can be capped by passing a non-zero value as `_maxIterations`, while passing zero will leave it uncapped.
+`getRedemptionHints(uint _SOLUSDamount, uint _price, uint _maxIterations)`: helper function specifically for redemptions. Returns two hints - the first is a positional hint for the first redeemable Trove (i.e. Trove with the lowest ICR >= MCR), the second is the final nominal ICR of the last Trove after being hit by partial redemption, or zero in case of no partial redemption (see [Hints for `redeemCollateral`](#hints-for-redeemcollateral)). The number of Troves to consider for redemption can be capped by passing a non-zero value as `_maxIterations`, while passing zero will leave it uncapped.
 
 ### Stability Pool Functions - `StabilityPool.sol`
 
-`provideToSP(uint _amount, address _frontEndTag)`: allows stablecoin holders to deposit `_amount` of LUSD to the Stability Pool. It sends `_amount` of LUSD from their address to the Pool, and tops up their LUSD deposit by `_amount` and their tagged front end’s stake by `_amount`. If the depositor already has a non-zero deposit, it sends their accumulated ETH and LQTY gains to their address, and pays out their front end’s LQTY gain to their front end.
+`provideToSP(uint _amount, address _frontEndTag)`: allows stablecoin holders to deposit `_amount` of SOLUSD to the Stability Pool. It sends `_amount` of SOLUSD from their address to the Pool, and tops up their SOLUSD deposit by `_amount` and their tagged front end’s stake by `_amount`. If the depositor already has a non-zero deposit, it sends their accumulated SOL and SOLID gains to their address, and pays out their front end’s SOLID gain to their front end.
 
-`withdrawFromSP(uint _amount)`: allows a stablecoin holder to withdraw `_amount` of LUSD from the Stability Pool, up to the value of their remaining Stability deposit. It decreases their LUSD balance by `_amount` and decreases their front end’s stake by `_amount`. It sends the depositor’s accumulated ETH and LQTY gains to their address, and pays out their front end’s LQTY gain to their front end. If the user makes a partial withdrawal, their deposit remainder will earn further gains. To prevent potential loss evasion by depositors, withdrawals from the Stability Pool are suspended when there are liquidable Troves with ICR < 110% in the system.
+`withdrawFromSP(uint _amount)`: allows a stablecoin holder to withdraw `_amount` of SOLUSD from the Stability Pool, up to the value of their remaining Stability deposit. It decreases their SOLUSD balance by `_amount` and decreases their front end’s stake by `_amount`. It sends the depositor’s accumulated SOL and SOLID gains to their address, and pays out their front end’s SOLID gain to their front end. If the user makes a partial withdrawal, their deposit remainder will earn further gains. To prevent potential loss evasion by depositors, withdrawals from the Stability Pool are suspended when there are liquidable Troves with ICR < 110% in the system.
 
-`withdrawETHGainToTrove(address _hint)`: sends the user's entire accumulated ETH gain to the user's active Trove, and updates their Stability deposit with its accumulated loss from debt absorptions. Sends the depositor's LQTY gain to the depositor, and sends the tagged front end's LQTY gain to the front end.
+`withdrawSOLGainToTrove(address _hint)`: sends the user's entire accumulated SOL gain to the user's active Trove, and updates their Stability deposit with its accumulated loss from debt absorptions. Sends the depositor's SOLID gain to the depositor, and sends the tagged front end's SOLID gain to the front end.
 
 `registerFrontEnd(uint _kickbackRate)`: Registers an address as a front end and sets their chosen kickback rate in range `[0,1]`.
 
-`getDepositorETHGain(address _depositor)`: returns the accumulated ETH gain for a given Stability Pool depositor
+`getDepositorSOLGain(address _depositor)`: returns the accumulated SOL gain for a given Stability Pool depositor
 
-`getDepositorLQTYGain(address _depositor)`: returns the accumulated LQTY gain for a given Stability Pool depositor
+`getDepositorSOLIDGain(address _depositor)`: returns the accumulated SOLID gain for a given Stability Pool depositor
 
-`getFrontEndLQTYGain(address _frontEnd)`: returns the accumulated LQTY gain for a given front end
+`getFrontEndSOLIDGain(address _frontEnd)`: returns the accumulated SOLID gain for a given front end
 
-`getCompoundedLUSDDeposit(address _depositor)`: returns the remaining deposit amount for a given Stability Pool depositor
+`getCompoundedSOLUSDDeposit(address _depositor)`: returns the remaining deposit amount for a given Stability Pool depositor
 
 `getCompoundedFrontEndStake(address _frontEnd)`: returns the remaining front end stake for a given front end
 
-### LQTY Staking Functions  `LQTYStaking.sol`
+### SOLID Staking Functions  `SOLIDStaking.sol`
 
- `stake(uint _LQTYamount)`: sends `_LQTYAmount` from the caller to the staking contract, and increases their stake. If the caller already has a non-zero stake, it pays out their accumulated ETH and LUSD gains from staking.
+ `stake(uint _SOLIDamount)`: sends `_SOLIDAmount` from the caller to the staking contract, and increases their stake. If the caller already has a non-zero stake, it pays out their accumulated SOL and SOLUSD gains from staking.
 
- `unstake(uint _LQTYamount)`: reduces the caller’s stake by `_LQTYamount`, up to a maximum of their entire stake. It pays out their accumulated ETH and LUSD gains from staking.
+ `unstake(uint _SOLIDamount)`: reduces the caller’s stake by `_SOLIDamount`, up to a maximum of their entire stake. It pays out their accumulated SOL and SOLUSD gains from staking.
 
 ### Lockup Contract Factory `LockupContractFactory.sol`
 
-`deployLockupContract(address _beneficiary, uint _unlockTime)`; Deploys a `LockupContract`, and sets the beneficiary’s address, and the `_unlockTime` - the instant in time at which the LQTY can be withrawn by the beneficiary.
+`deployLockupContract(address _beneficiary, uint _unlockTime)`; Deploys a `LockupContract`, and sets the beneficiary’s address, and the `_unlockTime` - the instant in time at which the SOLID can be withrawn by the beneficiary.
 
 ### Lockup contract - `LockupContract.sol`
 
-`withdrawLQTY()`: When the current time is later than the `unlockTime` and the caller is the beneficiary, it transfers their LQTY to them.
+`withdrawSOLID()`: When the current time is later than the `unlockTime` and the caller is the beneficiary, it transfers their SOLID to them.
 
-### LUSD token `LUSDToken.sol` and LQTY token `LQTYToken.sol`
+### SOLUSD token `SOLUSDToken.sol` and SOLID token `SOLIDToken.sol`
 
 Standard ERC20 and EIP2612 (`permit()` ) functionality.
 
@@ -722,7 +722,7 @@ https://eips.ethereum.org/EIPS/eip-2612
 
 ## Supplying Hints to Trove operations
 
-Troves in Liquity are recorded in a sorted doubly linked list, sorted by their NICR, from high to low. NICR stands for the nominal collateral ratio that is simply the amount of collateral (in ETH) multiplied by 100e18 and divided by the amount of debt (in LUSD), without taking the ETH:USD price into account. Given that all Troves are equally affected by Ether price changes, they do not need to be sorted by their real ICR.
+Troves in Liquity are recorded in a sorted doubly linked list, sorted by their NICR, from high to low. NICR stands for the nominal collateral ratio that is simply the amount of collateral (in SOL) multiplied by 100e18 and divided by the amount of debt (in SOLUSD), without taking the SOL:USD price into account. Given that all Troves are equally affected by Ether price changes, they do not need to be sorted by their real ICR.
 
 All Trove operations that change the collateralization ratio need to either insert or reinsert the Trove to the `SortedTroves` list. To reduce the computational complexity (and gas cost) of the insertion to the linked list, two ‘hints’ may be provided.
 
@@ -763,7 +763,7 @@ Hints allow cheaper Trove operations for the user, at the expense of a slightly 
 - `_upperPartialRedemptionHint` hints at the `prevId` neighbor of the last redeemed Trove upon reinsertion, if it's partially redeemed,
 - `_partialRedemptionHintNICR` ensures that the transaction won't run out of gas if neither `_lowerPartialRedemptionHint` nor `_upperPartialRedemptionHint` are  valid anymore.
 
-`redeemCollateral` will only redeem from Troves that have an ICR >= MCR. In other words, if there are Troves at the bottom of the SortedTroves list that are below the minimum collateralization ratio (which can happen after an ETH:USD price drop), they will be skipped. To make this more gas-efficient, the position of the first redeemable Trove should be passed as `_firstRedemptionHint`.
+`redeemCollateral` will only redeem from Troves that have an ICR >= MCR. In other words, if there are Troves at the bottom of the SortedTroves list that are below the minimum collateralization ratio (which can happen after an SOL:USD price drop), they will be skipped. To make this more gas-efficient, the position of the first redeemable Trove should be passed as `_firstRedemptionHint`.
 
 #### First redemption hint
 
@@ -775,13 +775,13 @@ If when the transaction is confirmed the address is in fact not valid - the syst
 
 All Troves that are fully redeemed from in a redemption sequence are left with zero debt, and are closed. The remaining collateral (the difference between the orginal collateral and the amount used for the redemption) will be claimable by the owner.
 
-It’s likely that the last Trove in the redemption sequence would be partially redeemed from - i.e. only some of its debt cancelled with LUSD. In this case, it should be reinserted somewhere between top and bottom of the list. The `_lowerPartialRedemptionHint` and `_upperPartialRedemptionHint` hints passed to `redeemCollateral` describe the future neighbors the expected reinsert position.
+It’s likely that the last Trove in the redemption sequence would be partially redeemed from - i.e. only some of its debt cancelled with SOLUSD. In this case, it should be reinserted somewhere between top and bottom of the list. The `_lowerPartialRedemptionHint` and `_upperPartialRedemptionHint` hints passed to `redeemCollateral` describe the future neighbors the expected reinsert position.
 
 However, if between the off-chain hint computation and on-chain execution a different transaction changes the state of a Trove that would otherwise be hit by the redemption sequence, then the off-chain hint computation could end up totally inaccurate. This could lead to the whole redemption sequence reverting due to out-of-gas error.
 
 To mitigate this, another hint needs to be provided: `_partialRedemptionHintNICR`, the expected nominal ICR of the final partially-redeemed-from Trove. The on-chain redemption function checks whether, after redemption, the nominal ICR of this Trove would equal the nominal ICR hint.
 
-If not, the redemption sequence doesn’t perform the final partial redemption, and terminates early. This ensures that the transaction doesn’t revert, and most of the requested LUSD redemption can be fulfilled.
+If not, the redemption sequence doesn’t perform the final partial redemption, and terminates early. This ensures that the transaction doesn’t revert, and most of the requested SOLUSD redemption can be fulfilled.
 
 ## Gas compensation
 
@@ -791,13 +791,13 @@ However, gas costs in Ethereum are substantial. If the gas costs of our public l
 
 The protocol thus directly compensates liquidators for their gas costs, to incentivize prompt liquidations in both normal and extreme periods of high gas prices. Liquidators should be confident that they will at least break even by making liquidation transactions.
 
-Gas compensation is paid in a mix of LUSD and ETH. While the ETH is taken from the liquidated Trove, the LUSD is provided by the borrower. When a borrower first issues debt, some LUSD is reserved as a Liquidation Reserve. A liquidation transaction thus draws ETH from the trove(s) it liquidates, and sends the both the reserved LUSD and the compensation in ETH to the caller, and liquidates the remainder.
+Gas compensation is paid in a mix of SOLUSD and SOL. While the SOL is taken from the liquidated Trove, the SOLUSD is provided by the borrower. When a borrower first issues debt, some SOLUSD is reserved as a Liquidation Reserve. A liquidation transaction thus draws SOL from the trove(s) it liquidates, and sends the both the reserved SOLUSD and the compensation in SOL to the caller, and liquidates the remainder.
 
-When a liquidation transaction liquidates multiple Troves, each Trove contributes LUSD and ETH towards the total compensation for the transaction.
+When a liquidation transaction liquidates multiple Troves, each Trove contributes SOLUSD and SOL towards the total compensation for the transaction.
 
 Gas compensation per liquidated Trove is given by the formula:
 
-Gas compensation = `50 LUSD + 0.5% of trove’s collateral (ETH)`
+Gas compensation = `50 SOLUSD + 0.5% of trove’s collateral (SOL)`
 
 The intentions behind this formula are:
 - To ensure that smaller Troves are liquidated promptly in normal times, at least
@@ -805,73 +805,73 @@ The intentions behind this formula are:
 
 ### Gas compensation schedule
 
-When a borrower opens a Trove, an additional 50 LUSD debt is issued, and 50 LUSD is minted and sent to a dedicated contract (`GasPool`) for gas compensation - the "gas pool".
+When a borrower opens a Trove, an additional 50 SOLUSD debt is issued, and 50 SOLUSD is minted and sent to a dedicated contract (`GasPool`) for gas compensation - the "gas pool".
 
-When a borrower closes their active Trove, this gas compensation is refunded: 50 LUSD is burned from the gas pool's balance, and the corresponding 50 LUSD debt on the Trove is cancelled.
+When a borrower closes their active Trove, this gas compensation is refunded: 50 SOLUSD is burned from the gas pool's balance, and the corresponding 50 SOLUSD debt on the Trove is cancelled.
 
-The purpose of the 50 LUSD Liquidation Reserve is to provide a minimum level of gas compensation, regardless of the Trove's collateral size or the current ETH price.
+The purpose of the 50 SOLUSD Liquidation Reserve is to provide a minimum level of gas compensation, regardless of the Trove's collateral size or the current SOL price.
 
 ### Liquidation
 
-When a Trove is liquidated, 0.5% of its collateral is sent to the liquidator, along with the 50 LUSD Liquidation Reserve. Thus, a liquidator always receives `{50 LUSD + 0.5% collateral}` per Trove that they liquidate. The collateral remainder of the Trove is then either offset, redistributed or a combination of both, depending on the amount of LUSD in the Stability Pool.
+When a Trove is liquidated, 0.5% of its collateral is sent to the liquidator, along with the 50 SOLUSD Liquidation Reserve. Thus, a liquidator always receives `{50 SOLUSD + 0.5% collateral}` per Trove that they liquidate. The collateral remainder of the Trove is then either offset, redistributed or a combination of both, depending on the amount of SOLUSD in the Stability Pool.
 
 ### Gas compensation and redemptions
 
 When a Trove is redeemed from, the redemption is made only against (debt - 50), not the entire debt.
 
-But if the redemption causes an amount (debt - 50) to be cancelled, the Trove is then closed: the 50 LUSD Liquidation Reserve is cancelled with its remaining 50 debt. That is, the gas compensation is burned from the gas pool, and the 50 debt is zero’d. The ETH collateral surplus from the Trove remains in the system, to be later claimed by its owner.
+But if the redemption causes an amount (debt - 50) to be cancelled, the Trove is then closed: the 50 SOLUSD Liquidation Reserve is cancelled with its remaining 50 debt. That is, the gas compensation is burned from the gas pool, and the 50 debt is zero’d. The SOL collateral surplus from the Trove remains in the system, to be later claimed by its owner.
 
 ### Gas compensation helper functions
 
 Gas compensation functions are found in the parent _LiquityBase.sol_ contract:
 
-`_getCollGasCompensation(uint _entireColl)` returns the amount of ETH to be drawn from a trove's collateral and sent as gas compensation. 
+`_getCollGasCompensation(uint _entireColl)` returns the amount of SOL to be drawn from a trove's collateral and sent as gas compensation. 
 
 `_getCompositeDebt(uint _debt)` returns the composite debt (drawn debt + gas compensation) of a trove, for the purpose of ICR calculation.
 
 ## The Stability Pool
 
-Any LUSD holder may deposit LUSD to the Stability Pool. It is designed to absorb debt from liquidations, and reward depositors with the liquidated collateral, shared between depositors in proportion to their deposit size.
+Any SOLUSD holder may deposit SOLUSD to the Stability Pool. It is designed to absorb debt from liquidations, and reward depositors with the liquidated collateral, shared between depositors in proportion to their deposit size.
 
-Since liquidations are expected to occur at an ICR of just below 110%, and even in most extreme cases, still above 100%, a depositor can expect to receive a net gain from most liquidations. When that holds, the dollar value of the ETH gain from a liquidation exceeds the dollar value of the LUSD loss (assuming the price of LUSD is $1).  
+Since liquidations are expected to occur at an ICR of just below 110%, and even in most extreme cases, still above 100%, a depositor can expect to receive a net gain from most liquidations. When that holds, the dollar value of the SOL gain from a liquidation exceeds the dollar value of the SOLUSD loss (assuming the price of SOLUSD is $1).  
 
-We define the **collateral surplus** in a liquidation as `$(ETH) - debt`, where `$(...)` represents the dollar value.
+We define the **collateral surplus** in a liquidation as `$(SOL) - debt`, where `$(...)` represents the dollar value.
 
-At an LUSD price of $1, Troves with `ICR > 100%` have a positive collateral surplus.
+At an SOLUSD price of $1, Troves with `ICR > 100%` have a positive collateral surplus.
 
-After one or more liquidations, a deposit will have absorbed LUSD losses, and received ETH gains. The remaining reduced deposit is the **compounded deposit**.
+After one or more liquidations, a deposit will have absorbed SOLUSD losses, and received SOL gains. The remaining reduced deposit is the **compounded deposit**.
 
 Stability Providers expect a positive ROI on their initial deposit. That is:
 
-`$(ETH Gain + compounded deposit) > $(initial deposit)`
+`$(SOL Gain + compounded deposit) > $(initial deposit)`
 
 ### Mixed liquidations: offset and redistribution
 
-When a liquidation hits the Stability Pool, it is known as an **offset**: the debt of the Trove is offset against the LUSD in the Pool. When **x** LUSD debt is offset, the debt is cancelled, and **x** LUSD in the Pool is burned. When the LUSD Stability Pool is greater than the debt of the Trove, all the Trove's debt is cancelled, and all its ETH is shared between depositors. This is a **pure offset**.
+When a liquidation hits the Stability Pool, it is known as an **offset**: the debt of the Trove is offset against the SOLUSD in the Pool. When **x** SOLUSD debt is offset, the debt is cancelled, and **x** SOLUSD in the Pool is burned. When the SOLUSD Stability Pool is greater than the debt of the Trove, all the Trove's debt is cancelled, and all its SOL is shared between depositors. This is a **pure offset**.
 
-It can happen that the LUSD in the Stability Pool is less than the debt of a Trove. In this case, the the whole Stability Pool will be used to offset a fraction of the Trove’s debt, and an equal fraction of the Trove’s ETH collateral will be assigned to Stability Providers. The remainder of the Trove’s debt and ETH gets redistributed to active Troves. This is a **mixed offset and redistribution**.
+It can happen that the SOLUSD in the Stability Pool is less than the debt of a Trove. In this case, the the whole Stability Pool will be used to offset a fraction of the Trove’s debt, and an equal fraction of the Trove’s SOL collateral will be assigned to Stability Providers. The remainder of the Trove’s debt and SOL gets redistributed to active Troves. This is a **mixed offset and redistribution**.
 
-Because the ETH collateral fraction matches the offset debt fraction, the effective ICR of the collateral and debt that is offset, is equal to the ICR of the Trove. So, for depositors, the ROI per liquidation depends only on the ICR of the liquidated Trove.
+Because the SOL collateral fraction matches the offset debt fraction, the effective ICR of the collateral and debt that is offset, is equal to the ICR of the Trove. So, for depositors, the ROI per liquidation depends only on the ICR of the liquidated Trove.
 
-### Stability Pool deposit losses and ETH gains - implementation
+### Stability Pool deposit losses and SOL gains - implementation
 
-Deposit functionality is handled by `StabilityPool.sol` (`provideToSP`, `withdrawFromSP`, etc).  StabilityPool also handles the liquidation calculation, and holds the LUSD and ETH balances.
+Deposit functionality is handled by `StabilityPool.sol` (`provideToSP`, `withdrawFromSP`, etc).  StabilityPool also handles the liquidation calculation, and holds the SOLUSD and SOL balances.
 
-When a liquidation is offset with the Stability Pool, debt from the liquidation is cancelled with an equal amount of LUSD in the pool, which is burned. 
+When a liquidation is offset with the Stability Pool, debt from the liquidation is cancelled with an equal amount of SOLUSD in the pool, which is burned. 
 
 Individual deposits absorb the debt from the liquidated Trove in proportion to their deposit as a share of total deposits.
  
-Similarly the liquidated Trove’s ETH is assigned to depositors in the same proportion.
+Similarly the liquidated Trove’s SOL is assigned to depositors in the same proportion.
 
 For example: a liquidation that empties 30% of the Stability Pool will reduce each deposit by 30%, no matter the size of the deposit.
 
 ### Stability Pool example
 
-Here’s an example of the Stability Pool absorbing liquidations. The Stability Pool contains 3 depositors, A, B and C, and the ETH:USD price is 100.
+Here’s an example of the Stability Pool absorbing liquidations. The Stability Pool contains 3 depositors, A, B and C, and the SOL:USD price is 100.
 
 There are two Troves to be liquidated, T1 and T2:
 
-|   | Trove | Collateral (ETH) | Debt (LUSD) | ICR         | $(ETH) ($) | Collateral surplus ($) |
+|   | Trove | Collateral (SOL) | Debt (SOLUSD) | ICR         | $(SOL) ($) | Collateral surplus ($) |
 |---|-------|------------------|-------------|-------------|------------|------------------------|
 |   | T1    | 1.6              | 150         | 1.066666667 | 160        | 10                     |
 |   | T2    | 2.45             | 225         | 1.088888889 | 245        | 20                     |
@@ -885,18 +885,18 @@ Here are the deposits, before any liquidations occur:
 | C         | 300     | 0.5    |
 | Total     | 600     | 1      |
 
-Now, the first liquidation T1 is absorbed by the Pool: 150 debt is cancelled with 150 Pool LUSD, and its 1.6 ETH is split between depositors. We see the gains earned by A, B, C, are in proportion to their share of the total LUSD in the Stability Pool:
+Now, the first liquidation T1 is absorbed by the Pool: 150 debt is cancelled with 150 Pool SOLUSD, and its 1.6 SOL is split between depositors. We see the gains earned by A, B, C, are in proportion to their share of the total SOLUSD in the Stability Pool:
 
-| Deposit | Debt absorbed from T1 | Deposit after | Total ETH gained | $(deposit + ETH gain) ($) | Current ROI   |
+| Deposit | Debt absorbed from T1 | Deposit after | Total SOL gained | $(deposit + SOL gain) ($) | Current ROI   |
 |---------|-----------------------|---------------|------------------|---------------------------|---------------|
 | A       | 25                    | 75            | 0.2666666667     | 101.6666667               | 0.01666666667 |
 | B       | 50                    | 150           | 0.5333333333     | 203.3333333               | 0.01666666667 |
 | C       | 75                    | 225           | 0.8              | 305                       | 0.01666666667 |
 | Total   | 150                   | 450           | 1.6              | 610                       | 0.01666666667 |
 
-And now the second liquidation, T2, occurs: 225 debt is cancelled with 225 Pool LUSD, and 2.45 ETH is split between depositors. The accumulated ETH gain includes all ETH gain from T1 and T2.
+And now the second liquidation, T2, occurs: 225 debt is cancelled with 225 Pool SOLUSD, and 2.45 SOL is split between depositors. The accumulated SOL gain includes all SOL gain from T1 and T2.
 
-| Depositor | Debt absorbed from T2 | Deposit after | Accumulated ETH | $(deposit + ETH gain) ($) | Current ROI |
+| Depositor | Debt absorbed from T2 | Deposit after | Accumulated SOL | $(deposit + SOL gain) ($) | Current ROI |
 |-----------|-----------------------|---------------|-----------------|---------------------------|-------------|
 | A         | 37.5                  | 37.5          | 0.675           | 105                       | 0.05        |
 | B         | 75                    | 75            | 1.35            | 210                       | 0.05        |
@@ -908,54 +908,54 @@ It’s clear that:
 - Each depositor gets the same ROI from a given liquidation
 - Depositors return increases over time, as the deposits absorb liquidations with a positive collateral surplus
 
-Eventually, a deposit can be fully “used up” in absorbing debt, and reduced to 0. This happens whenever a liquidation occurs that empties the Stability Pool. A deposit stops earning ETH gains when it has been reduced to 0.
+Eventually, a deposit can be fully “used up” in absorbing debt, and reduced to 0. This happens whenever a liquidation occurs that empties the Stability Pool. A deposit stops earning SOL gains when it has been reduced to 0.
 
 
 ### Stability Pool implementation
 
-A depositor obtains their compounded deposits and corresponding ETH gain in a “pull-based” manner. The system calculates the depositor’s compounded deposit and accumulated ETH gain when the depositor makes an operation that changes their ETH deposit.
+A depositor obtains their compounded deposits and corresponding SOL gain in a “pull-based” manner. The system calculates the depositor’s compounded deposit and accumulated SOL gain when the depositor makes an operation that changes their SOL deposit.
 
-Depositors deposit LUSD via `provideToSP`, and withdraw with `withdrawFromSP`. Their accumulated ETH gain is paid out every time they make a deposit operation - so ETH payout is triggered by both deposit withdrawals and top-ups.
+Depositors deposit SOLUSD via `provideToSP`, and withdraw with `withdrawFromSP`. Their accumulated SOL gain is paid out every time they make a deposit operation - so SOL payout is triggered by both deposit withdrawals and top-ups.
 
-### How deposits and ETH gains are tracked
+### How deposits and SOL gains are tracked
 
-We use a highly scalable method of tracking deposits and ETH gains that has O(1) complexity. 
+We use a highly scalable method of tracking deposits and SOL gains that has O(1) complexity. 
 
-When a liquidation occurs, rather than updating each depositor’s deposit and ETH gain, we simply update two intermediate variables: a product `P`, and a sum `S`.
+When a liquidation occurs, rather than updating each depositor’s deposit and SOL gain, we simply update two intermediate variables: a product `P`, and a sum `S`.
 
-A mathematical manipulation allows us to factor out the initial deposit, and accurately track all depositors’ compounded deposits and accumulated ETH gains over time, as liquidations occur, using just these two variables. When depositors join the Pool, they get a snapshot of `P` and `S`.
+A mathematical manipulation allows us to factor out the initial deposit, and accurately track all depositors’ compounded deposits and accumulated SOL gains over time, as liquidations occur, using just these two variables. When depositors join the Pool, they get a snapshot of `P` and `S`.
 
-The formula for a depositor’s accumulated ETH gain is derived here:
+The formula for a depositor’s accumulated SOL gain is derived here:
 
 [Scalable reward distribution for compounding, decreasing stake](https://github.com/liquity/dev/blob/main/packages/contracts/mathProofs/Scalable%20Compounding%20Stability%20Pool%20Deposits.pdf)
 
-Each liquidation updates `P` and `S`. After a series of liquidations, a compounded deposit and corresponding ETH gain can be calculated using the initial deposit, the depositor’s snapshots, and the current values of `P` and `S`.
+Each liquidation updates `P` and `S`. After a series of liquidations, a compounded deposit and corresponding SOL gain can be calculated using the initial deposit, the depositor’s snapshots, and the current values of `P` and `S`.
 
-Any time a depositor updates their deposit (withdrawal, top-up) their ETH gain is paid out, and they receive new snapshots of `P` and `S`.
+Any time a depositor updates their deposit (withdrawal, top-up) their SOL gain is paid out, and they receive new snapshots of `P` and `S`.
 
-This is similar in spirit to the simpler [Scalable Reward Distribution on the Ethereum Network by Bogdan Batog et al](http://batog.info/papers/scalable-reward-distribution.pdf), however, the mathematics is more involved as we handle a compounding, decreasing stake, and a corresponding ETH reward.
+This is similar in spirit to the simpler [Scalable Reward Distribution on the Ethereum Network by Bogdan Batog et al](http://batog.info/papers/scalable-reward-distribution.pdf), however, the mathematics is more involved as we handle a compounding, decreasing stake, and a corresponding SOL reward.
 
-## LQTY Issuance to Stability Providers
+## SOLID Issuance to Stability Providers
 
-Stability Providers earn LQTY tokens continuously over time, in proportion to the size of their deposit. This is known as “Community Issuance”, and is handled by `CommunityIssuance.sol`.
+Stability Providers earn SOLID tokens continuously over time, in proportion to the size of their deposit. This is known as “Community Issuance”, and is handled by `CommunityIssuance.sol`.
 
-Upon system deployment and activation, `CommunityIssuance` holds an initial LQTY supply, currently (provisionally) set at 32 million LQTY tokens.
+Upon system deployment and activation, `CommunityIssuance` holds an initial SOLID supply, currently (provisionally) set at 32 million SOLID tokens.
 
 Each Stability Pool deposit is tagged with a front end tag - the Ethereum address of the front end through which the deposit was made. Stability deposits made directly with the protocol (no front end) are tagged with the zero address.
 
-When a deposit earns LQTY, it is split between the depositor, and the front end through which the deposit was made. Upon registering as a front end, a front end chooses a “kickback rate”: this is the percentage of LQTY earned by a tagged deposit, to allocate to the depositor. Thus, the total LQTY received by a depositor is the total LQTY earned by their deposit, multiplied by `kickbackRate`. The front end takes a cut of `1-kickbackRate` of the LQTY earned by the deposit.
+When a deposit earns SOLID, it is split between the depositor, and the front end through which the deposit was made. Upon registering as a front end, a front end chooses a “kickback rate”: this is the percentage of SOLID earned by a tagged deposit, to allocate to the depositor. Thus, the total SOLID received by a depositor is the total SOLID earned by their deposit, multiplied by `kickbackRate`. The front end takes a cut of `1-kickbackRate` of the SOLID earned by the deposit.
 
-### LQTY Issuance schedule
+### SOLID Issuance schedule
 
-The overall community issuance schedule for LQTY is sub-linear and monotonic. We currently (provisionally) implement a yearly “halving” schedule, described by the cumulative issuance function:
+The overall community issuance schedule for SOLID is sub-linear and monotonic. We currently (provisionally) implement a yearly “halving” schedule, described by the cumulative issuance function:
 
 `supplyCap * (1 - 0.5^t)`
 
-where `t` is year and `supplyCap` is (provisionally) set to represent 32 million LQTY tokens.
+where `t` is year and `supplyCap` is (provisionally) set to represent 32 million SOLID tokens.
 
-It results in the following cumulative issuance schedule for the community LQTY supply:
+It results in the following cumulative issuance schedule for the community SOLID supply:
 
-| Year | Total community LQTY issued |
+| Year | Total community SOLID issued |
 |------|-----------------------------|
 | 0    | 0%                          |
 | 1    | 50%                         |
@@ -964,48 +964,48 @@ It results in the following cumulative issuance schedule for the community LQTY 
 | 4    | 93.75%                      |
 | 5    | 96.88%                      |
 
-The shape of the LQTY issuance curve is intended to incentivize both early depositors, and long-term deposits.
+The shape of the SOLID issuance curve is intended to incentivize both early depositors, and long-term deposits.
 
-Although the LQTY issuance curve follows a yearly halving schedule, in practice the `CommunityIssuance` contract use time intervals of one minute, for more fine-grained reward calculations.
+Although the SOLID issuance curve follows a yearly halving schedule, in practice the `CommunityIssuance` contract use time intervals of one minute, for more fine-grained reward calculations.
 
-### LQTY Issuance implementation
+### SOLID Issuance implementation
 
-The continuous time-based LQTY issuance is chunked into discrete reward events, that occur at every deposit change (new deposit, top-up, withdrawal), and every liquidation, before other state changes are made.
+The continuous time-based SOLID issuance is chunked into discrete reward events, that occur at every deposit change (new deposit, top-up, withdrawal), and every liquidation, before other state changes are made.
 
-In a LQTY reward event, the LQTY to be issued is calculated based on time passed since the last reward event, `block.timestamp - lastLQTYIssuanceTime`, and the cumulative issuance function.
+In a SOLID reward event, the SOLID to be issued is calculated based on time passed since the last reward event, `block.timestamp - lastSOLIDIssuanceTime`, and the cumulative issuance function.
 
-The LQTY produced in this issuance event is shared between depositors, in proportion to their deposit sizes.
+The SOLID produced in this issuance event is shared between depositors, in proportion to their deposit sizes.
 
-To efficiently and accurately track LQTY gains for depositors and front ends as deposits decrease over time from liquidations, we re-use the [algorithm for rewards from a compounding, decreasing stake](https://github.com/liquity/dev/blob/main/packages/contracts/mathProofs/Scalable%20Compounding%20Stability%20Pool%20Deposits.pdf). It is the same algorithm used for the ETH gain from liquidations.
+To efficiently and accurately track SOLID gains for depositors and front ends as deposits decrease over time from liquidations, we re-use the [algorithm for rewards from a compounding, decreasing stake](https://github.com/liquity/dev/blob/main/packages/contracts/mathProofs/Scalable%20Compounding%20Stability%20Pool%20Deposits.pdf). It is the same algorithm used for the SOL gain from liquidations.
 
-The same product `P` is used, and a sum `G` is used to track LQTY rewards, and each deposit gets a new snapshot of `P` and `G` when it is updated.
+The same product `P` is used, and a sum `G` is used to track SOLID rewards, and each deposit gets a new snapshot of `P` and `G` when it is updated.
 
-### Handling the front end LQTY gain
+### Handling the front end SOLID gain
 
-As mentioned in [LQTY Issuance to Stability Providers](#lqty-issuance-to-stability-providers), in a LQTY reward event generating `LQTY_d` for a deposit `d` made through a front end with kickback rate `k`, the front end receives `(1-k) * LQTY_d` and the depositor receives `k * LQTY_d`.
+As mentioned in [SOLID Issuance to Stability Providers](#lqty-issuance-to-stability-providers), in a SOLID reward event generating `SOLID_d` for a deposit `d` made through a front end with kickback rate `k`, the front end receives `(1-k) * SOLID_d` and the depositor receives `k * SOLID_d`.
 
-The front end should earn a cut of LQTY gains for all deposits tagged with its front end.
+The front end should earn a cut of SOLID gains for all deposits tagged with its front end.
 
-Thus, we use a virtual stake for the front end, equal to the sum of all its tagged deposits. The front end’s accumulated LQTY gain is calculated in the same way as an individual deposit, using the product `P` and sum `G`.
+Thus, we use a virtual stake for the front end, equal to the sum of all its tagged deposits. The front end’s accumulated SOLID gain is calculated in the same way as an individual deposit, using the product `P` and sum `G`.
 
 Also, whenever one of the front end’s depositors tops or withdraws their deposit, the same change is applied to the front-end’s stake.
 
-### LQTY reward events and payouts
+### SOLID reward events and payouts
 
 When a deposit is changed (top-up, withdrawal):
 
-- A LQTY reward event occurs, and `G` is updated
-- Its ETH and LQTY gains are paid out
-- Its tagged front end’s LQTY gains are paid out to that front end
+- A SOLID reward event occurs, and `G` is updated
+- Its SOL and SOLID gains are paid out
+- Its tagged front end’s SOLID gains are paid out to that front end
 - The deposit is updated, with new snapshots of `P`, `S` and `G`
 - The front end’s stake updated, with new snapshots of `P` and `G`
 
 When a liquidation occurs:
-- A LQTY reward event occurs, and `G` is updated
+- A SOLID reward event occurs, and `G` is updated
 
-## LQTY issuance to liquity providers
+## SOLID issuance to liquity providers
 
-On deployment a new Uniswap pool will be created for the pair LUSD/ETH and a Staking rewards contract will be deployed. The contract is based on [Unipool by Synthetix](https://github.com/Synthetixio/Unipool/blob/master/contracts/Unipool.sol). More information about their liquidity rewards program can be found in the [original SIP 31](https://sips.synthetix.io/sips/sip-31) and in [their blog](https://blog.synthetix.io/new-uniswap-seth-lp-reward-system/).
+On deployment a new Uniswap pool will be created for the pair SOLUSD/SOL and a Staking rewards contract will be deployed. The contract is based on [Unipool by Synthetix](https://github.com/Synthetixio/Unipool/blob/master/contracts/Unipool.sol). More information about their liquidity rewards program can be found in the [original SIP 31](https://sips.synthetix.io/sips/sip-31) and in [their blog](https://blog.synthetix.io/new-uniswap-seth-lp-reward-system/).
 
 Essentially the way it works is:
 - Liqudity providers add funds to the Uniswap pool, and get UNIv2 tokens in exchange
@@ -1014,42 +1014,42 @@ Essentially the way it works is:
 - Liqudity providers can claim their rewards when they want
 - Liqudity providers can unstake UNIv2 tokens to exit the program (i.e., stop earning rewards) when they want
 
-Our implementation is simpler because funds for rewards will only be added once, on deployment of LQTY token (for more technical details about the differences, see PR #271 on our repo).
+Our implementation is simpler because funds for rewards will only be added once, on deployment of SOLID token (for more technical details about the differences, see PR #271 on our repo).
 
-The amount of LQTY tokens that will be minted to rewards contract is 1.33M, and the duration of the program will be 30 days. If at some point the total amount of staked tokens is zero, the clock will “stopped”, so the period will be extended by the time during which the staking pool is empty, in order to avoid getting LQTY tokens locked. That also means that the start time for the program will be the event that occurs first: either LQTY token contract is deployed, and therefore LQTY tokens are minted to Unipool contract, or first liquidity provider stakes UNIv2 tokens into it.
+The amount of SOLID tokens that will be minted to rewards contract is 1.33M, and the duration of the program will be 30 days. If at some point the total amount of staked tokens is zero, the clock will “stopped”, so the period will be extended by the time during which the staking pool is empty, in order to avoid getting SOLID tokens locked. That also means that the start time for the program will be the event that occurs first: either SOLID token contract is deployed, and therefore SOLID tokens are minted to Unipool contract, or first liquidity provider stakes UNIv2 tokens into it.
 
 ## Liquity System Fees
 
-Liquity generates fee revenue from certain operations. Fees are captured by the LQTY token.
+Liquity generates fee revenue from certain operations. Fees are captured by the SOLID token.
 
-A LQTY holder may stake their LQTY, and earn a share of all system fees, proportional to their share of the total LQTY staked.
+A SOLID holder may stake their SOLID, and earn a share of all system fees, proportional to their share of the total SOLID staked.
 
-Liquity generates revenue in two ways: redemptions, and issuance of new LUSD tokens.
+Liquity generates revenue in two ways: redemptions, and issuance of new SOLUSD tokens.
 
-Redemptions fees are paid in ETH. Issuance fees (when a user opens a Trove, or issues more LUSD from their existing Trove) are paid in LUSD.
+Redemptions fees are paid in SOL. Issuance fees (when a user opens a Trove, or issues more SOLUSD from their existing Trove) are paid in SOLUSD.
 
 ### Redemption Fee
 
-The redemption fee is taken as a cut of the total ETH drawn from the system in a redemption. It is based on the current redemption rate.
+The redemption fee is taken as a cut of the total SOL drawn from the system in a redemption. It is based on the current redemption rate.
 
-In the `TroveManager`, `redeemCollateral` calculates the ETH fee and transfers it to the staking contract, `LQTYStaking.sol`
+In the `TroveManager`, `redeemCollateral` calculates the SOL fee and transfers it to the staking contract, `SOLIDStaking.sol`
 
 ### Issuance fee
 
-The issuance fee is charged on the LUSD drawn by the user and is added to the Trove's LUSD debt. It is based on the current borrowing rate.
+The issuance fee is charged on the SOLUSD drawn by the user and is added to the Trove's SOLUSD debt. It is based on the current borrowing rate.
 
-When new LUSD are drawn via one of the `BorrowerOperations` functions `openTrove`, `withdrawLUSD` or `adjustTrove`, an extra amount `LUSDFee` is minted, and an equal amount of debt is added to the user’s Trove. The `LUSDFee` is transferred to the staking contract, `LQTYStaking.sol`.
+When new SOLUSD are drawn via one of the `BorrowerOperations` functions `openTrove`, `withdrawSOLUSD` or `adjustTrove`, an extra amount `SOLUSDFee` is minted, and an equal amount of debt is added to the user’s Trove. The `SOLUSDFee` is transferred to the staking contract, `SOLIDStaking.sol`.
 
 ### Fee Schedule
 
-Redemption and issuance fees are based on the `baseRate` state variable in TroveManager, which is dynamically updated. The `baseRate` increases with each redemption, and decays according to time passed since the last fee event - i.e. the last redemption or issuance of LUSD.
+Redemption and issuance fees are based on the `baseRate` state variable in TroveManager, which is dynamically updated. The `baseRate` increases with each redemption, and decays according to time passed since the last fee event - i.e. the last redemption or issuance of SOLUSD.
 
 The current fee schedule:
 
 Upon each redemption:
 - `baseRate` is decayed based on time passed since the last fee event
-- `baseRate` is incremented by an amount proportional to the fraction of the total LUSD supply that was redeemed
-- The redemption rate is given by `min{REDEMPTION_FEE_FLOOR + baseRate * ETHdrawn, DECIMAL_PRECISION}`
+- `baseRate` is incremented by an amount proportional to the fraction of the total SOLUSD supply that was redeemed
+- The redemption rate is given by `min{REDEMPTION_FEE_FLOOR + baseRate * SOLdrawn, DECIMAL_PRECISION}`
 
 Upon each debt issuance:
 - `baseRate` is decayed based on time passed since the last fee event
@@ -1069,15 +1069,15 @@ Furthermore, the fees cannot become smaller than 0.5%, which in the case of rede
 
 ### Fee decay Implementation
 
-Time is measured in units of minutes. The `baseRate` decay is based on `block.timestamp - lastFeeOpTime`. If less than a minute has passed since the last fee event, then `lastFeeOpTime` is not updated. This prevents “base rate griefing”: i.e. it prevents an attacker stopping the `baseRate` from decaying by making a series of redemptions or issuing LUSD with time intervals of < 1 minute.
+Time is measured in units of minutes. The `baseRate` decay is based on `block.timestamp - lastFeeOpTime`. If less than a minute has passed since the last fee event, then `lastFeeOpTime` is not updated. This prevents “base rate griefing”: i.e. it prevents an attacker stopping the `baseRate` from decaying by making a series of redemptions or issuing SOLUSD with time intervals of < 1 minute.
 
 The decay parameter is tuned such that the fee changes by a factor of 0.99 per hour, i.e. it loses 1% of its current value per hour. At that rate, after one week, the baseRate decays to 18% of its prior value. The exact decay parameter is subject to change, and will be fine-tuned via economic modelling.
 
-### Staking LQTY and earning fees
+### Staking SOLID and earning fees
 
-LQTY holders may `stake` and `unstake` their LQTY in the `LQTYStaking.sol` contract. 
+SOLID holders may `stake` and `unstake` their SOLID in the `SOLIDStaking.sol` contract. 
 
-When a fee event occurs, the fee in LUSD or ETH is sent to the staking contract, and a reward-per-unit-staked sum (`F_ETH`, or `F_LUSD`) is incremented. A LQTY stake earns a share of the fee equal to its share of the total LQTY staked, at the instant the fee occurred.
+When a fee event occurs, the fee in SOLUSD or SOL is sent to the staking contract, and a reward-per-unit-staked sum (`F_SOL`, or `F_SOLUSD`) is incremented. A SOLID stake earns a share of the fee equal to its share of the total SOLID staked, at the instant the fee occurred.
 
 This staking formula and implementation follows the basic [“Batog” pull-based reward distribution](http://batog.info/papers/scalable-reward-distribution.pdf).
 
@@ -1137,67 +1137,67 @@ PDFs of these can be found in https://github.com/liquity/dev/blob/main/papers
 
 _**Trove:**_ a collateralized debt position, bound to a single Ethereum address. Also referred to as a “CDP” in similar protocols.
 
-_**LUSD**_:  The stablecoin that may be issued from a user's collateralized debt position and freely transferred/traded to any Ethereum address. Intended to maintain parity with the US dollar, and can always be redeemed directly with the system: 1 LUSD is always exchangeable for $1 USD worth of ETH.
+_**SOLUSD**_:  The stablecoin that may be issued from a user's collateralized debt position and freely transferred/traded to any Ethereum address. Intended to maintain parity with the US dollar, and can always be redeemed directly with the system: 1 SOLUSD is always exchangeable for $1 USD worth of SOL.
 
 _**Active Trove:**_ an Ethereum address owns an “active Trove” if there is a node in the `SortedTroves` list with ID equal to the address, and non-zero collateral is recorded on the Trove struct for that address.
 
 _**Closed Trove:**_ a Trove that was once active, but now has zero debt and zero collateral recorded on its struct, and there is no node in the `SortedTroves` list with ID equal to the owning address.
 
-_**Active collateral:**_ the amount of ETH collateral recorded on a Trove’s struct
+_**Active collateral:**_ the amount of SOL collateral recorded on a Trove’s struct
 
-_**Active debt:**_ the amount of LUSD debt recorded on a Trove’s struct
+_**Active debt:**_ the amount of SOLUSD debt recorded on a Trove’s struct
 
 _**Entire collateral:**_ the sum of a Trove’s active collateral plus its pending collateral rewards accumulated from distributions
 
 _**Entire debt:**_ the sum of a Trove’s active debt plus its pending debt rewards accumulated from distributions
 
-_**Individual collateralization ratio (ICR):**_ a Trove's ICR is the ratio of the dollar value of its entire collateral at the current ETH:USD price, to its entire debt
+_**Individual collateralization ratio (ICR):**_ a Trove's ICR is the ratio of the dollar value of its entire collateral at the current SOL:USD price, to its entire debt
 
-_**Nominal collateralization ratio (nominal ICR, NICR):**_ a Trove's nominal ICR is its entire collateral (in ETH) multiplied by 100e18 and divided by its entire debt.
+_**Nominal collateralization ratio (nominal ICR, NICR):**_ a Trove's nominal ICR is its entire collateral (in SOL) multiplied by 100e18 and divided by its entire debt.
 
-_**Total active collateral:**_ the sum of active collateral over all Troves. Equal to the ETH in the ActivePool.
+_**Total active collateral:**_ the sum of active collateral over all Troves. Equal to the SOL in the ActivePool.
 
-_**Total active debt:**_ the sum of active debt over all Troves. Equal to the LUSD in the ActivePool.
+_**Total active debt:**_ the sum of active debt over all Troves. Equal to the SOLUSD in the ActivePool.
 
-_**Total defaulted collateral:**_ the total ETH collateral in the DefaultPool
+_**Total defaulted collateral:**_ the total SOL collateral in the DefaultPool
 
-_**Total defaulted debt:**_ the total LUSD debt in the DefaultPool
+_**Total defaulted debt:**_ the total SOLUSD debt in the DefaultPool
 
 _**Entire system collateral:**_ the sum of the collateral in the ActivePool and DefaultPool
 
 _**Entire system debt:**_ the sum of the debt in the ActivePool and DefaultPool
 
-_**Total collateralization ratio (TCR):**_ the ratio of the dollar value of the entire system collateral at the current ETH:USD price, to the entire system debt
+_**Total collateralization ratio (TCR):**_ the ratio of the dollar value of the entire system collateral at the current SOL:USD price, to the entire system debt
 
 _**Critical collateralization ratio (CCR):**_ 150%. When the TCR is below the CCR, the system enters Recovery Mode.
 
-_**Borrower:**_ an externally owned account or contract that locks collateral in a Trove and issues LUSD tokens to their own address. They “borrow” LUSD tokens against their ETH collateral.
+_**Borrower:**_ an externally owned account or contract that locks collateral in a Trove and issues SOLUSD tokens to their own address. They “borrow” SOLUSD tokens against their SOL collateral.
 
-_**Depositor:**_ an externally owned account or contract that has assigned LUSD tokens to the Stability Pool, in order to earn returns from liquidations, and receive LQTY token issuance.
+_**Depositor:**_ an externally owned account or contract that has assigned SOLUSD tokens to the Stability Pool, in order to earn returns from liquidations, and receive SOLID token issuance.
 
-_**Redemption:**_ the act of swapping LUSD tokens with the system, in return for an equivalent value of ETH. Any account with a LUSD token balance may redeem them, whether or not they are a borrower.
+_**Redemption:**_ the act of swapping SOLUSD tokens with the system, in return for an equivalent value of SOL. Any account with a SOLUSD token balance may redeem them, whether or not they are a borrower.
 
-When LUSD is redeemed for ETH, the ETH is always withdrawn from the lowest collateral Troves, in ascending order of their collateralization ratio. A redeemer can not selectively target Troves with which to swap LUSD for ETH.
+When SOLUSD is redeemed for SOL, the SOL is always withdrawn from the lowest collateral Troves, in ascending order of their collateralization ratio. A redeemer can not selectively target Troves with which to swap SOLUSD for SOL.
 
-_**Repayment:**_ when a borrower sends LUSD tokens to their own Trove, reducing their debt, and increasing their collateralization ratio.
+_**Repayment:**_ when a borrower sends SOLUSD tokens to their own Trove, reducing their debt, and increasing their collateralization ratio.
 
-_**Retrieval:**_ when a borrower with an active Trove withdraws some or all of their ETH collateral from their own trove, either reducing their collateralization ratio, or closing their Trove (if they have zero debt and withdraw all their ETH)
+_**Retrieval:**_ when a borrower with an active Trove withdraws some or all of their SOL collateral from their own trove, either reducing their collateralization ratio, or closing their Trove (if they have zero debt and withdraw all their SOL)
 
-_**Liquidation:**_ the act of force-closing an undercollateralized Trove and redistributing its collateral and debt. When the Stability Pool is sufficiently large, the liquidated debt is offset with the Stability Pool, and the ETH distributed to depositors. If the liquidated debt can not be offset with the Pool, the system redistributes the liquidated collateral and debt directly to the active Troves with >110% collateralization ratio.
+_**Liquidation:**_ the act of force-closing an undercollateralized Trove and redistributing its collateral and debt. When the Stability Pool is sufficiently large, the liquidated debt is offset with the Stability Pool, and the SOL distributed to depositors. If the liquidated debt can not be offset with the Pool, the system redistributes the liquidated collateral and debt directly to the active Troves with >110% collateralization ratio.
 
 Liquidation functionality is permissionless and publically available - anyone may liquidate an undercollateralized Trove, or batch liquidate Troves in ascending order of collateralization ratio.
 
-_**Collateral Surplus**_: The difference between the dollar value of a Trove's ETH collateral, and the dollar value of its LUSD debt. In a full liquidation, this is the net gain earned by the recipients of the liquidation.
+_**Collateral Surplus**_: The difference between the dollar value of a Trove's SOL collateral, and the dollar value of its SOLUSD debt. In a full liquidation, this is the net gain earned by the recipients of the liquidation.
 
-_**Offset:**_ cancellation of liquidated debt with LUSD in the Stability Pool, and assignment of liquidated collateral to Stability Pool depositors, in proportion to their deposit.
+_**Offset:**_ cancellation of liquidated debt with SOLUSD in the Stability Pool, and assignment of liquidated collateral to Stability Pool depositors, in proportion to their deposit.
 
 _**Redistribution:**_ assignment of liquidated debt and collateral directly to active Troves, in proportion to their collateral.
 
-_**Pure offset:**_  when a Trove's debt is entirely cancelled with LUSD in the Stability Pool, and all of it's liquidated ETH collateral is assigned to Stability Providers.
+_**Pure offset:**_  when a Trove's debt is entirely cancelled with SOLUSD in the Stability Pool, and all of it's liquidated SOL collateral is assigned to Stability Providers.
 
-_**Mixed offset and redistribution:**_  When the Stability Pool LUSD only covers a fraction of the liquidated Trove's debt.  This fraction of debt is cancelled with LUSD in the Stability Pool, and an equal fraction of the Trove's collateral is assigned to depositors. The remaining collateral & debt is redistributed directly to active Troves.
+_**Mixed offset and redistribution:**_  When the Stability Pool SOLUSD only covers a fraction of the liquidated Trove's debt.  This fraction of debt is cancelled with SOLUSD in the Stability Pool, and an equal fraction of the Trove's collateral is assigned to depositors. The remaining collateral & debt is redistributed directly to active Troves.
 
-_**Gas compensation:**_ A refund, in LUSD and ETH, automatically paid to the caller of a liquidation function, intended to at least cover the gas cost of the transaction. Designed to ensure that liquidators are not dissuaded by potentially high gas costs.
+_**Gas compensation:**_ A refund, in SOLUSD and SOL, automatically paid to the caller of a liquidation function, intended to at least cover the gas cost of the transaction. Designed to ensure that liquidators are not dissuaded by potentially high gas costs.
 
 ## Development
 
@@ -1319,7 +1319,7 @@ This will automatically start the local blockchain, so you need to make sure tha
 yarn start-demo
 ```
 
-This spawns a modified version of dev-frontend that ignores MetaMask, and directly uses the local blockchain node. Every time the page is reloaded (at http://localhost:3000), a new random account is created with a balance of 100 ETH. Additionally, transactions are automatically signed, so you no longer need to accept wallet confirmations. This lets you play around with Liquity more freely.
+This spawns a modified version of dev-frontend that ignores MetaMask, and directly uses the local blockchain node. Every time the page is reloaded (at http://localhost:3000), a new random account is created with a balance of 100 SOL. Additionally, transactions are automatically signed, so you no longer need to accept wallet confirmations. This lets you play around with Liquity more freely.
 
 When you no longer need the demo mode, press Ctrl+C in the terminal then run:
 
