@@ -35,6 +35,12 @@ pub enum TroveManagerError {
     /// Math operation overflow
     #[error("Math operation overflow")]
     MathOverflow,
+    /// Nothing to liquidate
+    #[error("Nothing to liquidate")]
+    NothingToLiquidate,
+    /// Max fee percentage must be between 0.5% and 100%
+    #[error("Max fee percentage must be between 0.5% and 100%")]
+    MaxFeePercentageError,
 }
 impl From<TroveManagerError> for ProgramError {
     fn from(e: TroveManagerError) -> Self {
