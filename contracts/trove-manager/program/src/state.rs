@@ -190,7 +190,7 @@ pub struct LiquidationValues {
     pub entire_trove_debt:u64,
     pub entire_trove_coll:u64,
     pub coll_gas_compensation:u64,
-    pub solusd_gas_compensation:u64,
+    pub solusd_gas_compensation:u128,
     pub debt_to_offset:u64,
     pub coll_to_send_to_sp:u64,
     pub debt_to_redistribute:u64,
@@ -218,12 +218,27 @@ pub struct LiquidationTotals {
     pub total_coll_in_sequence:u64,
     pub total_debt_in_sequence:u64,
     pub total_coll_gas_compensation:u64,
-    pub total_solusd_gas_compensation:u64,
+    pub total_solusd_gas_compensation:u128,
     pub total_debt_to_offset:u64,
     pub total_coll_to_send_to_sp:u64,
     pub total_debt_to_redistribute:u64,
     pub total_coll_to_redistribute:u64,
     pub total_coll_surplus:u64,
+}
+impl LiquidationTotals{
+    pub fn new()->LiquidationTotals{
+        LiquidationTotals{
+            total_coll_in_sequence:0,
+            total_debt_in_sequence:0,
+            total_coll_gas_compensation:0,
+            total_solusd_gas_compensation:0,
+            total_debt_to_offset:0,
+            total_coll_to_send_to_sp:0,
+            total_debt_to_redistribute:0,
+            total_coll_to_redistribute:0,
+            total_coll_surplus:0,
+        }
+    }
 }
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -247,6 +262,20 @@ pub struct RedemptionTotals {
     pub decayed_base_rate:u64,
     pub price:u64,
     pub total_solusd_supply_at_start:u64,
+}
+impl RedemptionTotals{
+    pub fn new()->RedemptionTotals{
+        RedemptionTotals{
+            remaining_solusd:0,
+            total_solusd_to_redeem:0,
+            total_sol_drawn:0,
+            sol_fee:0,
+            sol_to_send_to_redeemer:0,
+            decayed_base_rate:0,
+            price:0,
+            total_solusd_supply_at_start:0
+        }
+    }
 }
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]

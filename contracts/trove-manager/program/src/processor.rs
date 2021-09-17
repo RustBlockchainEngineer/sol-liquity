@@ -27,7 +27,10 @@ use {
             CCR,
             PERCENT_DIVISOR,
             SOLUSD_GAS_COMPENSATION,
-            _100PCT
+            _100PCT,
+            MINUTE_DECAY_FACTOR,
+            REDEMPTION_FEE_FLOOR,
+            MAX_BORROWING_FEE
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -180,18 +183,21 @@ impl Processor {
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let borrower_info = next_account_info(account_info_iter)?;
         let borrower_trove_info = next_account_info(account_info_iter)?;
         let default_pool_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
+        let reward_snapshots_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
-        let trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
+        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
         let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
-        let default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
-        let active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+        let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
+        let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+        let mut reward_snapshots_data = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
         let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
 
         if !borrower_trove.is_active() {
@@ -237,15 +243,78 @@ impl Processor {
         vars.price = market_price.try_round_u64().unwrap();
         vars.solusd_in_stab_pool = stability_pool_data.total_sol_usd_deposits;
         vars.recovery_mode_at_start = trove_manager_data.check_recovery_mode(vars.price, &active_pool_data, &default_pool_data);
-
+        let mut totals = LiquidationTotals::new();
         
         // Perform the appropriate liquidation sequence - tally values and obtain their totals.
         if vars.recovery_mode_at_start == 1 {
-            trove_manager_data.totals = 
+            
+            totals = Self::get_total_from_batch_liquidate_recovery_mode(
+                &mut trove_manager_data, 
+                &active_pool_data, 
+                &mut default_pool_data, 
+                vars.price, 
+                vars.solusd_in_stab_pool, 
+                borrower_info.key, 
+                &mut borrower_trove, 
+                &mut reward_snapshots_data);
         }
+        else {//  if !vars.recoveryModeAtStart
+            totals = Self::get_total_from_batch_liquidate_normal_mode(
+                &mut trove_manager_data, 
+                &active_pool_data, 
+                &mut default_pool_data, 
+                vars.price, 
+                vars.solusd_in_stab_pool, 
+                borrower_info.key, 
+                &mut borrower_trove, 
+                &mut reward_snapshots_data);
+        }
+
+        if totals.total_debt_in_sequence <= 0 {
+            return Err(TroveManagerError::NothingToLiquidate.into());
+        }
+
+        // Move liquidated SOL and SOLUSD to the appropriate pools
+        //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP);
+        Self::redistribute_debt_and_coll(&mut trove_manager_data, &mut active_pool_data, &mut default_pool_data, totals.total_debt_to_redistribute, totals.total_coll_to_redistribute);
+
+        if totals.total_coll_surplus > 0 {
+            //activePoolCached.sendETH(address(collSurplusPool), totals.totalCollSurplus);
+        }
+
+        // update system snapshots
+        Self::update_system_snapshots_exclude_coll_reminder(&mut trove_manager_data, &active_pool_data, &default_pool_data,totals.total_coll_gas_compensation);
+
+        vars.liquidated_debt = totals.total_debt_in_sequence;
+        vars.liquidated_coll = totals.total_coll_in_sequence - totals.total_coll_gas_compensation - totals.total_coll_surplus;
+
+
+        // Send gas compensation to caller
+        // _sendGasCompensation(activePoolCached, msg.sender, totals.totalLUSDGasCompensation, totals.totalCollGasCompensation);
 
         Ok(())
     }
+    /* Send solusd_amount SOLUSD to the system and redeem the corresponding amount of collateral from as many Troves as are needed to fill the redemption
+    * request.  Applies pending rewards to a Trove before reducing its debt and coll.
+    *
+    * Note that if _amount is very large, this function can run out of gas, specially if traversed troves are small. This can be easily avoided by
+    * splitting the total _amount in appropriate chunks and calling the function multiple times.
+    *
+    * Param `_maxIterations` can also be provided, so the loop through Troves is capped (if it’s zero, it will be ignored).This makes it easier to
+    * avoid OOG for the frontend, as only knowing approximately the average cost of an iteration is enough, without needing to know the “topology”
+    * of the trove list. It also avoids the need to set the cap in stone in the contract, nor doing gas calculations, as both gas price and opcode
+    * costs can vary.
+    *
+    * All Troves that are redeemed from -- with the likely exception of the last one -- will end up with no debt left, therefore they will be closed.
+    * If the last Trove does have some remaining debt, it has a finite ICR, and the reinsertion could be anywhere in the list, therefore it requires a hint.
+    * A frontend should use getRedemptionHints() to calculate what the ICR of this Trove will be after redemption, and pass a hint for its position
+    * in the sortedTroves list along with the ICR value that the hint was found for.
+    *
+    * If another transaction modifies the list between calling getRedemptionHints() and passing the hints to redeemCollateral(), it
+    * is very likely that the last (partially) redeemed Trove would end up with a different ICR than what the hint is for. In this case the
+    * redemption will stop after the last completely redeemed Trove and the sender will keep the remaining SOLUSD amount, which they can attempt
+    * to redeem later.
+    */
     pub fn process_redeem_collateral(
         program_id: &Pubkey,        // this program id
         accounts: &[AccountInfo],   // all account informations
@@ -254,15 +323,167 @@ impl Processor {
         max_iterations:u64,
         max_fee_percentage:u64
     ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let solid_staking_id_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let stability_pool_info = next_account_info(account_info_iter)?;
+        let pyth_product_info = next_account_info(account_info_iter)?;
+        let pyth_price_info = next_account_info(account_info_iter)?;
+        let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
+
+        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
+        let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
+        let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+
+        if max_fee_percentage < REDEMPTION_FEE_FLOOR || max_fee_percentage > DECIMAL_PRECISION {
+            return Err(TroveManagerError::MaxFeePercentageError.into());
+        }
+        //_requireAfterBootstrapPeriod();
+
+        let pyth_product_data = pyth_product_info.try_borrow_data()?;
+        let pyth_product = pyth::load::<pyth::Product>(&pyth_product_data)
+            .map_err(|_| ProgramError::InvalidAccountData)?;
+        if pyth_product.magic != pyth::MAGIC {
+            msg!("Pyth product account provided is not a valid Pyth account");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+        if pyth_product.ver != pyth::VERSION_2 {
+            msg!("Pyth product account provided has a different version than expected");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+        if pyth_product.atype != pyth::AccountType::Product as u32 {
+            msg!("Pyth product account provided is not a valid Pyth product account");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+    
+        let pyth_price_pubkey_bytes: &[u8; 32] = pyth_price_info
+            .key
+            .as_ref()
+            .try_into()
+            .map_err(|_| TroveManagerError::InvalidAccountInput)?;
+        if &pyth_product.px_acc.val != pyth_price_pubkey_bytes {
+            msg!("Pyth product price account does not match the Pyth price provided");
+            return Err(TroveManagerError::InvalidOracleConfig.into());
+        }
+    
+        let market_price = Self::get_pyth_price(pyth_price_info, clock)?;
+
+        let mut totals = RedemptionTotals::new();
         
+        totals.price = market_price.try_round_u64().unwrap();
+        
+
         Ok(())
     } 
+    /*
+    * Liquidate a sequence of troves. Closes a maximum number of n under-collateralized Troves,
+    * starting from the one with the lowest collateral ratio in the system, and moving upwards
+    */
     pub fn process_liquidate_troves(
         program_id: &Pubkey,        // this program id
         accounts: &[AccountInfo],   // all account informations
         number: u64,                  // nonce for authorizing
     ) -> ProgramResult {
+
         Ok(())
+    }
+    pub fn update_system_snapshots_exclude_coll_reminder(
+        trove_manager:&mut TroveManager,
+        active_pool:&ActivePool,
+        default_pool:&DefaultPool,
+        coll_remainder:u64
+    ){
+        trove_manager.total_stakes_snapshot = trove_manager.total_stakes;
+
+        let active_coll = active_pool.sol;
+        let liquidate_coll = default_pool.sol;
+
+        trove_manager.total_collateral_snapshot = active_coll - coll_remainder + liquidate_coll;
+    }
+    pub fn redistribute_debt_and_coll(
+        trove_manager:&mut TroveManager,
+        active_pool:&mut ActivePool,
+        default_pool:&mut DefaultPool,
+        debt:u64,
+        coll:u64
+    ){
+        if debt == 0 {
+            return;
+        }
+
+        /*
+        * Add distributed coll and debt rewards-per-unit-staked to the running totals. Division uses a "feedback"
+        * error correction, to keep the cumulative error low in the running totals l_sol and l_solusd_debt:
+        *
+        * 1) Form numerators which compensate for the floor division errors that occurred the last time this
+        * function was called.
+        * 2) Calculate "per-unit-staked" ratios.
+        * 3) Multiply each ratio back by its denominator, to reveal the current floor division error.
+        * 4) Store these errors for use in the next correction when this function is called.
+        * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
+        */
+        let sol_numerator = coll * DECIMAL_PRECISION + trove_manager.last_sol_error_redistribution;
+        let solusd_debt_numerator = debt * DECIMAL_PRECISION + trove_manager.last_solusd_debt_error_redistribution;
+
+        // Get the per-unit-staked terms
+        let sol_reward_per_unit_staked = sol_numerator / trove_manager.total_stakes;
+        let solusd_debt_reward_per_unit_staked = solusd_debt_numerator / trove_manager.total_stakes;
+
+        trove_manager.last_sol_error_redistribution = sol_numerator - sol_reward_per_unit_staked * trove_manager.total_stakes;
+        trove_manager.last_solusd_debt_error_redistribution = solusd_debt_numerator - solusd_debt_reward_per_unit_staked * trove_manager.total_stakes;
+
+        // Add per-unit-staked terms to the running totals
+        trove_manager.l_sol += sol_reward_per_unit_staked;
+        trove_manager.l_solusd_debt += solusd_debt_reward_per_unit_staked;
+
+        active_pool.decrease_solusd_debt(debt);
+        default_pool.increase_solusd_debt(debt);
+        //_activePool.sendETH(address(_defaultPool), _coll);
+
+    }
+    pub fn get_total_from_batch_liquidate_normal_mode(
+        trove_manager_data:&mut TroveManager,
+        active_pool:&ActivePool,
+        default_pool:&mut DefaultPool,
+        price:u64,
+        solusd_in_stab_pool: u64,
+        borrower_address:&Pubkey,
+        borrower_trove:&mut Trove,
+        reward_snapshot:&mut RewardSnapshot
+    )->LiquidationTotals{
+        let mut vars = LocalVariablesLiquidationSequence::new();
+        let mut single_liquidation = LiquidationValues::new();
+
+        vars.remaining_solusd_in_stab_pool = solusd_in_stab_pool;
+        
+        vars.user = Option::from(*borrower_address);
+
+        let mut totals = LiquidationTotals::new();
+
+        if borrower_trove.is_active() {
+            vars.icr = Self::get_current_icr(trove_manager_data, borrower_trove, reward_snapshot, price);
+            
+            if vars.icr < MCR {
+                single_liquidation = Self::liquidate_normal_mode(
+                    trove_manager_data, 
+                    active_pool, 
+                    default_pool, 
+                    borrower_trove, 
+                    reward_snapshot, 
+                    vars.remaining_solusd_in_stab_pool, 
+                    );
+            
+                vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+
+                // Add liquidation values to their respective running totals
+                Self::add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+            }
+        }
+
+        totals
     }
     pub fn get_total_from_batch_liquidate_recovery_mode(
         trove_manager_data:&mut TroveManager,
@@ -273,9 +494,9 @@ impl Processor {
         borrower_address:&Pubkey,
         borrower_trove:&mut Trove,
         reward_snapshot:&mut RewardSnapshot
-    )->u64{
-        let vars = LocalVariablesLiquidationSequence::new();
-        let single_liquidation = LiquidationValues::new();
+    )->LiquidationTotals{
+        let mut vars = LocalVariablesLiquidationSequence::new();
+        let mut single_liquidation = LiquidationValues::new();
 
         vars.remaining_solusd_in_stab_pool = solusd_in_stab_pool;
         vars.back_to_normal_mode = 0;
@@ -283,9 +504,11 @@ impl Processor {
         vars.entire_system_coll = active_pool.sol + default_pool.sol;
         vars.user = Option::from(*borrower_address);
 
+        let mut totals = LiquidationTotals::new();
+
         if borrower_trove.is_active() {
             vars.icr = Self::get_current_icr(trove_manager_data, borrower_trove, reward_snapshot, price);
-
+            
             if vars.back_to_normal_mode == 0 {
                 if vars.icr < MCR || vars.remaining_solusd_in_stab_pool > 0 {
                     let tcr = trove_manager_data.compute_cr(vars.entire_system_coll, vars.entire_system_debt, price);
@@ -301,10 +524,78 @@ impl Processor {
                         price);
                     
                         // update aggregate trackers
+                        vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+                        vars.entire_system_debt -= single_liquidation.debt_to_offset;
+                        vars.entire_system_coll -= vars.entire_system_coll - single_liquidation.coll_to_send_to_sp - single_liquidation.coll_gas_compensation - single_liquidation.coll_surplus;
+
+                        // Add liquidation values to their respective running totals
+                        
+                        Self::add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+                        vars.back_to_normal_mode = Self::check_potential_not_recovery_mode(trove_manager_data, vars.entire_system_coll, vars.entire_system_debt, price);
+                        
+                }
+                else if vars.back_to_normal_mode == 1 && vars.icr < MCR {
+                    single_liquidation = Self::liquidate_normal_mode(trove_manager_data, active_pool, default_pool, borrower_trove, reward_snapshot, vars.remaining_solusd_in_stab_pool);
+                    vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+
+                    // Add liquidation values to their respective running totals
+                    Self::add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+
                 }
             }
         }
-        0
+
+        totals
+    }
+    
+    pub fn check_potential_not_recovery_mode(trove_manager:&TroveManager, entire_system_coll:u64, entire_system_debt:u64, price:u64)->u8{
+        let tcr = trove_manager.compute_cr(entire_system_coll, entire_system_debt, price);
+        return if tcr < CCR {0} else {1};
+    }
+    pub fn add_liquidation_values_to_totals(totals:&mut LiquidationTotals, single_liquidation:&LiquidationValues){
+        totals.total_coll_gas_compensation += single_liquidation.coll_gas_compensation;
+        totals.total_solusd_gas_compensation += single_liquidation.solusd_gas_compensation;
+        totals.total_debt_in_sequence += single_liquidation.entire_trove_debt;
+        totals.total_coll_in_sequence += single_liquidation.entire_trove_coll;
+        totals.total_debt_to_offset += single_liquidation.debt_to_offset;
+        totals.total_coll_to_send_to_sp += single_liquidation.coll_to_send_to_sp;
+        totals.total_debt_to_redistribute += single_liquidation.debt_to_redistribute;
+        totals.total_coll_to_redistribute += single_liquidation.coll_to_redistribute;
+        totals.total_coll_surplus += single_liquidation.coll_surplus;
+    }
+    pub fn liquidate_normal_mode(
+        trove_manager: &mut TroveManager,
+        active_pool:&ActivePool,
+        default_pool:&mut DefaultPool,
+        borrower_trove:&mut Trove,
+        reward_snapshots:&mut RewardSnapshot,
+        _solusd_in_stab_pool:u64,
+    )->LiquidationValues{
+        let mut vars = LocalVariablesInnerSingleLiquidateFunction::new();
+        let mut single_liquidation = LiquidationValues::new();
+
+        //if (TroveOwners.length <= 1) {return singleLiquidation;} // don't liquidate if last trove
+        let (entire_trove_debt, entire_trove_coll, pending_debt_reward, pending_coll_reward) = Self::get_entire_debt_and_coll(trove_manager, borrower_trove, reward_snapshots);
+        single_liquidation.entire_trove_debt = entire_trove_debt;
+        single_liquidation.entire_trove_coll = entire_trove_coll;
+        vars.pending_debt_reward = pending_debt_reward;
+        vars.pending_coll_reward = pending_coll_reward;
+
+        Self::move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
+        Self::remove_stake(trove_manager,borrower_trove);
+
+        single_liquidation.coll_gas_compensation = Self::get_coll_gas_compensation(single_liquidation.entire_trove_coll);
+        single_liquidation.solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
+        let coll_to_liquidate = single_liquidation.entire_trove_coll - single_liquidation.coll_gas_compensation;
+
+        let (_debt_to_offset, _coll_to_send_to_sp, _debt_to_redistribute, _coll_to_liquidate) = Self::get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, coll_to_liquidate, _solusd_in_stab_pool);
+        single_liquidation.debt_to_offset = _debt_to_offset;
+        single_liquidation.coll_to_send_to_sp = _coll_to_send_to_sp;
+        single_liquidation.debt_to_redistribute = _debt_to_redistribute;
+        single_liquidation.coll_to_redistribute = _coll_to_liquidate;
+
+        //_closeTrove(_borrower, Status.closedByLiquidation);
+        return single_liquidation;
 
     }
     pub fn liquidate_recovery_mode(
@@ -319,7 +610,7 @@ impl Processor {
         _price:u64
 
     )->LiquidationValues{
-        let vars = LocalVariablesInnerSingleLiquidateFunction::new();
+        let mut vars = LocalVariablesInnerSingleLiquidateFunction::new();
         let mut single_liquidation = LiquidationValues::new();
 
         //if (TroveOwners.length <= 1) {return singleLiquidation;} // don't liquidate if last trove
@@ -331,7 +622,7 @@ impl Processor {
 
         single_liquidation.coll_gas_compensation = Self::get_coll_gas_compensation(single_liquidation.entire_trove_coll);
         single_liquidation.solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
-        let coll_to_liquidate = single_liquidation.entire_trove_coll - single_liquidation.coll_gas_compensation;
+        vars.coll_to_liquidate = single_liquidation.entire_trove_coll - single_liquidation.coll_gas_compensation;
 
         // If ICR <= 100%, purely redistribute the Trove across all active Troves
         if _icr <= _100PCT {
@@ -346,10 +637,10 @@ impl Processor {
             Self::close_trove(borrower_trove, reward_snapshots);
         }
         else if (_icr > _100PCT) && (_icr < MCR) {
-            Self::move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, &mut active_pool);
+            Self::move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
             Self::remove_stake(trove_manager,borrower_trove);
 
-            let (debt_to_offset, coll_to_send_to_sp, debt_to_redistribute, coll_to_liquidate) = Self::get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, vars.coll_to_liquidate, _solusd_in_stab_pool);
+            let (_debt_to_offset, _coll_to_send_to_sp, _debt_to_redistribute, _coll_to_liquidate) = Self::get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, vars.coll_to_liquidate, _solusd_in_stab_pool);
             //_closeTrove(_borrower, Status.closedByLiquidation);
         }
         /*
@@ -359,7 +650,7 @@ impl Processor {
         * The remainder due to the capped rate will be claimable as collateral surplus.
         */
         else if (_icr >= MCR) && (_icr < _tcr) && (single_liquidation.entire_trove_debt <= _solusd_in_stab_pool) {
-            Self::move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, &mut active_pool);
+            Self::move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
             //assert(_LUSDInStabPool != 0);
             Self::remove_stake(trove_manager,borrower_trove);
             Self::get_capped_offset_vals(&mut single_liquidation, _price);
@@ -442,8 +733,8 @@ impl Processor {
         entire_coll / PERCENT_DIVISOR
     }
     pub fn get_entire_debt_and_coll(trove_manager:&TroveManager, borrower_trove:&Trove, reward_snapshots:&RewardSnapshot)->(u64,u64,u64,u64){
-        let debt = borrower_trove.debt;
-        let coll = borrower_trove.coll;
+        let mut debt = borrower_trove.debt;
+        let mut coll = borrower_trove.coll;
 
         let pending_solusd_debt_reward = Self::get_pending_solusd_debt_reward(trove_manager, borrower_trove, reward_snapshots);
         let pending_sol_reward = Self::get_pending_sol_reward(trove_manager, borrower_trove, reward_snapshots);
@@ -503,7 +794,7 @@ impl Processor {
                     trove_manager_data, 
                     pending_sol_reward, 
                     pending_solusd_debt_reward,
-                    &mut default_pool_data,
+                    default_pool_data,
                     &active_pool_data
                 );
             }
