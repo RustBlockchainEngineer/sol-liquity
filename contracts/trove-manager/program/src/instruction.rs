@@ -26,18 +26,18 @@ pub enum TroveManagerInstruction {
     Liquidate,
     RedeemCollateral{
         #[allow(dead_code)]
-        solusd_amount: u64,
+        solusd_amount: u128,
 
         #[allow(dead_code)]
-        partial_redemption_hint_nicr: u64,
+        partial_redemption_hint_nicr: u128,
 
         #[allow(dead_code)]
-        max_iterations: u64,
+        max_iterations: u128,
 
         #[allow(dead_code)]
-        max_fee_percentage: u64,
+        max_fee_percentage: u128,
     },
-    LiquidateTroves(u64),
+    LiquidateTroves(u128),
     
 
 }

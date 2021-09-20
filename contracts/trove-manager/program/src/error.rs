@@ -41,6 +41,15 @@ pub enum TroveManagerError {
     /// Max fee percentage must be between 0.5% and 100%
     #[error("Max fee percentage must be between 0.5% and 100%")]
     MaxFeePercentageError,
+    /// TroveManager: Cannot redeem when TCR < MCR
+    #[error("TroveManager: Cannot redeem when TCR < MCR")]
+    TCRError,
+    /// Amount must be greater than zero
+    #[error("Amount must be greater than zero")]
+    ZeroAmount,
+    /// Fee exceeded provided maximum
+    #[error("Fee exceeded provided maximum")]
+    FeeExceeded,
 }
 impl From<TroveManagerError> for ProgramError {
     fn from(e: TroveManagerError) -> Self {

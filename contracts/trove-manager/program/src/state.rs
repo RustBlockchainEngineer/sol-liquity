@@ -10,10 +10,12 @@ use {
     num_traits::FromPrimitive,
     num_derive::FromPrimitive, 
 };
-use std::u64::MAX;
 use crate::{
     constant::{
         CCR
+    },
+    liquity_math::{
+        compute_cr
     }
 };
 
@@ -45,34 +47,24 @@ pub struct TroveManager {
 
     pub active_pool_id: Pubkey,
 
-    pub base_rate:u64,
+    pub base_rate:u128,
 
-    pub last_fee_operation_time:u64,
-    pub total_stakes:u64,
-    pub total_stakes_snapshot:u64,
-    pub total_collateral_snapshot:u64,
-    pub l_sol:u64,
-    pub l_solusd_debt:u64,
-    pub last_sol_error_redistribution:u64,
-    pub last_solusd_debt_error_redistribution:u64,
+    pub last_fee_operation_time:u128,
+    pub total_stakes:u128,
+    pub total_stakes_snapshot:u128,
+    pub total_collateral_snapshot:u128,
+    pub l_sol:u128,
+    pub l_solusd_debt:u128,
+    pub last_sol_error_redistribution:u128,
+    pub last_solusd_debt_error_redistribution:u128,
 
 }
 impl TroveManager{
-    pub fn check_recovery_mode(&self, price: u64, active_pool_data: &ActivePool, default_pool_data: &DefaultPool)->u8{
+    pub fn check_recovery_mode(&self, price: u128, active_pool_data: &ActivePool, default_pool_data: &DefaultPool)->u8{
         let entire_system_coll = active_pool_data.sol + default_pool_data.sol;
         let entire_system_debt = active_pool_data.solusd_debt + default_pool_data.solusd_debt;
-        let tcr = self.compute_cr(entire_system_coll, entire_system_debt, price);
+        let tcr = compute_cr(entire_system_coll, entire_system_debt, price);
         return if tcr < CCR {1} else {0};
-    }
-    pub fn compute_cr(&self, coll: u64, debt: u64, price: u64)->u64{
-        if debt > 0 {
-            let new_coll_ratio = coll * price / debt;
-            return new_coll_ratio;
-        }
-        // Return the maximal value for uint256 if the Trove has a debt of 0. Represents "infinite" CR.
-        else {// if (_debt == 0)
-            return MAX;
-        }
     }
 }
 #[repr(C)]
@@ -94,9 +86,9 @@ pub struct Trove {
     /// owner pubkey
     pub owner_pubkey:Pubkey,
 
-    pub debt:u64,
-    pub coll:u64,
-    pub stake:u64,
+    pub debt:u128,
+    pub coll:u128,
+    pub stake:u128,
     pub status:u8,
     pub array_index:u128,
 }
@@ -123,8 +115,8 @@ pub struct RewardSnapshot {
     /// owner pubkey
     pub owner_pubkey:Pubkey,
 
-    pub sol:u64,
-    pub solusd_debt:u64,
+    pub sol:u128,
+    pub solusd_debt:u128,
 }
 impl RewardSnapshot{
     pub fn update_trove_reward_snapshots(&mut self, trove_manager:&TroveManager){
@@ -136,20 +128,30 @@ impl RewardSnapshot{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesOuterLiquidationFunction {
-    pub price:u64,
-    pub solusd_in_stab_pool:u64,
+    pub price:u128,
+    pub solusd_in_stab_pool:u128,
     pub recovery_mode_at_start:u8,
-    pub liquidated_debt:u64,
-    pub liquidated_coll:u64,
+    pub liquidated_debt:u128,
+    pub liquidated_coll:u128,
 }
-
+impl LocalVariablesOuterLiquidationFunction{
+    pub fn new()->LocalVariablesOuterLiquidationFunction{
+        LocalVariablesOuterLiquidationFunction{
+            price: 0,
+            solusd_in_stab_pool:0,
+            recovery_mode_at_start:0,
+            liquidated_debt:0,
+            liquidated_coll:0
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesInnerSingleLiquidateFunction {
-    pub coll_to_liquidate:u64,
-    pub pending_debt_reward:u64,
-    pub pending_coll_reward:u64,
+    pub coll_to_liquidate:u128,
+    pub pending_debt_reward:u128,
+    pub pending_coll_reward:u128,
 }
 impl LocalVariablesInnerSingleLiquidateFunction{
     pub fn new()->LocalVariablesInnerSingleLiquidateFunction{
@@ -163,13 +165,13 @@ impl LocalVariablesInnerSingleLiquidateFunction{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesLiquidationSequence {
-    pub remaining_solusd_in_stab_pool:u64,
-    pub i:u64,
-    pub icr:u64,
+    pub remaining_solusd_in_stab_pool:u128,
+    pub i:u128,
+    pub icr:u128,
     pub user:Option<Pubkey>,
     pub back_to_normal_mode:u8,
-    pub entire_system_debt:u64,
-    pub entire_system_coll:u64,
+    pub entire_system_debt:u128,
+    pub entire_system_coll:u128,
 }
 impl LocalVariablesLiquidationSequence{
     pub fn new()->LocalVariablesLiquidationSequence{
@@ -187,15 +189,15 @@ impl LocalVariablesLiquidationSequence{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LiquidationValues {
-    pub entire_trove_debt:u64,
-    pub entire_trove_coll:u64,
-    pub coll_gas_compensation:u64,
+    pub entire_trove_debt:u128,
+    pub entire_trove_coll:u128,
+    pub coll_gas_compensation:u128,
     pub solusd_gas_compensation:u128,
-    pub debt_to_offset:u64,
-    pub coll_to_send_to_sp:u64,
-    pub debt_to_redistribute:u64,
-    pub coll_to_redistribute:u64,
-    pub coll_surplus:u64,
+    pub debt_to_offset:u128,
+    pub coll_to_send_to_sp:u128,
+    pub debt_to_redistribute:u128,
+    pub coll_to_redistribute:u128,
+    pub coll_surplus:u128,
 }
 impl LiquidationValues{
     pub fn new()->LiquidationValues{
@@ -215,15 +217,15 @@ impl LiquidationValues{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LiquidationTotals {
-    pub total_coll_in_sequence:u64,
-    pub total_debt_in_sequence:u64,
-    pub total_coll_gas_compensation:u64,
+    pub total_coll_in_sequence:u128,
+    pub total_debt_in_sequence:u128,
+    pub total_coll_gas_compensation:u128,
     pub total_solusd_gas_compensation:u128,
-    pub total_debt_to_offset:u64,
-    pub total_coll_to_send_to_sp:u64,
-    pub total_debt_to_redistribute:u64,
-    pub total_coll_to_redistribute:u64,
-    pub total_coll_surplus:u64,
+    pub total_debt_to_offset:u128,
+    pub total_coll_to_send_to_sp:u128,
+    pub total_debt_to_redistribute:u128,
+    pub total_coll_to_redistribute:u128,
+    pub total_coll_surplus:u128,
 }
 impl LiquidationTotals{
     pub fn new()->LiquidationTotals{
@@ -254,14 +256,14 @@ pub struct ContractsCache {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct RedemptionTotals {
-    pub remaining_solusd:u64,
-    pub total_solusd_to_redeem:u64,
-    pub total_sol_drawn:u64,
-    pub sol_fee:u64,
-    pub sol_to_send_to_redeemer:u64,
-    pub decayed_base_rate:u64,
-    pub price:u64,
-    pub total_solusd_supply_at_start:u64,
+    pub remaining_solusd:u128,
+    pub total_solusd_to_redeem:u128,
+    pub total_sol_drawn:u128,
+    pub sol_fee:u128,
+    pub sol_to_send_to_redeemer:u128,
+    pub decayed_base_rate:u128,
+    pub price:u128,
+    pub total_solusd_supply_at_start:u128,
 }
 impl RedemptionTotals{
     pub fn new()->RedemptionTotals{
@@ -280,8 +282,8 @@ impl RedemptionTotals{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct SingleRedemptionValues {
-    pub solusd_lot:u64,
-    pub sol_lot:u64,
+    pub solusd_lot:u128,
+    pub sol_lot:u128,
     pub cancelled_partial:u8,
 }
 
@@ -294,8 +296,8 @@ pub struct ActivePool {
     pub trove_manager_address: Pubkey,
     pub stability_pool_address: Pubkey,
     pub default_pool_address: Pubkey,
-    pub sol: u64,
-    pub solusd_debt: u64,
+    pub sol: u128,
+    pub solusd_debt: u128,
 }
 impl ActivePool{
     pub fn set_addresses(
@@ -311,10 +313,10 @@ impl ActivePool{
         self.default_pool_address = *default_pool_address;
 
     }
-    pub fn increase_solusd_debt(&mut self, amount:u64){
+    pub fn increase_solusd_debt(&mut self, amount:u128){
         self.solusd_debt += amount;
     }
-    pub fn decrease_solusd_debt(&mut self, amount:u64){
+    pub fn decrease_solusd_debt(&mut self, amount:u128){
         self.solusd_debt -= amount;
     }
 }
@@ -324,8 +326,8 @@ impl ActivePool{
 pub struct DefaultPool {
     pub trove_manager_address: Pubkey,
     pub active_pool_address: Pubkey,
-    pub sol: u64,
-    pub solusd_debt: u64,
+    pub sol: u128,
+    pub solusd_debt: u128,
 }
 impl DefaultPool{
     pub fn set_addresses(
@@ -337,10 +339,10 @@ impl DefaultPool{
         self.active_pool_address = *active_pool_address;
 
     }
-    pub fn increase_solusd_debt(&mut self, amount:u64){
+    pub fn increase_solusd_debt(&mut self, amount:u128){
         self.solusd_debt += amount;
     }
-    pub fn decrease_solusd_debt(&mut self, amount:u64){
+    pub fn decrease_solusd_debt(&mut self, amount:u128){
         self.solusd_debt -= amount;
     }
 }

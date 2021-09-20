@@ -50,14 +50,14 @@ This Will be converted for Solana
     - [Integer representations of decimals](#integer-representations-of-decimals)
   - [Public Data](#public-data)
   - [Public User-Facing Functions](#public-user-facing-functions)
-    - [Borrower (Trove) Operations - `BorrowerOperations.sol`](#borrower-trove-operations---borroweroperationssol)
-    - [TroveManager Functions - `TroveManager.sol`](#trovemanager-functions---trovemanagersol)
-    - [Hint Helper Functions - `HintHelpers.sol`](#hint-helper-functions---hinthelperssol)
-    - [Stability Pool Functions - `StabilityPool.sol`](#stability-pool-functions---stabilitypoolsol)
-    - [SOLID Staking Functions  `SOLIDStaking.sol`](#lqty-staking-functions--lqtystakingsol)
-    - [Lockup Contract Factory `LockupContractFactory.sol`](#lockup-contract-factory-lockupcontractfactorysol)
-    - [Lockup contract - `LockupContract.sol`](#lockup-contract---lockupcontractsol)
-    - [SOLUSD token `SOLUSDToken.sol` and SOLID token `SOLIDToken.sol`](#lusd-token-lusdtokensol-and-lqty-token-lqtytokensol)
+    - [Borrower (Trove) Operations - `borrower-operations`](#borrower-trove-operations---borroweroperationssol)
+    - [TroveManager Functions - `trove-manager`](#trovemanager-functions---trovemanagersol)
+    - [Hint Helper Functions - `hint-helpers`](#hint-helper-functions---hinthelperssol)
+    - [Stability Pool Functions - `stability-pool`](#stability-pool-functions---stabilitypoolsol)
+    - [SOLID Staking Functions  `solid-staking`](#lqty-staking-functions--lqtystakingsol)
+    - [Lockup Contract Factory `lockup-contract-factory`](#lockup-contract-factory-lockupcontractfactorysol)
+    - [Lockup contract - `lockup-contract`](#lockup-contract---lockupcontractsol)
+    - [SOLUSD token `SOLUSD` and SOLID token `SOLID`](#lusd-token-lusdtokensol-and-lqty-token-lqtytokensol)
   - [Supplying Hints to Trove operations](#supplying-hints-to-trove-operations)
     - [Hints for `redeemCollateral`](#hints-for-redeemcollateral)
       - [First redemption hint](#first-redemption-hint)
@@ -252,11 +252,11 @@ Liquity also issues SOLID to Stability Providers, in a continous time-based mann
 
 The SOLID contracts consist of:
 
-`SOLIDStaking.sol` - the staking contract, containing stake and unstake functionality for SOLID holders. This contract receives SOL fees from redemptions, and SOLUSD fees from new debt issuance.
+`solid-staking` - the staking contract, containing stake and unstake functionality for SOLID holders. This contract receives SOL fees from redemptions, and SOLUSD fees from new debt issuance.
 
 `CommunityIssuance.sol` - This contract handles the issuance of SOLID tokens to Stability Providers as a function of time. It is controlled by the `StabilityPool`. Upon system launch, the `CommunityIssuance` automatically receives 32 million SOLID - the “community issuance” supply. The contract steadily issues these SOLID tokens to the Stability Providers over time.
 
-`SOLIDToken.sol` - This is the SOLID ERC20 contract. It has a hard cap supply of 100 million, and during the first year, restricts transfers from the Liquity admin address, a regular Ethereum address controlled by the project company Liquity AG. **Note that the Liquity admin address has no extra privileges and does not retain any control over the Liquity protocol once deployed.**
+`SOLID` - This is the SOLID ERC20 contract. It has a hard cap supply of 100 million, and during the first year, restricts transfers from the Liquity admin address, a regular Ethereum address controlled by the project company Liquity AG. **Note that the Liquity admin address has no extra privileges and does not retain any control over the Liquity protocol once deployed.**
 
 ### SOLID Lockup contracts and token vesting
 
@@ -323,41 +323,41 @@ All application logic and data is contained in these contracts - there is no nee
 
 The system has no admin key or human governance. Once deployed, it is fully automated, decentralized and no user holds any special privileges in or control over the system.
 
-The three main contracts - `BorrowerOperations.sol`, `TroveManager.sol` and `StabilityPool.sol` - hold the user-facing public functions, and contain most of the internal system logic. Together they control Trove state updates and movements of Ether and SOLUSD tokens around the system.
+The three main contracts - `borrower-operations`, `trove-manager` and `stability-pool` - hold the user-facing public functions, and contain most of the internal system logic. Together they control Trove state updates and movements of Ether and SOLUSD tokens around the system.
 
 ### Core Smart Contracts
 
-`BorrowerOperations.sol` - contains the basic operations by which borrowers interact with their Trove: Trove creation, SOL top-up / withdrawal, stablecoin issuance and repayment. It also sends issuance fees to the `SOLIDStaking` contract. BorrowerOperations functions call in to TroveManager, telling it to update Trove state, where necessary. BorrowerOperations functions also call in to the various Pools, telling them to move Ether/Tokens between Pools or between Pool <> user, where necessary.
+`borrower-operations` - contains the basic operations by which borrowers interact with their Trove: Trove creation, SOL top-up / withdrawal, stablecoin issuance and repayment. It also sends issuance fees to the `SOLIDStaking` contract. BorrowerOperations functions call in to TroveManager, telling it to update Trove state, where necessary. BorrowerOperations functions also call in to the various Pools, telling them to move Ether/Tokens between Pools or between Pool <> user, where necessary.
 
-`TroveManager.sol` - contains functionality for liquidations and redemptions. It sends redemption fees to the `SOLIDStaking` contract. Also contains the state of each Trove - i.e. a record of the Trove’s collateral and debt. TroveManager does not hold value (i.e. Ether / other tokens). TroveManager functions call in to the various Pools to tell them to move Ether/tokens between Pools, where necessary.
+`trove-manager` - contains functionality for liquidations and redemptions. It sends redemption fees to the `SOLIDStaking` contract. Also contains the state of each Trove - i.e. a record of the Trove’s collateral and debt. TroveManager does not hold value (i.e. Ether / other tokens). TroveManager functions call in to the various Pools to tell them to move Ether/tokens between Pools, where necessary.
 
 `LiquityBase.sol` - Both TroveManager and BorrowerOperations inherit from the parent contract LiquityBase, which contains global constants and some common functions.
 
-`StabilityPool.sol` - contains functionality for Stability Pool operations: making deposits, and withdrawing compounded deposits and accumulated SOL and SOLID gains. Holds the SOLUSD Stability Pool deposits, and the SOL gains for depositors, from liquidations.
+`stability-pool` - contains functionality for Stability Pool operations: making deposits, and withdrawing compounded deposits and accumulated SOL and SOLID gains. Holds the SOLUSD Stability Pool deposits, and the SOL gains for depositors, from liquidations.
 
-`SOLUSDToken.sol` - the stablecoin token contract, which implements the ERC20 fungible token standard in conjunction with EIP-2612 and a mechanism that blocks (accidental) transfers to addresses like the StabilityPool and address(0) that are not supposed to receive funds through direct transfers. The contract mints, burns and transfers SOLUSD tokens.
+`SOLUSD` - the stablecoin token contract, which implements the ERC20 fungible token standard in conjunction with EIP-2612 and a mechanism that blocks (accidental) transfers to addresses like the StabilityPool and address(0) that are not supposed to receive funds through direct transfers. The contract mints, burns and transfers SOLUSD tokens.
 
 `SortedTroves.sol` - a doubly linked list that stores addresses of Trove owners, sorted by their individual collateralization ratio (ICR). It inserts and re-inserts Troves at the correct position, based on their ICR.
 
 `PriceFeed.sol` - Contains functionality for obtaining the current SOL:USD price, which the system uses for calculating collateralization ratios.
 
-`HintHelpers.sol` - Helper contract, containing the read-only functionality for calculation of accurate hints to be supplied to borrower operations and redemptions.
+`hint-helpers` - Helper contract, containing the read-only functionality for calculation of accurate hints to be supplied to borrower operations and redemptions.
 
 ### Data and Value Silo Contracts
 
-Along with `StabilityPool.sol`, these contracts hold Ether and/or tokens for their respective parts of the system, and contain minimal logic:
+Along with `stability-pool`, these contracts hold Ether and/or tokens for their respective parts of the system, and contain minimal logic:
 
 `ActivePool.sol` - holds the total Ether balance and records the total stablecoin debt of the active Troves.
 
 `DefaultPool.sol` - holds the total Ether balance and records the total stablecoin debt of the liquidated Troves that are pending redistribution to active Troves. If a Trove has pending ether/debt “rewards” in the DefaultPool, then they will be applied to the Trove when it next undergoes a borrower operation, a redemption, or a liquidation.
 
-`CollSurplusPool.sol` - holds the SOL surplus from Troves that have been fully redeemed from as well as from Troves with an ICR > MCR that were liquidated in Recovery Mode. Sends the surplus back to the owning borrower, when told to do so by `BorrowerOperations.sol`.
+`CollSurplusPool.sol` - holds the SOL surplus from Troves that have been fully redeemed from as well as from Troves with an ICR > MCR that were liquidated in Recovery Mode. Sends the surplus back to the owning borrower, when told to do so by `borrower-operations`.
 
 `GasPool.sol` - holds the total SOLUSD liquidation reserves. SOLUSD is moved into the `GasPool` when a Trove is opened, and moved out when a Trove is liquidated or closed.
 
 ### Contract Interfaces
 
-`ITroveManager.sol`, `IPool.sol` etc. These provide specification for a contract’s functions, without implementation. They are similar to interfaces in Java or C#.
+`Itrove-manager`, `IPool.sol` etc. These provide specification for a contract’s functions, without implementation. They are similar to interfaces in Java or C#.
 
 ### PriceFeed and Oracle
 
@@ -620,7 +620,7 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 ## Public User-Facing Functions
 
-### Borrower (Trove) Operations - `BorrowerOperations.sol`
+### Borrower (Trove) Operations - `borrower-operations`
 
 `openTrove(uint _maxFeePercentage, uint _SOLUSDAmount, address _upperHint, address _lowerHint)`: payable function that creates a Trove for the caller with the requested debt, and the Ether received as collateral. Successful execution is conditional mainly on the resulting collateralization ratio which must exceed the minimum (110% in Normal Mode, 150% in Recovery Mode). In addition to the requested debt, extra debt is issued to pay the issuance fee, and cover the gas compensation. The borrower has to provide a `_maxFeePercentage` that he/she is willing to accept in case of a fee slippage, i.e. when a redemption transaction is processed first, driving up the issuance fee. 
 
@@ -638,7 +638,7 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 `claimCollateral(address _user)`: when a borrower’s Trove has been fully redeemed from and closed, or liquidated in Recovery Mode with a collateralization ratio above 110%, this function allows the borrower to claim their SOL collateral surplus that remains in the system (collateral - debt upon redemption; collateral - 110% of the debt upon liquidation).
 
-### TroveManager Functions - `TroveManager.sol`
+### TroveManager Functions - `trove-manager`
 
 `liquidate(address _borrower)`: callable by anyone, attempts to liquidate the Trove of `_user`. Executes successfully if `_user`’s Trove meets the conditions for liquidation (e.g. in Normal Mode, it liquidates if the Trove's ICR < the system MCR).  
 
@@ -666,13 +666,13 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 `checkRecoveryMode()`: reveals whether or not the system is in Recovery Mode (i.e. whether the Total Collateralization Ratio (TCR) is below the Critical Collateralization Ratio (CCR)).
 
-### Hint Helper Functions - `HintHelpers.sol`
+### Hint Helper Functions - `hint-helpers`
 
 `function getApproxHint(uint _CR, uint _numTrials, uint _inputRandomSeed)`: helper function, returns a positional hint for the sorted list. Used for transactions that must efficiently re-insert a Trove to the sorted list.
 
 `getRedemptionHints(uint _SOLUSDamount, uint _price, uint _maxIterations)`: helper function specifically for redemptions. Returns two hints - the first is a positional hint for the first redeemable Trove (i.e. Trove with the lowest ICR >= MCR), the second is the final nominal ICR of the last Trove after being hit by partial redemption, or zero in case of no partial redemption (see [Hints for `redeemCollateral`](#hints-for-redeemcollateral)). The number of Troves to consider for redemption can be capped by passing a non-zero value as `_maxIterations`, while passing zero will leave it uncapped.
 
-### Stability Pool Functions - `StabilityPool.sol`
+### Stability Pool Functions - `stability-pool`
 
 `provideToSP(uint _amount, address _frontEndTag)`: allows stablecoin holders to deposit `_amount` of SOLUSD to the Stability Pool. It sends `_amount` of SOLUSD from their address to the Pool, and tops up their SOLUSD deposit by `_amount` and their tagged front end’s stake by `_amount`. If the depositor already has a non-zero deposit, it sends their accumulated SOL and SOLID gains to their address, and pays out their front end’s SOLID gain to their front end.
 
@@ -692,21 +692,21 @@ All data structures with the ‘public’ visibility specifier are ‘gettable�
 
 `getCompoundedFrontEndStake(address _frontEnd)`: returns the remaining front end stake for a given front end
 
-### SOLID Staking Functions  `SOLIDStaking.sol`
+### SOLID Staking Functions  `solid-staking`
 
  `stake(uint _SOLIDamount)`: sends `_SOLIDAmount` from the caller to the staking contract, and increases their stake. If the caller already has a non-zero stake, it pays out their accumulated SOL and SOLUSD gains from staking.
 
  `unstake(uint _SOLIDamount)`: reduces the caller’s stake by `_SOLIDamount`, up to a maximum of their entire stake. It pays out their accumulated SOL and SOLUSD gains from staking.
 
-### Lockup Contract Factory `LockupContractFactory.sol`
+### Lockup Contract Factory `lockup-contract-factory`
 
 `deployLockupContract(address _beneficiary, uint _unlockTime)`; Deploys a `LockupContract`, and sets the beneficiary’s address, and the `_unlockTime` - the instant in time at which the SOLID can be withrawn by the beneficiary.
 
-### Lockup contract - `LockupContract.sol`
+### Lockup contract - `lockup-contract`
 
 `withdrawSOLID()`: When the current time is later than the `unlockTime` and the caller is the beneficiary, it transfers their SOLID to them.
 
-### SOLUSD token `SOLUSDToken.sol` and SOLID token `SOLIDToken.sol`
+### SOLUSD token `SOLUSD` and SOLID token `SOLID`
 
 Standard ERC20 and EIP2612 (`permit()` ) functionality.
 
@@ -855,7 +855,7 @@ Because the SOL collateral fraction matches the offset debt fraction, the effect
 
 ### Stability Pool deposit losses and SOL gains - implementation
 
-Deposit functionality is handled by `StabilityPool.sol` (`provideToSP`, `withdrawFromSP`, etc).  StabilityPool also handles the liquidation calculation, and holds the SOLUSD and SOL balances.
+Deposit functionality is handled by `stability-pool` (`provideToSP`, `withdrawFromSP`, etc).  StabilityPool also handles the liquidation calculation, and holds the SOLUSD and SOL balances.
 
 When a liquidation is offset with the Stability Pool, debt from the liquidation is cancelled with an equal amount of SOLUSD in the pool, which is burned. 
 
@@ -1032,13 +1032,13 @@ Redemptions fees are paid in SOL. Issuance fees (when a user opens a Trove, or i
 
 The redemption fee is taken as a cut of the total SOL drawn from the system in a redemption. It is based on the current redemption rate.
 
-In the `TroveManager`, `redeemCollateral` calculates the SOL fee and transfers it to the staking contract, `SOLIDStaking.sol`
+In the `TroveManager`, `redeemCollateral` calculates the SOL fee and transfers it to the staking contract, `solid-staking`
 
 ### Issuance fee
 
 The issuance fee is charged on the SOLUSD drawn by the user and is added to the Trove's SOLUSD debt. It is based on the current borrowing rate.
 
-When new SOLUSD are drawn via one of the `BorrowerOperations` functions `openTrove`, `withdrawSOLUSD` or `adjustTrove`, an extra amount `SOLUSDFee` is minted, and an equal amount of debt is added to the user’s Trove. The `SOLUSDFee` is transferred to the staking contract, `SOLIDStaking.sol`.
+When new SOLUSD are drawn via one of the `BorrowerOperations` functions `openTrove`, `withdrawSOLUSD` or `adjustTrove`, an extra amount `SOLUSDFee` is minted, and an equal amount of debt is added to the user’s Trove. The `SOLUSDFee` is transferred to the staking contract, `solid-staking`.
 
 ### Fee Schedule
 
@@ -1075,7 +1075,7 @@ The decay parameter is tuned such that the fee changes by a factor of 0.99 per h
 
 ### Staking SOLID and earning fees
 
-SOLID holders may `stake` and `unstake` their SOLID in the `SOLIDStaking.sol` contract. 
+SOLID holders may `stake` and `unstake` their SOLID in the `solid-staking` contract. 
 
 When a fee event occurs, the fee in SOLUSD or SOL is sent to the staking contract, and a reward-per-unit-staked sum (`F_SOL`, or `F_SOLUSD`) is incremented. A SOLID stake earns a share of the fee equal to its share of the total SOLID staked, at the instant the fee occurred.
 
