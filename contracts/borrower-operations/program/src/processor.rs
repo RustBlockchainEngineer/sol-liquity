@@ -72,30 +72,18 @@ impl Processor {
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
         
-        // SOLID staking pool account info to create newly
-        let pool_id_info = next_account_info(account_info_iter)?;
+        let trove_manager_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
+        let stability_pool_info = next_account_info(account_info_iter)?;
+        let gas_pool_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool = next_account_info(account_info_iter)?;
+        let price_feed_info = next_account_info(account_info_iter)?;
+        let sorted_troves_info = next_account_info(account_info_iter)?;
+        let solusd_token_info = next_account_info(account_info_iter)?;
+        let lqty_staking_info = next_account_info(account_info_iter)?;
 
-        // authority of SOLID staking pool account
-        let authority_info = next_account_info(account_info_iter)?;
-
-        // spl-token program account information
-        let token_program_info = next_account_info(account_info_iter)?;
-
-        // check if this SOLID staking pool account was created by this program with authority and nonce
-        // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, nonce)? {
-            return Err(BorrowerOperationsError::InvalidProgramAddress.into());
-        }
-
-        // borrow pool account data to initialize (mutable)
-        let mut pool_data = try_from_slice_unchecked::<BorrowerOperations>(&pool_id_info.data.borrow())?;
-
-        pool_data.token_program_pubkey = *token_program_info.key;
-        
-        // serialize/store this initialized SOLID staking pool again
-        pool_data
-            .serialize(&mut *pool_id_info.data.borrow_mut())
-            .map_err(|e| e.into())
+        Ok(())
     } 
 
     /// process OpenTrove instruction
