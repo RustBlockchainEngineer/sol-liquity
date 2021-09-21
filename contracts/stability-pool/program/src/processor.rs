@@ -149,6 +149,12 @@ impl Processor {
         // user solUsd token account
         let solusd_user_info = next_account_info(account_info_iter)?;
 
+        // pool wsol gain token account
+        let wsol_pool_gain_info = next_account_info(account_info_iter)?;
+
+        // user wsol token account
+        let wsol_user_info = next_account_info(account_info_iter)?;
+
         // user transfer authority
         let user_transfer_authority_info = next_account_info(account_info_iter)?;
 
@@ -264,7 +270,16 @@ impl Processor {
 
         if depositor_sol_gain > 0 {
             pool_data.sol -=  depositor_sol_gain;
-            //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);)
+            //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);) -- implemented below
+            Self::token_transfer(
+                pool_id_info.key,
+                token_program_info.clone(), 
+                wsol_pool_gain_info.clone(), 
+                wsol_user_info.clone(), 
+                authority_info.clone(), 
+                pool_data.nonce, 
+                depositor_sol_gain
+            )?;
 
         }
 
