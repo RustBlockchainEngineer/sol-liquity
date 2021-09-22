@@ -46,3 +46,14 @@ pub enum BorrowerOperationsInstruction {
 
     CloseTrove(u64),
 }
+
+/// OpenTrove instruction data
+#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct OpenTroveInstruction {
+    /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
+    pub max_fee_percentage: u64,
+    /// Minimum amount of DESTINATION token to output, prevents excessive slippage
+    pub solusd_amount: u64,
+}
