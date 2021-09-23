@@ -12,7 +12,7 @@ pub const MCR: u64 = 1100000000000000000; // 110%
 pub const CCR: u64 = 1500000000000000000; // 150%
 
 // Amount of SOLUSD to be locked in gas pool on opening troves
-//pub const LUSD_GAS_COMPENSATION: u64 = 200e18;
+pub const LUSD_GAS_COMPENSATION: u64 = 200e18;
 
 // Minimum amount of net LUSD debt a trove must have
 //pub const MIN_NET_DEBT: u64 = 1800e18;

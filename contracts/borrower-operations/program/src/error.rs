@@ -17,9 +17,26 @@ pub enum BorrowerOperationsError {
     /// The borrower operations state is invalid.
     #[error("InvalidState")]
     InvalidState,
+    
     /// account's owner is invalid.
     #[error("InvalidOwner")]
     InvalidOwner,
+
+    
+    #[error("Max fee percentage must less than or equal to 100%")]
+    ExceedMaxFeePercentage,
+
+    #[error("Max fee percentage must be between 0.5% and 100%")]
+    InvalidMaxFeePercentage,
+    
+    #[error("BorrowerOps: Trove is active")]
+    TroveIsActive,
+
+    #[error("BorrowerOps: Trove's net debt must be greater than minimum")]
+    InvalidNetDebt,
+
+    #[error("BorrowerOps: Trove's composite debt must be greater than zero")]
+    InvalidCompositeDebt,
 }
 impl From<BorrowerOperationsError> for ProgramError {
     fn from(e: BorrowerOperationsError) -> Self {

@@ -88,7 +88,7 @@ pub struct LocalVariablesOpenTrove {
 
     pub price:u64,
     pub solusd_fee:u64,
-    pub new_debt:u64,
+    pub net_debt:u64,
     pub composit_debt:u64,
     pub icr:u64,
     pub nicr:u64,

@@ -56,4 +56,5 @@ pub struct OpenTroveInstruction {
     pub max_fee_percentage: u64,
     /// Minimum amount of DESTINATION token to output, prevents excessive slippage
     pub solusd_amount: u64,
+    coll_increase:u64
 }
