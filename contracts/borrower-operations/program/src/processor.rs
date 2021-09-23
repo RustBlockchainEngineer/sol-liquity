@@ -2,10 +2,17 @@
 //! In here, All instructions are processed by Processor
 
 use {
+    liquity_common::{
+        state::{
+            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache
+        },
+        error::{LiquityError},
+            utils::{
+                authority_id
+            }
+    },
     crate::{
-        error::BorrowerOperationsError,
         instruction::{BorrowerOperationsInstruction},
-        state::{BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache},
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
@@ -26,9 +33,7 @@ use {
         sysvar::Sysvar,
         program_pack::Pack,
     },
-    spl_token::state::Mint, 
 };
-use std::str::FromStr;
 
 /// Program state handler.
 /// Main logic of this program
@@ -124,8 +129,8 @@ impl Processor {
 
         // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(BorrowerOperationsError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
         Ok(())
         
@@ -166,14 +171,14 @@ impl Processor {
 
         // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(BorrowerOperationsError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
         if *solid_pool_info.owner != *program_id {
-            return Err(BorrowerOperationsError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
@@ -216,72 +221,18 @@ impl Processor {
 
         // check if this SOLID staking pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(BorrowerOperationsError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
         if *solid_pool_info.owner != *program_id {
-            return Err(BorrowerOperationsError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
         Ok(())
         
     }
-
-    /// get authority by given program address.
-    pub fn authority_id(
-        program_id: &Pubkey,
-        my_info: &Pubkey,
-        nonce: u8,
-    ) -> Result<Pubkey, BorrowerOperationsError> {
-        Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
-            .or(Err(BorrowerOperationsError::InvalidProgramAddress))
-    }
-
-    /// issue a spl_token `Transfer` instruction.
-    pub fn token_transfer<'a>(
-        pool: &Pubkey,
-        token_program: AccountInfo<'a>,
-        source: AccountInfo<'a>,
-        destination: AccountInfo<'a>,
-        authority: AccountInfo<'a>,
-        nonce: u8,
-        amount: u64,
-    ) -> Result<(), ProgramError> {
-        let pool_bytes = pool.to_bytes();
-        let authority_signature_seeds = [&pool_bytes[..32], &[nonce]];
-        let signers = &[&authority_signature_seeds[..]];
-        let ix = spl_token::instruction::transfer(
-            token_program.key,
-            source.key,
-            destination.key,
-            authority.key,
-            &[],
-            amount,
-        )?;
-        invoke_signed(
-            &ix,
-            &[source, destination, authority, token_program],
-            signers,
-        )
-    } 
-    
 }
-
-/// implement all farm error messages
-impl PrintProgramError for BorrowerOperationsError {
-    fn print<E>(&self)
-    where
-        E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
-    {
-        match self {
-            BorrowerOperationsError::AlreadyInUse => msg!("Error: The account cannot be initialized because it is already being used"),
-            BorrowerOperationsError::InvalidProgramAddress => msg!("Error: The program address provided doesn't match the value generated by the program"),
-            BorrowerOperationsError::InvalidState => msg!("Error: The stake pool state is invalid"),
-            BorrowerOperationsError::InvalidOwner => msg!("Error: Pool token account's owner is invalid"),
-        }
-    }
-} 

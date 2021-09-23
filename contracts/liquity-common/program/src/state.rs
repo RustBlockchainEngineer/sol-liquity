@@ -11,17 +11,11 @@ use {
     num_derive::FromPrimitive, 
 };
 use crate::{
-    constant::{
-        DECIMAL_PRECISION,
-        SCALE_FACTOR,
-        ZERO_ADDRESS,
-        CCR
-    },
-    liquity_math::{
-        compute_cr
-    }
+    constant::*,
+    liquity_math::*
 };
 use std::str::FromStr;
+use std::convert::TryFrom;
 
 /// Stability Pool struct
 #[repr(C)]
@@ -711,4 +705,180 @@ impl DefaultPool{
     pub fn decrease_solusd_debt(&mut self, amount:u128){
         self.solusd_debt -= amount;
     }
+}
+
+
+/// BorrowerOperations struct
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct BorrowerOperations {
+    /// nonce is used to authorize this farm pool
+    pub nonce: u8,
+
+    /// spl-token program pubkey
+    pub token_program_pubkey: Pubkey,
+
+    /// TroveManager public key
+    pub trove_manager_id: Pubkey,
+
+    /// SOLIDStaking public key
+    pub solid_staking_id: Pubkey,
+
+    /// Gas Pool public key
+    pub gas_pool_id: Pubkey,
+    
+}
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct LocalVariablesAdjustTrove {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    pub price:u128,
+    pub coll_change:u128,
+    pub net_debt_change:u128,
+    pub is_coll_increase:u8,
+    pub debt:u128,
+    pub coll:u128,
+    pub old_icr:u128,
+    pub new_icr:u128,
+    pub new_tcr:u128,
+    pub solusd_fee:u128,
+    pub new_debt:u128,
+    pub new_coll:u128,
+    pub stake:u128,
+}
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct LocalVariablesOpenTrove {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    pub price:u128,
+    pub solusd_fee:u128,
+    pub new_debt:u128,
+    pub composit_debt:u128,
+    pub icr:u128,
+    pub nicr:u128,
+    pub stake:u128,
+    pub array_index:u128,
+}
+
+
+/// Community Issuance struct
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct CommunityIssuance {
+    /// nonce is used to authorize this farm pool
+    pub nonce: u8,
+
+    /// spl-token program pubkey
+    pub token_program_pubkey: Pubkey,
+
+    /// SOLID token account pubkey
+    pub solid_token_pubkey: Pubkey,
+
+    /// stability pool account pubkey
+    pub stability_pool_pubkey: Pubkey,
+
+    pub total_solid_issued: u128,
+
+    pub deployment_time:u128,
+}
+impl CommunityIssuance {
+    pub fn issue_solid(&mut self, cur_timestamp:u128) -> u128 {
+        let cumulative_issuance_fraction = self.get_cumulative_issuance_fraction(cur_timestamp);
+        let latest_total_solid_issued = u128::try_from(SOLID_SUPPLY_CAP * (cumulative_issuance_fraction as u128) / (DECIMAL_PRECISION as u128)).unwrap();
+        let issuance = latest_total_solid_issued - self.total_solid_issued;
+        self.total_solid_issued = latest_total_solid_issued;
+        return issuance;
+    }
+    pub fn get_cumulative_issuance_fraction(&self, cur_timestamp:u128) -> u128 {
+        // Get the time passed since deployment
+        let time_passed_in_minutes:u32 = u32::try_from(( cur_timestamp - self.deployment_time ) / SECONDS_IN_ONE_MINUTE).unwrap();
+
+        // f^t
+        let power = u128::pow(ISSUANCE_FACTOR,time_passed_in_minutes);
+
+        //  (1 - f^t)
+        let cumulative_issuance_fraction = DECIMAL_PRECISION - power;
+
+        if cumulative_issuance_fraction > DECIMAL_PRECISION {
+            return 0;
+        }
+
+        return cumulative_issuance_fraction;
+    }
+}
+
+
+/// SOLID Staking struct
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct SOLIDStaking {
+    /// nonce is used to authorize this farm pool
+    pub nonce: u8,
+
+    /// spl-token program pubkey
+    pub token_program_pubkey: Pubkey,
+
+    /// SOLID pool token account
+    pub solid_pool_token_pubkey: Pubkey,
+
+    /// TroveManager account
+    pub trove_manager_id: Pubkey,
+
+    /// BorrwoerOperations account
+    pub borrower_operations_id: Pubkey,
+
+    /// ActivePool account
+    pub active_pool_id: Pubkey,
+
+    /// total staked SOLID amount
+    pub total_staked_amount:u64,
+
+    /// Running sum of SOL fees per-SOLID-staked
+    pub f_sol:u64,
+
+    /// Running sum of SOLID fees per-SOLID-staked
+    pub f_solusd:u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct UserDeposit {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    /// deposited amount
+    pub deposit_amount:u64,
+}
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct Snapshot {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    /// SOL snapshot
+    pub f_sol_snapshot:u64,
+
+    /// solUSD snapshot
+    pub f_solusd_snapshot:u64,
 }

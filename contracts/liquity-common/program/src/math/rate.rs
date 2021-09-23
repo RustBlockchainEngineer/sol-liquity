@@ -19,7 +19,7 @@
 #![allow(clippy::manual_range_contains)]
 
 use crate::{
-    math::MathError,
+    error::LiquityError,
     math::{common::*, decimal::Decimal},
 };
 use solana_program::program_error::ProgramError;
@@ -76,10 +76,10 @@ impl Rate {
     pub fn try_round_u64(&self) -> Result<u64, ProgramError> {
         let rounded_val = Self::half_wad()
             .checked_add(self.0)
-            .ok_or(MathError::MathOverflow)?
+            .ok_or(LiquityError::MathOverflow)?
             .checked_div(Self::wad())
-            .ok_or(MathError::MathOverflow)?;
-        Ok(u64::try_from(rounded_val).map_err(|_| MathError::MathOverflow)?)
+            .ok_or(LiquityError::MathOverflow)?;
+        Ok(u64::try_from(rounded_val).map_err(|_| LiquityError::MathOverflow)?)
     }
 
     /// Calculates base^exp
@@ -129,7 +129,7 @@ impl TryAdd for Rate {
         Ok(Self(
             self.0
                 .checked_add(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -139,7 +139,7 @@ impl TrySub for Rate {
         Ok(Self(
             self.0
                 .checked_sub(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -149,7 +149,7 @@ impl TryDiv<u64> for Rate {
         Ok(Self(
             self.0
                 .checked_div(U128::from(rhs))
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -159,9 +159,9 @@ impl TryDiv<Rate> for Rate {
         Ok(Self(
             self.0
                 .checked_mul(Self::wad())
-                .ok_or(MathError::MathOverflow)?
+                .ok_or(LiquityError::MathOverflow)?
                 .checked_div(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -171,7 +171,7 @@ impl TryMul<u64> for Rate {
         Ok(Self(
             self.0
                 .checked_mul(U128::from(rhs))
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -181,9 +181,9 @@ impl TryMul<Rate> for Rate {
         Ok(Self(
             self.0
                 .checked_mul(rhs.0)
-                .ok_or(MathError::MathOverflow)?
+                .ok_or(LiquityError::MathOverflow)?
                 .checked_div(Self::wad())
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }

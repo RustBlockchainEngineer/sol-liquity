@@ -351,19 +351,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "community-issuance"
-version = "0.0.1"
-dependencies = [
- "borsh",
- "borsh-derive",
- "num-derive",
- "num-traits",
- "solana-program",
- "spl-token",
- "thiserror",
-]
-
-[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1233,6 +1220,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67abfe149395e3aa1c48a2beb32b068e2334402df8181f818d3aee2b304c4f5d"
 dependencies = [
  "libsecp256k1-core",
+]
+
+[[package]]
+name = "liquity-common"
+version = "0.0.1"
+dependencies = [
+ "borsh",
+ "borsh-derive",
+ "bytemuck",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-token",
+ "thiserror",
+ "uint",
 ]
 
 [[package]]
@@ -2521,7 +2523,7 @@ dependencies = [
  "borsh",
  "borsh-derive",
  "bytemuck",
- "community-issuance",
+ "liquity-common",
  "num-derive",
  "num-traits",
  "solana-program",

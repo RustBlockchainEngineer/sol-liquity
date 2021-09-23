@@ -13,7 +13,7 @@
 #![allow(clippy::manual_range_contains)]
 
 use crate::{
-    math::math_error::MathError,
+    error::LiquityError,
     math::{common::*, Rate},
 };
 use solana_program::program_error::ProgramError;
@@ -58,7 +58,7 @@ impl Decimal {
     /// Return raw scaled value if it fits within u128
     #[allow(clippy::wrong_self_convention)]
     pub fn to_scaled_val(&self) -> Result<u128, ProgramError> {
-        Ok(u128::try_from(self.0).map_err(|_| MathError::MathOverflow)?)
+        Ok(u128::try_from(self.0).map_err(|_| LiquityError::MathOverflow)?)
     }
 
     /// Create decimal from scaled value
@@ -70,22 +70,22 @@ impl Decimal {
     pub fn try_round_u64(&self) -> Result<u64, ProgramError> {
         let rounded_val = Self::half_wad()
             .checked_add(self.0)
-            .ok_or(MathError::MathOverflow)?
+            .ok_or(LiquityError::MathOverflow)?
             .checked_div(Self::wad())
-            .ok_or(MathError::MathOverflow)?;
-        Ok(u64::try_from(rounded_val).map_err(|_| MathError::MathOverflow)?)
+            .ok_or(LiquityError::MathOverflow)?;
+        Ok(u64::try_from(rounded_val).map_err(|_| LiquityError::MathOverflow)?)
     }
 
     /// Ceiling scaled decimal to u64
     pub fn try_ceil_u64(&self) -> Result<u64, ProgramError> {
         let ceil_val = Self::wad()
             .checked_sub(U192::from(1u64))
-            .ok_or(MathError::MathOverflow)?
+            .ok_or(LiquityError::MathOverflow)?
             .checked_add(self.0)
-            .ok_or(MathError::MathOverflow)?
+            .ok_or(LiquityError::MathOverflow)?
             .checked_div(Self::wad())
-            .ok_or(MathError::MathOverflow)?;
-        Ok(u64::try_from(ceil_val).map_err(|_| MathError::MathOverflow)?)
+            .ok_or(LiquityError::MathOverflow)?;
+        Ok(u64::try_from(ceil_val).map_err(|_| LiquityError::MathOverflow)?)
     }
 
     /// Floor scaled decimal to u64
@@ -93,8 +93,8 @@ impl Decimal {
         let ceil_val = self
             .0
             .checked_div(Self::wad())
-            .ok_or(MathError::MathOverflow)?;
-        Ok(u64::try_from(ceil_val).map_err(|_| MathError::MathOverflow)?)
+            .ok_or(LiquityError::MathOverflow)?;
+        Ok(u64::try_from(ceil_val).map_err(|_| LiquityError::MathOverflow)?)
     }
 }
 
@@ -134,7 +134,7 @@ impl TryAdd for Decimal {
         Ok(Self(
             self.0
                 .checked_add(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -144,7 +144,7 @@ impl TrySub for Decimal {
         Ok(Self(
             self.0
                 .checked_sub(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -154,7 +154,7 @@ impl TryDiv<u64> for Decimal {
         Ok(Self(
             self.0
                 .checked_div(U192::from(rhs))
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -170,9 +170,9 @@ impl TryDiv<Decimal> for Decimal {
         Ok(Self(
             self.0
                 .checked_mul(Self::wad())
-                .ok_or(MathError::MathOverflow)?
+                .ok_or(LiquityError::MathOverflow)?
                 .checked_div(rhs.0)
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -182,7 +182,7 @@ impl TryMul<u64> for Decimal {
         Ok(Self(
             self.0
                 .checked_mul(U192::from(rhs))
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }
@@ -198,9 +198,9 @@ impl TryMul<Decimal> for Decimal {
         Ok(Self(
             self.0
                 .checked_mul(rhs.0)
-                .ok_or(MathError::MathOverflow)?
+                .ok_or(LiquityError::MathOverflow)?
                 .checked_div(Self::wad())
-                .ok_or(MathError::MathOverflow)?,
+                .ok_or(LiquityError::MathOverflow)?,
         ))
     }
 }

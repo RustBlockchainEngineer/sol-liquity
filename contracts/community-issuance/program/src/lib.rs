@@ -7,18 +7,14 @@ use solana_program::{
     program_error::PrintProgramError,
     pubkey::Pubkey,
 };
+use liquity_common::error::LiquityError;
+
 /// module declaration
-/// 
-/// error module
-pub mod error;
+
 /// instruction module
 pub mod instruction;
 /// processor module
 pub mod processor;
-/// state module
-pub mod state;
-/// constant module
-pub mod constant;
 
 // Declare and export the program's entrypoint
 entrypoint!(process_instruction);
@@ -33,7 +29,7 @@ pub fn process_instruction(
     if let Err(error) = processor::Processor::process(program_id, accounts, _instruction_data) {
         
         // catch the error so we can print it
-        error.print::<error::CommunityIssuanceError>();
+        error.print::<LiquityError>();
         Err(error)
     } else {
         // processed successfully

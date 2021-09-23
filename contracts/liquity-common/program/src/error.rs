@@ -1,12 +1,13 @@
 //! All error types for this program
 
 use num_derive::FromPrimitive;
-use solana_program::{decode_error::DecodeError, program_error::ProgramError};
+use num_traits::FromPrimitive;
+use solana_program::{decode_error::DecodeError, program_error::ProgramError, program_error::PrintProgramError, msg};
 use thiserror::Error;
 
-/// Errors that may be returned by the StabilityPool program.
+/// Errors that may be returned by the program.
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
-pub enum StabilityPoolError {
+pub enum LiquityError {
     // 0.
     /// The account cannot be initialized because it is already being used.
     #[error("AlreadyInUse")]
@@ -47,14 +48,44 @@ pub enum StabilityPoolError {
     /// Invalid account input
     #[error("Invalid account input")]
     InvalidAccountInput,
+    /// invalid borrower operations.
+    #[error("InvalidBorrwerOperations")]
+    InvalidBorrwerOperations,
+    /// borrower trove is not active yet
+    #[error("TroveNotActive")]
+    TroveNotActive,
+    /// Nothing to liquidate
+    #[error("Nothing to liquidate")]
+    NothingToLiquidate,
+    /// Max fee percentage must be between 0.5% and 100%
+    #[error("Max fee percentage must be between 0.5% and 100%")]
+    MaxFeePercentageError,
+    /// TroveManager: Cannot redeem when TCR < MCR
+    #[error("TroveManager: Cannot redeem when TCR < MCR")]
+    TCRError,
+    /// Amount must be greater than zero
+    #[error("Amount must be greater than zero")]
+    ZeroAmount,
+    /// Fee exceeded provided maximum
+    #[error("Fee exceeded provided maximum")]
+    FeeExceeded,
 }
-impl From<StabilityPoolError> for ProgramError {
-    fn from(e: StabilityPoolError) -> Self {
+impl From<LiquityError> for ProgramError {
+    fn from(e: LiquityError) -> Self {
         ProgramError::Custom(e as u32)
     }
 }
-impl<T> DecodeError<T> for StabilityPoolError {
+impl<T> DecodeError<T> for LiquityError {
     fn type_of() -> &'static str {
-        "Stability Pool Error"
+        "Liquity Error"
     }
 } 
+/// implement all stability pool error messages
+impl PrintProgramError for LiquityError {
+    fn print<E>(&self)
+    where
+        E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
+    {
+        msg!(&self.to_string());
+    }
+}
