@@ -7,16 +7,13 @@ use solana_program::{
     program_error::PrintProgramError,
     pubkey::Pubkey,
 };
+use liquity_common::error::*;
 /// module declaration
 /// 
-/// error module
-pub mod error;
 /// instruction module
 pub mod instruction;
 /// processor module
 pub mod processor;
-/// state modulesolana-keygen new
-pub mod state;
 
 // Declare and export the program's entrypoint
 entrypoint!(process_instruction);
@@ -31,7 +28,7 @@ pub fn process_instruction(
     if let Err(error) = processor::Processor::process(program_id, accounts, _instruction_data) {
         
         // catch the error so we can print it
-        error.print::<error::BorrowerOperationsError>();
+        error.print::<LiquityError>();
         Err(error)
     } else {
         // processed successfully

@@ -2,16 +2,25 @@
 //! In here, All instructions are processed by Processor
 
 use {
-    crate::{
-        error::StabilityPoolError,
-        instruction::{StabilityPoolInstruction},
-        state::{StabilityPool,FrontEnd,Deposit,Snapshots},
+    liquity_common::{
+        error::LiquityError,
+        state::{
+            StabilityPool,
+            FrontEnd,
+            Deposit,
+            Snapshots,
+            CommunityIssuance
+        },
         constant::{
             DECIMAL_PRECISION,
             MCR,
         },
         pyth,
-        math::{Decimal, Rate, TryAdd, TryDiv, TryMul, WAD},
+        math::{Decimal, TryDiv, TryMul},
+        utils::*,
+    },
+    crate::{
+        instruction::{StabilityPoolInstruction},
     },
     borsh::{BorshDeserialize, BorshSerialize},
     num_traits::FromPrimitive,
@@ -36,11 +45,6 @@ use {
 };
 use std::str::FromStr;
 use std::convert::TryInto;
-use std::io::Error;
-use community_issuance::state::{
-    CommunityIssuance,
-    
-};
 
 /// Program state handler.
 /// Main logic of this program
@@ -105,14 +109,14 @@ impl Processor {
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
         if *solusd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // borrow pool account data to initialize (mutable)
@@ -182,7 +186,7 @@ impl Processor {
         let clock = &Clock::from_account_info(clock_sysvar_info)?;
 
         // get current timestamp(second)
-        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+        let cur_timestamp: u128 = clock.unix_timestamp as u128;
 
         // borrow pool account data
         let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
@@ -195,19 +199,19 @@ impl Processor {
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
         if *solusd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
         if *solusd_pool_info.key != pool_data.sol_usd_pool_token_pubkey {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // borrow user deposit data
@@ -218,11 +222,11 @@ impl Processor {
         let mut frontend_data = frontend.unwrap();
 
         if frontend_data.registered == 0 {
-            return Err(StabilityPoolError::NotRegistered.into());
+            return Err(LiquityError::NotRegistered.into());
         }
 
         if frontend_data.pool_id_pubkey == *pool_id_info.key {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
         if user_deposit.initial_value == 0 {
             user_deposit.front_end_tag = frontend_data.owner_pubkey;
@@ -240,11 +244,11 @@ impl Processor {
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        Self::payout_solid_gains(&community_issuance_data, &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
-        let new_frontend_stake = compounded_frontend_stake + amount;
+        let new_frontend_stake = compounded_frontend_stake + amount as u128;
         
         // update frontend stake and snaphots
         frontend_data.update_frontend_stake(new_frontend_stake);
@@ -253,7 +257,7 @@ impl Processor {
 
         if amount > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool
-            Self::token_transfer(
+            token_transfer(
                 pool_id_info.key,
                 token_program_info.clone(), 
                 solusd_user_info.clone(), 
@@ -264,21 +268,21 @@ impl Processor {
             )?;
 
             // update deposit and snapshots
-            user_deposit.initial_value += amount;
+            user_deposit.initial_value += amount as u128;
             snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data)
         }
 
         if depositor_sol_gain > 0 {
             pool_data.sol -=  depositor_sol_gain;
             //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);) -- implemented below
-            Self::token_transfer(
+            token_transfer(
                 pool_id_info.key,
                 token_program_info.clone(), 
                 wsol_pool_gain_info.clone(), 
                 wsol_user_info.clone(), 
                 authority_info.clone(), 
                 pool_data.nonce, 
-                depositor_sol_gain
+                depositor_sol_gain.try_into().unwrap()
             )?;
 
         }
@@ -341,7 +345,7 @@ impl Processor {
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
         // get current timestamp(second)
-        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+        let cur_timestamp: u128 = clock.unix_timestamp as u128;
 
         // borrow pool account data to initialize 
         let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
@@ -354,69 +358,33 @@ impl Processor {
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
         if *solusd_pool_info.owner != *program_id {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         // check if given pool token account is same with pool token account
         if *solusd_pool_info.key != pool_data.sol_usd_pool_token_pubkey {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
-        //require no under collateralized troves
-        // get market price
-        if &pool_data.oracle_program_id != pyth_product_info.owner {
-            msg!("Pyth product account provided is not owned by the lending market oracle program");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-        if &pool_data.oracle_program_id != pyth_price_info.owner {
-            msg!("Pyth price account provided is not owned by the lending market oracle program");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-    
-        let pyth_product_data = pyth_product_info.try_borrow_data()?;
-        let pyth_product = pyth::load::<pyth::Product>(&pyth_product_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-        if pyth_product.magic != pyth::MAGIC {
-            msg!("Pyth product account provided is not a valid Pyth account");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-        if pyth_product.ver != pyth::VERSION_2 {
-            msg!("Pyth product account provided has a different version than expected");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-        if pyth_product.atype != pyth::AccountType::Product as u32 {
-            msg!("Pyth product account provided is not a valid Pyth product account");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-    
-        let pyth_price_pubkey_bytes: &[u8; 32] = pyth_price_info
-            .key
-            .as_ref()
-            .try_into()
-            .map_err(|_| StabilityPoolError::InvalidAccountInput)?;
-        if &pyth_product.px_acc.val != pyth_price_pubkey_bytes {
-            msg!("Pyth product price account does not match the Pyth price provided");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-    
-        let quote_currency = Self::get_pyth_product_quote_currency(pyth_product)?;
-        if pool_data.quote_currency != quote_currency {
-            msg!("Lending market quote currency does not match the oracle quote currency");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-    
-        let market_price = Self::get_pyth_price(pyth_price_info, clock)?;
+        let market_price = get_market_price(
+            pool_data.oracle_program_id,
+            pool_data.quote_currency,
+            pyth_product_info,
+            pyth_price_info,
+            clock
+        )?;
+        
         //address lowestTrove = sortedTroves.getLast();
         let icr = 0;//troveManager.getCurrentICR(lowestTrove, price);
         if icr < MCR {
-            return Err(StabilityPoolError::RequireNoUnderCollateralizedTroves.into());
+            return Err(LiquityError::RequireNoUnderCollateralizedTroves.into());
         }
         
         // borrow user deposit data
@@ -424,8 +392,8 @@ impl Processor {
 
         // check if given amount is small than deposit amount
         let mut _amount = amount;
-        if user_deposit.initial_value < amount {
-            _amount = user_deposit.initial_value;
+        if user_deposit.initial_value < amount as u128 {
+            _amount = user_deposit.initial_value.try_into().unwrap();
         }
 
         // borrow frontend account data
@@ -441,15 +409,15 @@ impl Processor {
         let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
 
         let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
-        let solusd_to_withdraw = if _amount < compounded_solusd_deposit {_amount} else {compounded_solusd_deposit};
+        let solusd_to_withdraw = if _amount < compounded_solusd_deposit.try_into().unwrap() {_amount} else {compounded_solusd_deposit.try_into().unwrap()};
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        Self::payout_solid_gains(&community_issuance_data, &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
-        let new_frontend_stake = compounded_frontend_stake - solusd_to_withdraw;
+        let new_frontend_stake = compounded_frontend_stake - solusd_to_withdraw as u128;
         
         // update frontend stake and snaphots
         frontend_data.update_frontend_stake(new_frontend_stake);
@@ -458,7 +426,7 @@ impl Processor {
 
         if solusd_to_withdraw > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool
-            Self::token_transfer(
+            token_transfer(
                 pool_id_info.key,
                 token_program_info.clone(),
                 solusd_pool_info.clone(),
@@ -467,7 +435,7 @@ impl Processor {
                 pool_data.nonce,
                 solusd_to_withdraw
             )?;
-            user_deposit.initial_value -= solusd_to_withdraw;
+            user_deposit.initial_value -= solusd_to_withdraw as u128;
             snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data)
         }
 
@@ -486,6 +454,7 @@ impl Processor {
             .map_err(|e| e.into())
         
     }
+    
     /// process WithdrawSOLGainToTrove instruction
     pub fn process_withdraw_sol_gain_to_trove(
         program_id: &Pubkey,
@@ -517,7 +486,7 @@ impl Processor {
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
         // get current timestamp(second)
-        let cur_timestamp: u64 = clock.unix_timestamp as u64;
+        let cur_timestamp: u128 = clock.unix_timestamp as u128;
 
         // borrow pool account data to initialize 
         let mut pool_data = try_from_slice_unchecked::<StabilityPool>(&pool_id_info.data.borrow())?;
@@ -530,8 +499,8 @@ impl Processor {
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // borrow user deposit data
@@ -553,7 +522,7 @@ impl Processor {
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        Self::payout_solid_gains(&community_issuance_data, &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -602,31 +571,31 @@ impl Processor {
         let mut frontend_data = try_from_slice_unchecked::<FrontEnd>(&frontend_info.data.borrow())?;
 
         if frontend_data.pool_id_pubkey != *pool_id_info.key {
-            return Err(StabilityPoolError::InvalidOwner.into());
+            return Err(LiquityError::InvalidOwner.into());
         }
 
         if frontend_data.registered > 0 {
-            return Err(StabilityPoolError::AlreadyRegistered.into());
+            return Err(LiquityError::AlreadyRegistered.into());
         }
 
-        if kickback_rate > DECIMAL_PRECISION {
-            return Err(StabilityPoolError::InvalidKickbackRate.into());
+        if kickback_rate as u128 > DECIMAL_PRECISION {
+            return Err(LiquityError::InvalidKickbackRate.into());
         }
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != Self::authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(StabilityPoolError::InvalidProgramAddress.into());
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
         }
 
         // borrow user deposit data
         let user_deposit = try_from_slice_unchecked::<Deposit>(&user_deposit_info.data.borrow())?;
 
         if user_deposit.initial_value > 0 {
-            return Err(StabilityPoolError::HasDeposit.into());
+            return Err(LiquityError::HasDeposit.into());
         }
 
-        frontend_data.kickback_rate = kickback_rate;
+        frontend_data.kickback_rate = kickback_rate as u128;
         frontend_data.registered = 1;
 
         // serialize/store this initialized stability pool again
@@ -634,170 +603,5 @@ impl Processor {
             .serialize(&mut *frontend_info.data.borrow_mut())
             .map_err(|e| e.into())
         
-    }
-
-    pub fn payout_solid_gains(
-        community_issuance: &CommunityIssuance,
-        pool_data: &StabilityPool,
-        frontend:&FrontEnd,
-        depositor_frontend:&FrontEnd,
-        snapshots:&Snapshots,
-        user_deposit:&Deposit
-    ){
-        // Pay out front end's SOLID gain
-        let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend);
-        if frontend_solid_gain > 0 {
-            // transfer SOLID token
-            //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);
-        }
-
-        let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend);
-        if depositor_solid_gain > 0 {
-            // transfer SOLID token
-            //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
-        }
-
-    }
-
-    /// get authority by given program address.
-    pub fn authority_id(
-        program_id: &Pubkey,
-        my_info: &Pubkey,
-        nonce: u8,
-    ) -> Result<Pubkey, StabilityPoolError> {
-        Pubkey::create_program_address(&[&my_info.to_bytes()[..32], &[nonce]], program_id)
-            .or(Err(StabilityPoolError::InvalidProgramAddress))
-    }
-
-    /// issue a spl_token `Transfer` instruction.
-    pub fn token_transfer<'a>(
-        pool: &Pubkey,
-        token_program: AccountInfo<'a>,
-        source: AccountInfo<'a>,
-        destination: AccountInfo<'a>,
-        authority: AccountInfo<'a>,
-        nonce: u8,
-        amount: u64,
-    ) -> Result<(), ProgramError> {
-        let pool_bytes = pool.to_bytes();
-        let authority_signature_seeds = [&pool_bytes[..32], &[nonce]];
-        let signers = &[&authority_signature_seeds[..]];
-        let ix = spl_token::instruction::transfer(
-            token_program.key,
-            source.key,
-            destination.key,
-            authority.key,
-            &[],
-            amount,
-        )?;
-        invoke_signed(
-            &ix,
-            &[source, destination, authority, token_program],
-            signers,
-        )
-    } 
-    pub fn get_pyth_product_quote_currency(pyth_product: &pyth::Product) -> Result<[u8; 32], ProgramError> {
-        const LEN: usize = 14;
-        const KEY: &[u8; LEN] = b"quote_currency";
-
-        let mut start = 0;
-        while start < pyth::PROD_ATTR_SIZE {
-            let mut length = pyth_product.attr[start] as usize;
-            start += 1;
-
-            if length == LEN {
-                let mut end = start + length;
-                if end > pyth::PROD_ATTR_SIZE {
-                    msg!("Pyth product attribute key length too long");
-                    return Err(StabilityPoolError::InvalidOracleConfig.into());
-                }
-
-                let key = &pyth_product.attr[start..end];
-                if key == KEY {
-                    start += length;
-                    length = pyth_product.attr[start] as usize;
-                    start += 1;
-
-                    end = start + length;
-                    if length > 32 || end > pyth::PROD_ATTR_SIZE {
-                        msg!("Pyth product quote currency value too long");
-                        return Err(StabilityPoolError::InvalidOracleConfig.into());
-                    }
-
-                    let mut value = [0u8; 32];
-                    value[0..length].copy_from_slice(&pyth_product.attr[start..end]);
-                    return Ok(value);
-                }
-            }
-
-            start += length;
-            start += 1 + pyth_product.attr[start] as usize;
-        }
-
-        msg!("Pyth product quote currency not found");
-        Err(StabilityPoolError::InvalidOracleConfig.into())
-    }
-
-    pub fn get_pyth_price(pyth_price_info: &AccountInfo, clock: &Clock) -> Result<Decimal, ProgramError> {
-        const STALE_AFTER_SLOTS_ELAPSED: u64 = 5;
-
-        let pyth_price_data = pyth_price_info.try_borrow_data()?;
-        let pyth_price = pyth::load::<pyth::Price>(&pyth_price_data)
-            .map_err(|_| ProgramError::InvalidAccountData)?;
-
-        if pyth_price.ptype != pyth::PriceType::Price {
-            msg!("Oracle price type is invalid");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-
-        let slots_elapsed = clock
-            .slot
-            .checked_sub(pyth_price.valid_slot)
-            .ok_or(StabilityPoolError::MathOverflow)?;
-        if slots_elapsed >= STALE_AFTER_SLOTS_ELAPSED {
-            msg!("Oracle price is stale");
-            return Err(StabilityPoolError::InvalidOracleConfig.into());
-        }
-
-        let price: u64 = pyth_price.agg.price.try_into().map_err(|_| {
-            msg!("Oracle price cannot be negative");
-            StabilityPoolError::InvalidOracleConfig
-        })?;
-
-        let market_price = if pyth_price.expo >= 0 {
-            let exponent = pyth_price
-                .expo
-                .try_into()
-                .map_err(|_| StabilityPoolError::MathOverflow)?;
-            let zeros = 10u64
-                .checked_pow(exponent)
-                .ok_or(StabilityPoolError::MathOverflow)?;
-            Decimal::from(price).try_mul(zeros)?
-        } else {
-            let exponent = pyth_price
-                .expo
-                .checked_abs()
-                .ok_or(StabilityPoolError::MathOverflow)?
-                .try_into()
-                .map_err(|_| StabilityPoolError::MathOverflow)?;
-            let decimals = 10u64
-                .checked_pow(exponent)
-                .ok_or(StabilityPoolError::MathOverflow)?;
-            Decimal::from(price).try_div(decimals)?
-        };
-
-        Ok(market_price)
-    }
-
-
-}
-
-/// implement all stability pool error messages
-impl PrintProgramError for StabilityPoolError {
-    fn print<E>(&self)
-    where
-        E: 'static + std::error::Error + DecodeError<E> + PrintProgramError + FromPrimitive,
-    {
-        msg!(&self.to_string());
     }
 }

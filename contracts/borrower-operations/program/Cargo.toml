@@ -19,8 +19,8 @@ num-derive = "0.3"
 num-traits = "0.2"
 thiserror = "1.0"
 spl-token = { version = "3.2.0", features = [ "no-entrypoint" ] }
-stability-pool = { version = "2.1.0", path = "../stability-pool/program", features = [ "no-entrypoint" ] }
-trove-manager = { version = "2.1.0", path = "../trove-manager/program", features = [ "no-entrypoint" ] }
+liquity-common = {version="0.0.1",path = "../../liquity-common/program",features = [ "no-entrypoint" ]}
+
 [dev-dependencies]
 solana-program-test = "1.7.8"
 solana-sdk = "1.7.8"
