@@ -335,7 +335,7 @@ pub fn redistribute_debt_and_coll(
 }
 pub fn get_total_from_batch_liquidate_normal_mode(
     trove_manager_data:&mut TroveManager,
-    active_pool:&ActivePool,
+    active_pool:&mut ActivePool,
     default_pool:&mut DefaultPool,
     price:u128,
     solusd_in_stab_pool: u128,
@@ -376,7 +376,7 @@ pub fn get_total_from_batch_liquidate_normal_mode(
 }
 pub fn get_total_from_batch_liquidate_recovery_mode(
     trove_manager_data:&mut TroveManager,
-    active_pool:&ActivePool,
+    active_pool:&mut ActivePool,
     default_pool:&mut DefaultPool,
     price:u128,
     solusd_in_stab_pool: u128,
@@ -454,7 +454,7 @@ pub fn add_liquidation_values_to_totals(totals:&mut LiquidationTotals, single_li
 }
 pub fn liquidate_normal_mode(
     trove_manager: &mut TroveManager,
-    active_pool:&ActivePool,
+    active_pool:&mut ActivePool,
     default_pool:&mut DefaultPool,
     borrower_trove:&mut Trove,
     reward_snapshots:&mut RewardSnapshot,
@@ -489,7 +489,7 @@ pub fn liquidate_normal_mode(
 }
 pub fn liquidate_recovery_mode(
     trove_manager: &mut TroveManager,
-    active_pool:&ActivePool,
+    active_pool:&mut ActivePool,
     default_pool:&mut DefaultPool,
     borrower_trove:&mut Trove,
     reward_snapshots:&mut RewardSnapshot,
@@ -662,7 +662,7 @@ pub fn apply_pending_rewards(
     borrower_trove:&mut Trove, 
     reward_snapshot:&mut RewardSnapshot, 
     default_pool_data:&mut DefaultPool, 
-    active_pool_data:&ActivePool)
+    active_pool_data:&mut ActivePool)
 {
     if has_pending_rewards(trove_manager_data, borrower_trove, reward_snapshot) {
         if borrower_trove.is_active() {
@@ -684,7 +684,7 @@ pub fn apply_pending_rewards(
                 pending_sol_reward, 
                 pending_solusd_debt_reward,
                 default_pool_data,
-                &active_pool_data
+                active_pool_data
             );
         }
     }
@@ -694,13 +694,14 @@ pub fn move_pending_trove_reward_to_active_pool(
     _solusd:u128, 
     _sol:u128,
     default_pool_data:&mut DefaultPool,
-    active_pool_data:&ActivePool
+    active_pool_data:&mut ActivePool
 ){
     
     default_pool_data.decrease_solusd_debt(_solusd);
-    default_pool_data.increase_solusd_debt(_sol);
+    active_pool_data.increase_solusd_debt(_solusd);
 
-    // _defaultPool.sendETHToActivePool(_ETH);
+    default_pool_data.sol -= _sol;
+    active_pool_data.sol += _sol;
 }
 
 pub fn get_pending_sol_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u128{

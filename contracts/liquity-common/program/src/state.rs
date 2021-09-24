@@ -67,6 +67,74 @@ pub struct StabilityPool {
 
 }
 impl StabilityPool{
+    pub fn offset(&mut self, debt_to_offset: u128, coll_to_add: u128, solid_issuance: u128, active_pool:&mut ActivePool){
+        let total_solusd = self.total_sol_usd_deposits;
+        if total_solusd == 0 || debt_to_offset == 0 {
+            return;
+        }
+        self.trigger_solid_issuance(solid_issuance);
+        let (sol_gain_per_unit_staked, solusd_loss_per_unit_staked) = self.compute_rewards_per_unit_staked(coll_to_add, debt_to_offset, total_solusd);
+        self.update_reward_sum_and_product(sol_gain_per_unit_staked, solusd_loss_per_unit_staked);
+
+        self.move_offset_coll_and_debt(coll_to_add, debt_to_offset, active_pool);
+    }
+    pub fn move_offset_coll_and_debt(&mut self, coll_to_add: u128, debt_to_offset: u128, active_pool:&mut ActivePool){
+        active_pool.decrease_solusd_debt(debt_to_offset);
+        self.decrease_solusd(debt_to_offset);
+
+        // Burn the debt that was successfully offset
+        //lusdToken.burn(address(this), _debtToOffset);
+
+        //activePoolCached.sendETH(address(this), _collToAdd);
+    }
+    pub fn decrease_solusd(&mut self, amount: u128){
+        let new_total_solusd_deposits = self.total_sol_usd_deposits - amount;
+        self.total_sol_usd_deposits = new_total_solusd_deposits;
+    }
+    pub fn update_reward_sum_and_product(&mut self, sol_gain_per_unit_staked: u128, solusd_loss_per_unit_staked: u128){
+        let current_p = self.p;
+        let mut new_p = 0;
+
+        //assert(_LUSDLossPerUnitStaked <= DECIMAL_PRECISION);
+        /*
+        * The newProductFactor is the factor by which to change all deposits, due to the depletion of Stability Pool SOLUSD in the liquidation.
+        * We make the product factor 0 if there was a pool-emptying. Otherwise, it is (1 - SOLUSDLossPerUnitStaked)
+        */
+        let new_product_factor = DECIMAL_PRECISION - solusd_loss_per_unit_staked;
+        let current_scale_cached = self.current_scale;
+        let current_epoch_cached = self.current_epoch;
+        //let current_s = epochToScaleToSum[currentEpochCached][currentScaleCached];
+        let current_s = 0;
+
+        /*
+        * Calculate the new S first, before we update P.
+        * The SOL gain for any given depositor from a liquidation depends on the value of their deposit
+        * (and the value of totalDeposits) prior to the Stability being depleted by the debt in the liquidation.
+        *
+        * Since S corresponds to SOL gain, and P to deposit loss, we update S first.
+        */
+        let marginal_solid_gain = sol_gain_per_unit_staked * current_p;
+        let new_s = current_s + marginal_solid_gain;
+        //epochToScaleToSum[currentEpochCached][currentScaleCached] = newS;
+
+        // If the Stability Pool was emptied, increment the epoch, and reset the scale and product P
+        if new_product_factor == 0 {
+            self.current_epoch = current_epoch_cached + 1;
+            self.current_scale = 0;
+            new_p = DECIMAL_PRECISION;
+        }
+        else if current_p * new_product_factor / DECIMAL_PRECISION < SCALE_FACTOR {
+            new_p = current_p * new_product_factor * SCALE_FACTOR / DECIMAL_PRECISION;
+            self.current_scale = current_scale_cached;
+        }
+        else {
+            new_p = current_p * new_product_factor / DECIMAL_PRECISION;
+        }
+
+        //assert(newP > 0);
+        self.p = new_p;
+
+    }
     pub fn trigger_solid_issuance(&mut self,solid_issuance:u128){
         self.update_g(solid_issuance);
     }
@@ -86,6 +154,42 @@ impl StabilityPool{
 
         let marginal_solid_gain = solid_per_unit_staked * self.p;
         //epochToScaleToG[currentEpoch][currentScale] = epochToScaleToG[currentEpoch][currentScale].add(marginalLQTYGain);
+    }
+    pub fn compute_rewards_per_unit_staked(&mut self, coll_to_add: u128, debt_to_offset:u128, total_solusd_deposits: u128) ->(u128,u128){
+        /*
+        * Compute the SOLUSD and SOL rewards. Uses a "feedback" error correction, to keep
+        * the cumulative error in the P and S state variables low:
+        *
+        * 1) Form numerators which compensate for the floor division errors that occurred the last time this 
+        * function was called.  
+        * 2) Calculate "per-unit-staked" ratios.
+        * 3) Multiply each ratio back by its denominator, to reveal the current floor division error.
+        * 4) Store these errors for use in the next correction when this function is called.
+        * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
+        */
+        let mut sol_gain_per_unit_staked = 0;
+        let mut solusd_loss_per_unit_staked = 0;
+
+        let sol_numerator = coll_to_add * DECIMAL_PRECISION + self.last_sol_error_offset;
+        //assert(_debtToOffset <= _totalLUSDDeposits);
+        if debt_to_offset == total_solusd_deposits {
+            solusd_loss_per_unit_staked = DECIMAL_PRECISION;// When the Pool depletes to 0, so does each deposit 
+            self.last_sol_error_offset = 0;
+        }
+        else {
+            let solusd_loss_numerator = debt_to_offset * DECIMAL_PRECISION - self.last_solusd_loss_error_offset;
+            /*
+            * Add 1 to make error in quotient positive. We want "slightly too much" SOLUSD loss,
+            * which ensures the error in any given compoundedLUSDDeposit favors the Stability Pool.
+            */
+            solusd_loss_per_unit_staked = solusd_loss_numerator / total_solusd_deposits + 1;
+            self.last_solusd_loss_error_offset = solusd_loss_per_unit_staked * total_solusd_deposits - solusd_loss_numerator;
+        }
+
+        sol_gain_per_unit_staked = sol_numerator / total_solusd_deposits;
+        self.last_sol_error_offset = sol_numerator - sol_gain_per_unit_staked * total_solusd_deposits;
+
+        (sol_gain_per_unit_staked, solusd_loss_per_unit_staked)
     }
     pub fn compute_solid_per_unit_staked(&mut self,solid_issuance:u128,total_solusd:u128)->u128{
         /*  
@@ -395,6 +499,8 @@ pub struct TroveManager {
     /// Gas Pool publickey
     pub gas_pool_id: Pubkey,
 
+    pub coll_surplus_pool_id: Pubkey,
+
     pub solusd_token_pubkey: Pubkey,
 
     pub solid_token_pubkey: Pubkey,
@@ -406,6 +512,9 @@ pub struct TroveManager {
     pub default_pool_id: Pubkey,
 
     pub active_pool_id: Pubkey,
+    pub oracle_program_id: Pubkey,
+    pub pyth_product_id: Pubkey,
+    pub pyth_price_id: Pubkey,
 
     pub base_rate:u128,
 

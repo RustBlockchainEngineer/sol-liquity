@@ -19,7 +19,8 @@ use {
             ActivePool,
             DefaultPool,
             Status,
-            StabilityPool
+            StabilityPool,
+            CommunityIssuance
         },
         constant::{
             DECIMAL_PRECISION,
@@ -124,7 +125,15 @@ impl Processor {
         let trove_manager_id_info = next_account_info(account_info_iter)?;
         let default_pool_id_info = next_account_info(account_info_iter)?;
         let active_pool_id_info = next_account_info(account_info_iter)?;
+        let stability_pool_id_info = next_account_info(account_info_iter)?;
+        let gas_pool_id_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool_id_info = next_account_info(account_info_iter)?;
         let borrow_operations_id_info = next_account_info(account_info_iter)?;
+        let oracle_program_id_info = next_account_info(account_info_iter)?;
+        let pyth_product_id_info = next_account_info(account_info_iter)?;
+        let pyth_price_id_info = next_account_info(account_info_iter)?;
+        let solusd_token_id_info = next_account_info(account_info_iter)?;
+        let solid_staking_id_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
@@ -139,6 +148,14 @@ impl Processor {
         trove_manager_data.borrower_operations_id = *borrow_operations_id_info.key;
         trove_manager_data.default_pool_id = *default_pool_id_info.key;
         trove_manager_data.active_pool_id = *active_pool_id_info.key;
+        trove_manager_data.stability_pool_id = *stability_pool_id_info.key;
+        trove_manager_data.gas_pool_id = *gas_pool_id_info.key;
+        trove_manager_data.coll_surplus_pool_id = *coll_surplus_pool_id_info.key;
+        trove_manager_data.oracle_program_id = *oracle_program_id_info.key;
+        trove_manager_data.pyth_product_id = *pyth_product_id_info.key;
+        trove_manager_data.pyth_price_id = *pyth_price_id_info.key;
+        trove_manager_data.solusd_token_pubkey = *solusd_token_id_info.key;
+        trove_manager_data.solid_staking_pubkey = *solid_staking_id_info.key;
         trove_manager_data.token_program_id = *token_program_info.key;
 
         Ok(())
@@ -174,7 +191,7 @@ impl Processor {
             &mut borrower_trove,
             &mut reward_snapshot, 
             &mut default_pool_data, 
-            &active_pool_data
+            &mut active_pool_data
         );
 
         Ok(())
@@ -195,16 +212,19 @@ impl Processor {
         let active_pool_info = next_account_info(account_info_iter)?;
         let reward_snapshots_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
+        let community_issuance_id_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
+        let cur_timestamp = clock.unix_timestamp as u64;
 
         let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
         let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
         let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
         let mut reward_snapshots_data = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
-        let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
+        let mut stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
+        let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_id_info.data.borrow())?;
 
         if !borrower_trove.is_active() {
             return Err(LiquityError::TroveNotActive.into());
@@ -236,7 +256,7 @@ impl Processor {
             
             totals = get_total_from_batch_liquidate_recovery_mode(
                 &mut trove_manager_data, 
-                &active_pool_data, 
+                &mut active_pool_data, 
                 &mut default_pool_data, 
                 vars.price, 
                 vars.solusd_in_stab_pool, 
@@ -247,7 +267,7 @@ impl Processor {
         else {//  if !vars.recoveryModeAtStart
             totals = get_total_from_batch_liquidate_normal_mode(
                 &mut trove_manager_data, 
-                &active_pool_data, 
+                &mut active_pool_data, 
                 &mut default_pool_data, 
                 vars.price, 
                 vars.solusd_in_stab_pool, 
@@ -261,7 +281,8 @@ impl Processor {
         }
 
         // Move liquidated SOL and SOLUSD to the appropriate pools
-        //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP);
+        //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP); -- implemented
+        stability_pool_data.offset(totals.total_debt_to_offset, totals.total_coll_to_send_to_sp, community_issuance_data.issue_solid(cur_timestamp as u128), &mut active_pool_data);
         redistribute_debt_and_coll(&mut trove_manager_data, &mut active_pool_data, &mut default_pool_data, totals.total_debt_to_redistribute, totals.total_coll_to_redistribute);
 
         if totals.total_coll_surplus > 0 {
