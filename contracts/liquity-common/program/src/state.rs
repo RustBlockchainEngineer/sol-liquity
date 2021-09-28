@@ -516,6 +516,10 @@ pub struct TroveManager {
     pub pyth_product_id: Pubkey,
     pub pyth_price_id: Pubkey,
 
+    /// Currency market prices are quoted in
+    /// e.g. "USD" null padded (`*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"`) or a SPL token mint pubkey
+    pub quote_currency: [u8; 32],
+
     pub base_rate:u128,
 
     pub last_fee_operation_time:u128,
@@ -821,20 +825,24 @@ impl DefaultPool{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct BorrowerOperations {
-    /// nonce is used to authorize this farm pool
     pub nonce: u8,
-
-    /// spl-token program pubkey
     pub token_program_pubkey: Pubkey,
-
-    /// TroveManager public key
     pub trove_manager_id: Pubkey,
-
-    /// SOLIDStaking public key
+    pub active_pool_id: Pubkey,
+    pub default_pool_id: Pubkey,
+    pub stability_pool_id: Pubkey,
+    pub gas_pool_id: Pubkey,
+    pub coll_surplus_pool_id: Pubkey,
+    pub solusd_token_id: Pubkey,
     pub solid_staking_id: Pubkey,
 
-    /// Gas Pool public key
-    pub gas_pool_id: Pubkey,
+    pub oracle_program_id: Pubkey,
+    pub pyth_product_id: Pubkey,
+    pub pyth_price_id: Pubkey,
+    /// Currency market prices are quoted in
+    /// e.g. "USD" null padded (`*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"`) or a SPL token mint pubkey
+    pub quote_currency: [u8; 32],
+
     
 }
 
@@ -881,7 +889,22 @@ pub struct LocalVariablesOpenTrove {
     pub stake:u128,
     pub array_index:u128,
 }
-
+impl LocalVariablesOpenTrove {
+    pub fn new(pool_id_pubkey:Pubkey, owner_pubkey: Pubkey)->LocalVariablesOpenTrove{
+        LocalVariablesOpenTrove{
+            pool_id_pubkey,
+            owner_pubkey,
+            price:0,
+            solusd_fee:0,
+            new_debt:0,
+            composit_debt:0,
+            icr:0,
+            nicr:0,
+            stake:0,
+            array_index:0,
+        }
+    }
+}
 
 /// Community Issuance struct
 #[repr(C)]
