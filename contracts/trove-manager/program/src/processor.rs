@@ -211,7 +211,6 @@ impl Processor {
         let default_pool_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let reward_snapshots_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let community_issuance_id_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
@@ -348,7 +347,109 @@ impl Processor {
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
         let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
 
+        if max_fee_percentage < REDEMPTION_FEE_FLOOR || max_fee_percentage > DECIMAL_PRECISION {
+            return Err(LiquityError::MaxFeePercentageError.into());
+        }
+        //_requireAfterBootstrapPeriod();
+
+        let market_price = get_market_price(
+            stability_pool_data.oracle_program_id,
+            stability_pool_data.quote_currency,
+            pyth_product_info,
+            pyth_price_info,
+            clock
+        )?;
+
+        let mut totals = RedemptionTotals::new();
         
+        totals.price = market_price;
+        
+        let tcr = get_tcr(totals.price, &active_pool_data, &default_pool_data, &trove_manager_data);
+        if tcr < MCR {
+            return Err(LiquityError::TCRError.into());
+        }
+
+        if solusd_amount <= 0 {
+            return Err(LiquityError::ZeroAmount.into());
+        }
+
+        //_requireLUSDBalanceCoversRedemption(contractsCache.lusdToken, msg.sender, _LUSDamount);
+
+        totals.total_solusd_supply_at_start = active_pool_data.solusd_debt + default_pool_data.solusd_debt;
+
+        // Confirm redeemer's balance is less than total SOLUSD supply
+        //assert(contractsCache.lusdToken.balanceOf(msg.sender) <= totals.totalLUSDSupplyAtStart);
+
+        totals.remaining_solusd = solusd_amount;
+
+        /*
+        address currentBorrower;
+
+        if (_isValidFirstRedemptionHint(contractsCache.sortedTroves, _firstRedemptionHint, totals.price)) {
+            currentBorrower = _firstRedemptionHint;
+        } else {
+            currentBorrower = contractsCache.sortedTroves.getLast();
+            // Find the first trove with ICR >= MCR
+            while (currentBorrower != address(0) && getCurrentICR(currentBorrower, totals.price) < MCR) {
+                currentBorrower = contractsCache.sortedTroves.getPrev(currentBorrower);
+            }
+        }
+
+        // Loop through the Troves starting from the one with lowest collateral ratio until _amount of LUSD is exchanged for collateral
+        if (_maxIterations == 0) { _maxIterations = uint(-1); }
+        while (currentBorrower != address(0) && totals.remainingLUSD > 0 && _maxIterations > 0) {
+            _maxIterations--;
+            // Save the address of the Trove preceding the current one, before potentially modifying the list
+            address nextUserToCheck = contractsCache.sortedTroves.getPrev(currentBorrower);
+
+            _applyPendingRewards(contractsCache.activePool, contractsCache.defaultPool, currentBorrower);
+
+            SingleRedemptionValues memory singleRedemption = _redeemCollateralFromTrove(
+                contractsCache,
+                currentBorrower,
+                totals.remainingLUSD,
+                totals.price,
+                _upperPartialRedemptionHint,
+                _lowerPartialRedemptionHint,
+                _partialRedemptionHintNICR
+            );
+
+            if (singleRedemption.cancelledPartial) break; // Partial redemption was cancelled (out-of-date hint, or new net debt < minimum), therefore we could not redeem from the last Trove
+
+            totals.totalLUSDToRedeem  = totals.totalLUSDToRedeem.add(singleRedemption.LUSDLot);
+            totals.totalETHDrawn = totals.totalETHDrawn.add(singleRedemption.ETHLot);
+
+            totals.remainingLUSD = totals.remainingLUSD.sub(singleRedemption.LUSDLot);
+            currentBorrower = nextUserToCheck;
+        }
+        */
+
+        if totals.total_sol_drawn <= 0 {
+            return Err(LiquityError::ZeroAmount.into());
+        }
+
+        // Decay the baseRate due to time passed, and then increase it according to the size of this redemption.
+        // Use the saved total SOLUSD supply value, from before it was reduced by the redemption.
+        update_base_rate_from_redemption(&mut trove_manager_data, cur_timestamp, totals.total_sol_drawn, totals.price, totals.total_solusd_supply_at_start);
+
+        // calculate the sol fee
+        totals.sol_fee = get_redemption_fee(&trove_manager_data, totals.total_sol_drawn);
+
+        if totals.sol_fee * DECIMAL_PRECISION / totals.total_sol_drawn > max_fee_percentage {
+            return Err(LiquityError::FeeExceeded.into());
+        }
+
+        // send the sol fee to the SOLID staking contract
+        //contractsCache.activePool.sendETH(address(contractsCache.lqtyStaking), totals.ETHFee);
+        //contractsCache.lqtyStaking.increaseF_ETH(totals.ETHFee);
+
+        totals.sol_to_send_to_redeemer = totals.total_sol_drawn - totals.sol_fee;
+
+        // Burn the total LUSD that is cancelled with debt, and send the redeemed ETH to msg.sender
+        //contractsCache.lusdToken.burn(msg.sender, totals.totalLUSDToRedeem);
+        // Update Active Pool LUSD, and send ETH to account
+        active_pool_data.decrease_solusd_debt(totals.total_solusd_to_redeem);
+        //contractsCache.activePool.sendETH(msg.sender, totals.ETHToSendToRedeemer);
 
         Ok(())
     } 

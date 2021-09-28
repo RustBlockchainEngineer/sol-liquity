@@ -597,6 +597,66 @@ pub fn get_offset_and_redistribution_vals(debt:u128, coll:u128, solusd_in_stab_p
         (debt_to_offset, coll_to_send_to_sp, debt_to_redistribute, coll_to_redistribute)
     }
 }
+pub fn close_trove(borrower_trove:&mut Trove, reward_snapshots:&mut RewardSnapshot){
+    //assert(closedStatus != Status.nonExistent && closedStatus != Status.active);
+
+    //uint TroveOwnersArrayLength = TroveOwners.length;
+    //_requireMoreThanOneTroveInSystem(TroveOwnersArrayLength);
+
+    //borrower_trove.status = closedStatus;
+    borrower_trove.coll = 0;
+    borrower_trove.debt = 0;
+
+    reward_snapshots.sol = 0;
+    reward_snapshots.solusd_debt = 0;
+
+    //_removeTroveOwner(_borrower, TroveOwnersArrayLength);
+    //sortedTroves.remove(_borrower);
+}
+pub fn remove_stake(trove_manager:&mut TroveManager, borrower_trove:&mut Trove){
+    let stake = borrower_trove.stake;
+    trove_manager.total_stakes = trove_manager.total_stakes - stake;
+    borrower_trove.stake = 0;
+}
+pub fn get_coll_gas_compensation(entire_coll:u128)->u128{
+    entire_coll / PERCENT_DIVISOR
+}
+pub fn get_entire_debt_and_coll(trove_manager:&TroveManager, borrower_trove:&Trove, reward_snapshots:&RewardSnapshot)->(u128,u128,u128,u128){
+    let mut debt = borrower_trove.debt;
+    let mut coll = borrower_trove.coll;
+
+    let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager, borrower_trove, reward_snapshots);
+    let pending_sol_reward = get_pending_sol_reward(trove_manager, borrower_trove, reward_snapshots);
+
+    debt += pending_solusd_debt_reward;
+    coll += pending_sol_reward;
+
+    (debt, coll, pending_solusd_debt_reward, pending_sol_reward)
+
+}
+pub fn get_current_icr(
+    trove_manager_data:&TroveManager, 
+    borrower_trove:&mut Trove, 
+    reward_snapshot:&mut RewardSnapshot, 
+    price:u128
+)->u128{
+    let (current_sol, current_solusd_debt) = get_current_trove_amounts(trove_manager_data, borrower_trove, reward_snapshot);
+    let icr = compute_cr(current_sol, current_solusd_debt, price);
+    return icr;
+}
+pub fn get_current_trove_amounts(
+    trove_manager_data:&TroveManager, 
+    borrower_trove:&mut Trove, 
+    reward_snapshot:&mut RewardSnapshot, 
+)->(u128,u128){
+    let pending_sol_reward = get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
+    let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
+
+    let current_sol = borrower_trove.coll + pending_sol_reward;
+    let current_solusd = borrower_trove.debt + pending_solusd_debt_reward;
+
+    return (current_sol, current_solusd);
+}
 pub fn apply_pending_rewards(
     trove_manager_data:&TroveManager, 
     borrower_trove:&mut Trove, 
