@@ -9,7 +9,10 @@ use {
             FrontEnd,
             Deposit,
             Snapshots,
-            CommunityIssuance
+            CommunityIssuance,
+            Trove,
+            TroveManager,
+            RewardSnapshot
         },
         constant::{
             DECIMAL_PRECISION,
@@ -319,6 +322,21 @@ impl Processor {
         // user solUsd token account
         let solusd_user_info = next_account_info(account_info_iter)?;
 
+        // pool sol token account
+        let wsol_gain_pool_info = next_account_info(account_info_iter)?;
+
+        // user sol token account
+        let wsol_gain_user_info = next_account_info(account_info_iter)?;
+
+        // trove manager
+        let trove_manager_info = next_account_info(account_info_iter)?;
+
+        // reward snapshots
+        let reward_snapshots_info = next_account_info(account_info_iter)?;
+
+        // lowest trove
+        let lowest_trove_info = next_account_info(account_info_iter)?;
+
         // front end account info
         let frontend_info = next_account_info(account_info_iter)?;
 
@@ -381,8 +399,14 @@ impl Processor {
             clock
         )?;
         
-        //address lowestTrove = sortedTroves.getLast();
-        let icr = 0;//troveManager.getCurrentICR(lowestTrove, price);
+        
+        //address lowestTrove = sortedTroves.getLast(); ---implemented
+        let trove_manager = try_from_slice_unchecked::<TroveManager>(&trove_manager_info.data.borrow())?;
+        let mut lowest_trove = try_from_slice_unchecked::<Trove>(&lowest_trove_info.data.borrow())?;
+        let mut reward_snapshots = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
+
+        //let icr = troveManager.getCurrentICR(lowestTrove, price); -- implemented
+        let icr = get_current_icr(&trove_manager, &mut lowest_trove, &mut reward_snapshots, market_price);
         if icr < MCR {
             return Err(LiquityError::RequireNoUnderCollateralizedTroves.into());
         }
@@ -441,7 +465,16 @@ impl Processor {
 
         if depositor_sol_gain > 0 {
             pool_data.sol -=  depositor_sol_gain;
-            //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);)
+            //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);) -- implemented
+            token_transfer(
+                pool_id_info.key,
+                token_program_info.clone(),
+                wsol_gain_pool_info.clone(),
+                wsol_gain_user_info.clone(),
+                user_transfer_authority_info.clone(),
+                pool_data.nonce,
+                depositor_sol_gain as u64
+            )?;
         }
 
         // serialize/store user info again

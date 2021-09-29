@@ -4,8 +4,9 @@
 use {
     liquity_common::{
         state::{
-            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache, Trove
+            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache,TroveManager, ActivePool
         },
+        utils::*,
         error::{LiquityError},
         utils::{
             authority_id
@@ -136,43 +137,39 @@ impl Processor {
 
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
-        let borrower_info = next_account_info(account_info_iter)?;
-        let authority_info = next_account_info(account_info_iter)?;
+        
+        let borrower_operations_id_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let default_pool_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
-        let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        let price_feed_info = next_account_info(account_info_iter)?;
-        let sorted_troves_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?;
+        let oracle_program_id_info = next_account_info(account_info_iter)?;
+        let pyth_product_id_info = next_account_info(account_info_iter)?;
+        let pyth_price_id_info = next_account_info(account_info_iter)?;
+
+        let mut borrower_operations = try_from_slice_unchecked::<BorrowerOperations>(&borrower_operations_id_info.data.borrow())?;
+
+        borrower_operations.trove_manager_id = *trove_manager_info.key;
+        borrower_operations.active_pool_id = *active_pool_info.key;
+        borrower_operations.default_pool_id = *default_pool_info.key;
+        borrower_operations.stability_pool_id = *stability_pool_info.key;
+        borrower_operations.gas_pool_id = *gas_pool_info.key;
+        borrower_operations.coll_surplus_pool_id = *coll_surplus_pool.key;
+        borrower_operations.solusd_token_id = *solusd_token_info.key;
+        borrower_operations.solid_staking_id = *solid_staking_info.key;
+        borrower_operations.oracle_program_id = *oracle_program_id_info.key;
+        borrower_operations.pyth_product_id = *pyth_product_id_info.key;
+        borrower_operations.pyth_price_id = *pyth_price_id_info.key;
 
         if *authority_info.key != Self::authority_id(program_id, borrower_info.key, nonce)? {
             return Err(BorrowerOperationsError::InvalidProgramAddress.into());
         }
         
-        let token_program_id = *token_program_info.key;
-        
-        let borrower_obj = BorrowerOperations{
-            is_initialized:true,
-            nonce,
-            trove_manager_id:*trove_manager_info.key,
-            active_pool_id: *active_pool_info.key,
-            default_pool_id: *default_pool_info.key,
-            stability_pool_id: *stability_pool_info.key,
-            gas_pool_id: *gas_pool_info.key,
-            coll_surplus_pool_id: *coll_surplus_pool_info.key,
-            price_feed_id: *price_feed_info.key,
-            sorted_troves_id: *sorted_troves_info.key,
-            solusd_token_id: *solusd_token_info.key,
-            solid_staking_id:*solid_staking_info.key,
-            token_program_id
-        };
-
-        borrower_obj.serialize(&mut &mut borrower_info.data.borrow_mut()[..])?;
+        borrower_operations.serialize(&mut &mut borrower_operations_id_info.data.borrow_mut()[..])?;
         Ok(())
     } 
     
@@ -186,6 +183,7 @@ impl Processor {
     ) -> ProgramResult {
         
         let account_info_iter = &mut accounts.iter();
+<<<<<<< HEAD
         let borrower_opr_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
@@ -253,6 +251,23 @@ impl Processor {
 >>>>>>> f74ee6f80ef9f0f67f4fee5046ad0da9af1b1c24
         }
 
+=======
+
+        let borrower_operations_id_info = next_account_info(account_info_iter)?;
+        let owner_id_info = next_account_info(account_info_iter)?;
+        let trove_manager_id_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let solusd_pool_info = next_account_info(account_info_iter)?;
+        let token_program_info = next_account_info(account_info_iter)?;
+
+        let mut borrower_operations_data = try_from_slice_unchecked::<BorrowerOperations>(&borrower_operations_id_info.data.borrow())?;
+        let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&trove_manager_id_info.data.borrow())?;
+        let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+
+        let mut vars = LocalVariablesOpenTrove::new(*borrower_operations_id_info.key, *owner_id_info.key);
+        vars.price = get_market_price(borrower_operations_data.oracle_program_id,)
+        
+>>>>>>> de572fd8331e8381f1a343526f799a5bd0da3061
         Ok(())
         
     }
