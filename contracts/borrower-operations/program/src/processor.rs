@@ -183,7 +183,6 @@ impl Processor {
     ) -> ProgramResult {
         
         let account_info_iter = &mut accounts.iter();
-<<<<<<< HEAD
         let borrower_opr_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
@@ -235,24 +234,6 @@ impl Processor {
         let icr = compute_cr(coll_increase, composit_debt, market_price)
         let nicr = compute_nominal_cr(coll_increase, composit_debt, market_price)
 
-<<<<<<< HEAD
-        let vars = LocalVariablesOpenTrove{
-            price:market_price,
-            solusd_fee,
-            net_debt,
-            composite_debt,
-            icr,
-            nicr
-=======
-        // check if this SOLID staking pool account was created by this program with authority and nonce
-        // if fail, returns InvalidProgramAddress error
-        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
-            return Err(LiquityError::InvalidProgramAddress.into());
->>>>>>> f74ee6f80ef9f0f67f4fee5046ad0da9af1b1c24
-        }
-
-=======
-
         let borrower_operations_id_info = next_account_info(account_info_iter)?;
         let owner_id_info = next_account_info(account_info_iter)?;
         let trove_manager_id_info = next_account_info(account_info_iter)?;
@@ -266,8 +247,19 @@ impl Processor {
 
         let mut vars = LocalVariablesOpenTrove::new(*borrower_operations_id_info.key, *owner_id_info.key);
         vars.price = get_market_price(borrower_operations_data.oracle_program_id,)
-        
->>>>>>> de572fd8331e8381f1a343526f799a5bd0da3061
+
+        let vars = LocalVariablesOpenTrove{
+            price:market_price,
+            solusd_fee,
+            net_debt,
+            composite_debt,
+            icr,
+            nicr
+        // check if this SOLID staking pool account was created by this program with authority and nonce
+        // if fail, returns InvalidProgramAddress error
+        if *authority_info.key != authority_id(program_id, pool_id_info.key, pool_data.nonce)? {
+            return Err(LiquityError::InvalidProgramAddress.into());
+        }
         Ok(())
         
     }
