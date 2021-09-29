@@ -2,8 +2,14 @@
 //! In here, All instructions are processed by Processor
 
 use {
-<<<<<<< HEAD
-    stability_pool::{
+    liquity_common::{
+        state::{
+            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache, Trove
+        },
+        error::{LiquityError},
+        utils::{
+            authority_id
+        },
         constant::{
             DECIMAL_PRECISION,
             MIN_NET_DEBT,
@@ -12,22 +18,8 @@ use {
         },
         pyth,
         math::{Decimal, Rate, TryAdd, TryDiv, TryMul, WAD},
-    }
-    trove_manager::{
-        state::{Trove},
         liquity_math::*
-    }
-=======
-    liquity_common::{
-        state::{
-            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache
-        },
-        error::{LiquityError},
-            utils::{
-                authority_id
-            }
     },
->>>>>>> f74ee6f80ef9f0f67f4fee5046ad0da9af1b1c24
     crate::{
         instruction::{BorrowerOperationsInstruction},
     },
