@@ -20,7 +20,8 @@ use {
             DefaultPool,
             Status,
             StabilityPool,
-            CommunityIssuance
+            CommunityIssuance,
+            CollSurplusPool
         },
         constant::{
             DECIMAL_PRECISION,
@@ -209,6 +210,7 @@ impl Processor {
         let borrower_info = next_account_info(account_info_iter)?;
         let borrower_trove_info = next_account_info(account_info_iter)?;
         let default_pool_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let reward_snapshots_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
@@ -222,6 +224,7 @@ impl Processor {
         let mut borrower_trove = try_from_slice_unchecked::<Trove>(&borrower_trove_info.data.borrow())?;
         let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+        let mut coll_surplus_pool_data = try_from_slice_unchecked::<CollSurplusPool>(&coll_surplus_pool_info.data.borrow())?;
         let mut reward_snapshots_data = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
         let mut stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
         let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_id_info.data.borrow())?;
@@ -286,7 +289,9 @@ impl Processor {
         redistribute_debt_and_coll(&mut trove_manager_data, &mut active_pool_data, &mut default_pool_data, totals.total_debt_to_redistribute, totals.total_coll_to_redistribute);
 
         if totals.total_coll_surplus > 0 {
-            //activePoolCached.sendETH(address(collSurplusPool), totals.totalCollSurplus);
+            //activePoolCached.sendETH(address(collSurplusPool), totals.totalCollSurplus); -- implemented
+            active_pool_data.sol -= totals.total_coll_surplus;
+            coll_surplus_pool_data.sol += totals.total_coll_surplus;
         }
 
         // update system snapshots
@@ -297,6 +302,7 @@ impl Processor {
 
 
         // Send gas compensation to caller
+
         // _sendGasCompensation(activePoolCached, msg.sender, totals.totalLUSDGasCompensation, totals.totalCollGasCompensation);
 
         Ok(())

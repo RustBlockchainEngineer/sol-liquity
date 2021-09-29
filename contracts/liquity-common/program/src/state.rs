@@ -794,6 +794,16 @@ impl ActivePool{
     }
 }
 
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct CollSurplusPool {
+    pub borrower_operations_address: Pubkey,
+    pub trove_manager_address: Pubkey,
+    pub active_pool_address: Pubkey,
+    pub sol: u128,
+}
+
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct DefaultPool {
