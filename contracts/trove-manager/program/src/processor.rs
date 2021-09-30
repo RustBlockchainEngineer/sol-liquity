@@ -21,7 +21,8 @@ use {
             Status,
             StabilityPool,
             CommunityIssuance,
-            CollSurplusPool
+            CollSurplusPool,
+            EpochToScale
         },
         constant::{
             DECIMAL_PRECISION,
@@ -215,6 +216,7 @@ impl Processor {
         let reward_snapshots_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let community_issuance_id_info = next_account_info(account_info_iter)?;
+        let epoch_to_scale_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
@@ -228,6 +230,7 @@ impl Processor {
         let mut reward_snapshots_data = try_from_slice_unchecked::<RewardSnapshot>(&reward_snapshots_info.data.borrow())?;
         let mut stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
         let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_id_info.data.borrow())?;
+        let mut epoch_to_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_scale_info.data.borrow())?;
 
         if !borrower_trove.is_active() {
             return Err(LiquityError::TroveNotActive.into());
@@ -285,7 +288,7 @@ impl Processor {
 
         // Move liquidated SOL and SOLUSD to the appropriate pools
         //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP); -- implemented
-        stability_pool_data.offset(totals.total_debt_to_offset, totals.total_coll_to_send_to_sp, community_issuance_data.issue_solid(cur_timestamp as u128), &mut active_pool_data);
+        stability_pool_data.offset(totals.total_debt_to_offset, totals.total_coll_to_send_to_sp, community_issuance_data.issue_solid(cur_timestamp as u128), &mut active_pool_data, &mut epoch_to_scale);
         redistribute_debt_and_coll(&mut trove_manager_data, &mut active_pool_data, &mut default_pool_data, totals.total_debt_to_redistribute, totals.total_coll_to_redistribute);
 
         if totals.total_coll_surplus > 0 {
@@ -299,7 +302,6 @@ impl Processor {
 
         vars.liquidated_debt = totals.total_debt_in_sequence;
         vars.liquidated_coll = totals.total_coll_in_sequence - totals.total_coll_gas_compensation - totals.total_coll_surplus;
-
 
         // Send gas compensation to caller
 

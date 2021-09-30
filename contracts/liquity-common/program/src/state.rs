@@ -67,14 +67,14 @@ pub struct StabilityPool {
 
 }
 impl StabilityPool{
-    pub fn offset(&mut self, debt_to_offset: u128, coll_to_add: u128, solid_issuance: u128, active_pool:&mut ActivePool){
+    pub fn offset(&mut self, debt_to_offset: u128, coll_to_add: u128, solid_issuance: u128, active_pool:&mut ActivePool, epoch_to_scale:&mut EpochToScale){
         let total_solusd = self.total_sol_usd_deposits;
         if total_solusd == 0 || debt_to_offset == 0 {
             return;
         }
-        self.trigger_solid_issuance(solid_issuance);
+        self.trigger_solid_issuance(solid_issuance, epoch_to_scale);
         let (sol_gain_per_unit_staked, solusd_loss_per_unit_staked) = self.compute_rewards_per_unit_staked(coll_to_add, debt_to_offset, total_solusd);
-        self.update_reward_sum_and_product(sol_gain_per_unit_staked, solusd_loss_per_unit_staked);
+        self.update_reward_sum_and_product(sol_gain_per_unit_staked, solusd_loss_per_unit_staked, epoch_to_scale);
 
         self.move_offset_coll_and_debt(coll_to_add, debt_to_offset, active_pool);
     }
@@ -91,7 +91,7 @@ impl StabilityPool{
         let new_total_solusd_deposits = self.total_sol_usd_deposits - amount;
         self.total_sol_usd_deposits = new_total_solusd_deposits;
     }
-    pub fn update_reward_sum_and_product(&mut self, sol_gain_per_unit_staked: u128, solusd_loss_per_unit_staked: u128){
+    pub fn update_reward_sum_and_product(&mut self, sol_gain_per_unit_staked: u128, solusd_loss_per_unit_staked: u128, epoch_to_scale:&mut EpochToScale){
         let current_p = self.p;
         let mut new_p = 0;
 
@@ -103,8 +103,12 @@ impl StabilityPool{
         let new_product_factor = DECIMAL_PRECISION - solusd_loss_per_unit_staked;
         let current_scale_cached = self.current_scale;
         let current_epoch_cached = self.current_epoch;
-        //let current_s = epochToScaleToSum[currentEpochCached][currentScaleCached];
-        let current_s = 0;
+
+        if current_epoch_cached != epoch_to_scale.epoch ||
+            current_scale_cached != epoch_to_scale.scale {
+                return;
+        }
+        let current_s = epoch_to_scale.epoch_to_scale_to_sum;
 
         /*
         * Calculate the new S first, before we update P.
@@ -115,7 +119,7 @@ impl StabilityPool{
         */
         let marginal_solid_gain = sol_gain_per_unit_staked * current_p;
         let new_s = current_s + marginal_solid_gain;
-        //epochToScaleToSum[currentEpochCached][currentScaleCached] = newS;
+        epoch_to_scale.epoch_to_scale_to_sum = new_s;
 
         // If the Stability Pool was emptied, increment the epoch, and reset the scale and product P
         if new_product_factor == 0 {
@@ -135,10 +139,10 @@ impl StabilityPool{
         self.p = new_p;
 
     }
-    pub fn trigger_solid_issuance(&mut self,solid_issuance:u128){
-        self.update_g(solid_issuance);
+    pub fn trigger_solid_issuance(&mut self,solid_issuance:u128, epoch_to_scale:&mut EpochToScale){
+        self.update_g(solid_issuance, epoch_to_scale);
     }
-    pub fn update_g(&mut self,solid_issuance:u128){
+    pub fn update_g(&mut self,solid_issuance:u128, epoch_to_scale: &mut EpochToScale){
         // cached to save an SLOAD
         let total_solusd = self.total_sol_usd_deposits;
 
@@ -153,7 +157,7 @@ impl StabilityPool{
         let solid_per_unit_staked = self.compute_solid_per_unit_staked(solid_issuance, total_solusd);
 
         let marginal_solid_gain = solid_per_unit_staked * self.p;
-        //epochToScaleToG[currentEpoch][currentScale] = epochToScaleToG[currentEpoch][currentScale].add(marginalLQTYGain);
+        epoch_to_scale.epoch_to_scale_to_g += marginal_solid_gain;
     }
     pub fn compute_rewards_per_unit_staked(&mut self, coll_to_add: u128, debt_to_offset:u128, total_solusd_deposits: u128) ->(u128,u128){
         /*
@@ -219,11 +223,11 @@ impl StabilityPool{
     * where S(0) and P(0) are the depositor's snapshots of the sum S and product P, respectively.
     * d0 is the last recorded deposit value.
     */
-    pub fn get_depositor_sol_gain(&self, initial_deposit:u128, snapshots:&Snapshots) -> u128 {
+    pub fn get_depositor_sol_gain(&self, initial_deposit:u128, snapshots:&Snapshots, epoch_to_scale:&EpochToScale, epoch_to_plus_scale:&EpochToScale) -> u128 {
         if initial_deposit == 0 {
             return 0;
         }
-        let sol_gain = self.get_sol_gain_from_snapshots(initial_deposit, snapshots);
+        let sol_gain = self.get_sol_gain_from_snapshots(initial_deposit, snapshots, epoch_to_scale, epoch_to_plus_scale);
         return sol_gain;
     }
 
@@ -233,7 +237,7 @@ impl StabilityPool{
     *
     * D0 is the last recorded value of the front end's total tagged deposits.
     */
-    pub fn get_frontend_solid_gain(&self, snapshots:&Snapshots, frontend:&FrontEnd)->u128{
+    pub fn get_frontend_solid_gain(&self, snapshots:&Snapshots, frontend:&FrontEnd, epoch_to_scale:&EpochToScale, epoch_to_plus_scale:&EpochToScale)->u128{
         let frontend_stake = frontend.frontend_stake;
         if frontend_stake == 0 {
             return 0;
@@ -242,7 +246,7 @@ impl StabilityPool{
         let kickback_rate = frontend.kickback_rate;
         let frontend_share = DECIMAL_PRECISION - kickback_rate;
 
-        let solid_gain = frontend_share * self.get_solid_gain_from_snapshots(frontend_stake, snapshots);
+        let solid_gain = frontend_share * self.get_solid_gain_from_snapshots(frontend_stake, snapshots, epoch_to_scale, epoch_to_plus_scale);
         return solid_gain;
     }
 
@@ -252,7 +256,7 @@ impl StabilityPool{
     * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
     * d0 is the last recorded deposit value.
     */
-    pub fn get_depositor_solid_gain(&self, snapshots:&Snapshots, user_deposit:&Deposit, frontend:&FrontEnd)->u128{
+    pub fn get_depositor_solid_gain(&self, snapshots:&Snapshots, user_deposit:&Deposit, frontend:&FrontEnd, epoch_to_scale:&EpochToScale, epoch_to_plus_scale:&EpochToScale)->u128{
         let initial_deposit = user_deposit.initial_value;
         if initial_deposit == 0 {
             return 0;
@@ -266,11 +270,11 @@ impl StabilityPool{
         */
         let kickback_rate = if frontend_tag == Pubkey::from_str(ZERO_ADDRESS).unwrap() {DECIMAL_PRECISION} else {frontend.kickback_rate};
 
-        let solid_gain = kickback_rate * self.get_solid_gain_from_snapshots(initial_deposit, snapshots);
+        let solid_gain = kickback_rate * self.get_solid_gain_from_snapshots(initial_deposit, snapshots, epoch_to_scale, epoch_to_plus_scale);
         return solid_gain;
 
     }
-    pub fn get_sol_gain_from_snapshots(&self, initial_deposit:u128, snapshots:&Snapshots) ->u128{
+    pub fn get_sol_gain_from_snapshots(&self, initial_deposit:u128, snapshots:&Snapshots, epoch_to_scale:&EpochToScale, epoch_to_plus_scale:&EpochToScale ) ->u128{
         /*
         * Grab the sum 'S' from the epoch at which the stake was made. The SOL gain may span up to one scale change.
         * If it does, the second portion of the SOL gain is scaled by 1e9.
@@ -278,17 +282,24 @@ impl StabilityPool{
         */
         let epoch_snapshot = snapshots.epoch;
         let scale_snapshot = snapshots.scale;
+        
+        if epoch_snapshot != epoch_to_scale.epoch ||
+            scale_snapshot != epoch_to_scale.scale ||
+            epoch_snapshot != epoch_to_plus_scale.epoch ||
+            scale_snapshot + 1 != epoch_to_plus_scale.scale {
+                return 0;
+        }
 
         let s_snapshot = snapshots.s;
         let p_snapshot = snapshots.p;
 
-        let first_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot].sub(S_Snapshot);
-        let second_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot.add(1)].div(SCALE_FACTOR);
+        let first_portion = epoch_to_scale.epoch_to_scale_to_sum - s_snapshot;
+        let second_portion = epoch_to_plus_scale.epoch_to_scale_to_sum / SCALE_FACTOR;
 
         let sol_gain = initial_deposit * (first_portion + second_portion) / p_snapshot / DECIMAL_PRECISION;
         return sol_gain;
     }
-    pub fn get_solid_gain_from_snapshots(&self, initial_deposit:u128, snapshots:&Snapshots) ->u128{
+    pub fn get_solid_gain_from_snapshots(&self, initial_deposit:u128, snapshots:&Snapshots, epoch_to_scale:&EpochToScale, epoch_to_plus_scale:&EpochToScale) ->u128{
         /*
         * Grab the sum 'S' from the epoch at which the stake was made. The SOLID gain may span up to one scale change.
         * If it does, the second portion of the SOLID gain is scaled by 1e9.
@@ -297,11 +308,18 @@ impl StabilityPool{
         let epoch_snapshot = snapshots.epoch;
         let scale_snapshot = snapshots.scale;
 
+        if epoch_snapshot != epoch_to_scale.epoch ||
+            scale_snapshot != epoch_to_scale.scale ||
+            epoch_snapshot != epoch_to_plus_scale.epoch ||
+            scale_snapshot + 1 != epoch_to_plus_scale.scale {
+                return 0;
+        }
+
         let g_snapshot = snapshots.g;
         let p_snapshot = snapshots.p;
 
-        let first_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot].sub(S_Snapshot);
-        let second_portion = 0;//epochToScaleToSum[epochSnapshot][scaleSnapshot.add(1)].div(SCALE_FACTOR);
+        let first_portion = epoch_to_scale.epoch_to_scale_to_sum - g_snapshot;
+        let second_portion = epoch_to_plus_scale.epoch_to_scale_to_sum / SCALE_FACTOR;
 
         let solid_gain = initial_deposit * (first_portion + second_portion) / p_snapshot / DECIMAL_PRECISION;
         return solid_gain;
@@ -440,17 +458,20 @@ pub struct Snapshots {
 }
 
 impl Snapshots{
-    pub fn update_snapshots_with_frontendstake(&mut self,new_value:u128, pool_data:&StabilityPool){
+    pub fn update_snapshots_with_frontendstake(&mut self,new_value:u128, pool_data:&StabilityPool, epoch_to_scale: &EpochToScale){
         if new_value == 0{
             return;
         }
-
+        if  pool_data.current_scale != epoch_to_scale.scale ||
+            pool_data.current_epoch != epoch_to_scale.epoch {
+                return;
+        }
         let current_scale_cached = pool_data.current_scale;
         let current_epoch_cached = pool_data.current_epoch;
         let current_p = pool_data.p;
 
         // Get G for the current epoch and current scale
-        let current_g = 0;//epochToScaleToG[currentEpochCached][currentScaleCached];
+        let current_g = epoch_to_scale.epoch_to_scale_to_g;
 
         // Record new snapshots of the latest running product p and sum g for the front end
         self.p = current_p;
@@ -459,18 +480,21 @@ impl Snapshots{
         self.epoch = current_epoch_cached;
 
     }
-    pub fn update_snapshots_with_deposit(&mut self,new_value:u128, pool_data:&StabilityPool){
+    pub fn update_snapshots_with_deposit(&mut self,new_value:u128, pool_data:&StabilityPool, epoch_to_scale: &EpochToScale){
         if new_value == 0{
             return;
         }
-
+        if  pool_data.current_scale != epoch_to_scale.scale ||
+            pool_data.current_epoch != epoch_to_scale.epoch {
+                return;
+        }
         let current_scale_cached = pool_data.current_scale;
         let current_epoch_cached = pool_data.current_epoch;
         let current_p = pool_data.p;
 
         // Get S and G for the current epoch and current scale
-        let current_s = 0;//epochToScaleToSum[currentEpochCached][currentScaleCached];
-        let current_g = 0;//epochToScaleToG[currentEpochCached][currentScaleCached];
+        let current_s = epoch_to_scale.epoch_to_scale_to_sum;
+        let current_g = epoch_to_scale.epoch_to_scale_to_g;
 
         // Record new snapshots of the latest running product P, sum S, and sum G, for the depositor
         self.p = current_p;
@@ -1024,3 +1048,18 @@ pub struct Snapshot {
     /// solUSD snapshot
     pub f_solusd_snapshot:u64,
 }
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct EpochToScale {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    pub scale: u128,
+    pub epoch: u128,
+
+    pub epoch_to_scale_to_sum:u128,
+    pub epoch_to_scale_to_g:u128,
+}
+

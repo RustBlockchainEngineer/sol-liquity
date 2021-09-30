@@ -734,16 +734,18 @@ pub fn payout_solid_gains(
     frontend:&FrontEnd,
     depositor_frontend:&FrontEnd,
     snapshots:&Snapshots,
-    user_deposit:&Deposit
+    user_deposit:&Deposit,
+    epoch_to_scale:&EpochToScale, 
+    epoch_to_plus_scale:&EpochToScale
 ){
     // Pay out front end's SOLID gain
-    let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend);
+    let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend, epoch_to_scale, epoch_to_plus_scale);
     if frontend_solid_gain > 0 {
         // transfer SOLID token
         //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);
     }
 
-    let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend);
+    let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend, epoch_to_scale, epoch_to_plus_scale);
     if depositor_solid_gain > 0 {
         // transfer SOLID token
         //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
