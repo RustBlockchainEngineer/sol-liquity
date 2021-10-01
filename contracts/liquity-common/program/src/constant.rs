@@ -15,7 +15,7 @@ pub const MINUTE_DECAY_FACTOR:u128 = 999037758833783000;
 pub const REDEMPTION_FEE_FLOOR:u128 = DECIMAL_PRECISION / 1000 * 5; // 0.5%
 pub const MAX_BORROWING_FEE:u128 = DECIMAL_PRECISION / 100 * 5; // 5%
 pub const SECONDS_IN_ONE_MINUTE:u128 = 60;
-
+pub const BORROWING_FEE_FLOOR:u128 = DECIMAL_PRECISION / 100 * 10; // 10%
 /* Precision for Nominal ICR (independent of price). Rationale for the value:
 *
 * - Making it “too high” could lead to overflows.
@@ -34,9 +34,6 @@ pub const NICR_PRECISION:u128 = 100_000_000_000_000_000_000;
 pub const BETA:u128 = 2;
 
 pub const SCALE_FACTOR:u128 = 1_000_000_000;
-
-// Amount of SOLUSD to be locked in gas pool on opening troves
-pub const LUSD_GAS_COMPENSATION: u128 = 200_000_000_000_000_000_000;
 
 // Minimum amount of net LUSD debt a trove must have
 //pub const MIN_NET_DEBT: u128 = 1800e18;

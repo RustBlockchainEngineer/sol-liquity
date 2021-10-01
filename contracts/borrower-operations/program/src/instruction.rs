@@ -40,9 +40,9 @@ pub enum BorrowerOperationsInstruction {
     ///   7. `[]` Token program id
     ///   8. `[]` program id
     ///   9. `[]` amount
-    OpenTrove(u64),
+    OpenTrove(OpenTroveInstruction),
 
-    AdjustTrove(u64),
+    AdjustTrove(AdjustTroveInstruction),
 
     CloseTrove(u64),
 }
@@ -56,5 +56,23 @@ pub struct OpenTroveInstruction {
     pub max_fee_percentage: u64,
     /// Minimum amount of DESTINATION token to output, prevents excessive slippage
     pub solusd_amount: u64,
-    coll_increase:u64
+    pub coll_increase:u64
 }
+
+/// OpenTrove instruction data
+#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdjustTroveInstruction {
+    
+    pub coll_withdrawal: u64,
+    
+    pub solusd_change: u64,
+    
+    pub is_debt_increase:bool,
+    
+    pub max_fee_percentage: u64,
+    
+    pub sol_amount: u64
+}
+

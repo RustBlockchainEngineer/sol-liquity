@@ -9,49 +9,6 @@ use {
     },
 };
 
-/// SOLID Staking struct
-#[repr(C)]
-#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
-pub struct BorrowerOperations {
-    pub is_initialized:bool,
-    /// nonce is used to authorize this farm pool
-    pub nonce: u8,
-
-    /// TroveManager public key
-    pub trove_manager_id: Pubkey,
-
-    /// ActivePool public key
-    pub active_pool_id: Pubkey,
-
-    /// DefaultPool public key
-    pub default_pool_id: Pubkey,
-
-    /// StabilityPool public key
-    pub stability_pool_id: Pubkey,
-
-    /// GasPool public key
-    pub gas_pool_id: Pubkey,
-
-    /// ColSurplusPool public key
-    pub coll_surplus_pool_id: Pubkey,
-
-    /// Price feed public key
-    pub price_feed_id: Pubkey,
-
-    /// Sorted troves public key
-    pub sorted_troves_id: Pubkey,
-
-    /// SolUSD Token public key
-    pub solusd_token_id: Pubkey,
-
-    /// Solid Token public key
-    pub solid_staking_id: Pubkey,
-    
-    /// spl-token program pubkey
-    pub token_program_id: Pubkey,
-
-}
-
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesAdjustTrove {

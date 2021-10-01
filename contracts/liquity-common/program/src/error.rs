@@ -57,9 +57,23 @@ pub enum LiquityError {
     /// Nothing to liquidate
     #[error("Nothing to liquidate")]
     NothingToLiquidate,
-    /// Max fee percentage must be between 0.5% and 100%
+    
     #[error("Max fee percentage must be between 0.5% and 100%")]
-    MaxFeePercentageError,
+    InvalidMaxFeePercentage,
+    /// Max fee percentage must less than or equal to 100%
+    #[error("Max fee percentage must less than or equal to 100%")]
+    ExceedMaxFeePercentage,
+
+    #[error("BorrowerOperations: Cannot withdraw and add coll")]
+    ErrorSignularCollChange,
+    
+    #[error("BorrowerOps: There must be either a collateral change or a debt change")]
+    ErrorNoneZeroAdjustment,
+    
+    #[error("BorrowerOps: Trove does not exist or is closed")]
+    ErrorTroveisNotActive,
+    
+
     /// TroveManager: Cannot redeem when TCR < MCR
     #[error("TroveManager: Cannot redeem when TCR < MCR")]
     TCRError,

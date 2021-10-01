@@ -23,12 +23,6 @@ pub enum BorrowerOperationsError {
     InvalidOwner,
 
     
-    #[error("Max fee percentage must less than or equal to 100%")]
-    ExceedMaxFeePercentage,
-
-    #[error("Max fee percentage must be between 0.5% and 100%")]
-    InvalidMaxFeePercentage,
-    
     #[error("BorrowerOps: Trove is active")]
     TroveIsActive,
 

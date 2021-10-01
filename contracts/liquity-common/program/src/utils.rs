@@ -68,7 +68,29 @@ pub fn token_transfer<'a>(
         signers,
     )
 } 
+pub fn token_mint_to<'a>(
+    owner: &Pubkey,
+    token_program: AccountInfo<'a>,
+    mint: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    nonce: u8,
+    amount: u64,
+) -> Result<(), ProgramError> {
+    let owner_bytes = owner.to_bytes();
+    let authority_signature_seeds = [&owner_bytes[..32], &[nonce]];
+    let signers = &[&authority_signature_seeds[..]];
+    let ix = spl_token::instruction::mint_to(
+        token_program.key,
+        mint.key,
+        destination.key,
+        authority.key,
+        &[],
+        amount,
+    )?;
 
+    invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
+}
 pub fn get_pyth_product_quote_currency(pyth_product: &pyth::Product) -> Result<[u8; 32], ProgramError> {
     const LEN: usize = 14;
     const KEY: &[u8; LEN] = b"quote_currency";
