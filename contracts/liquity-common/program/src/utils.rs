@@ -91,6 +91,21 @@ pub fn token_mint_to<'a>(
 
     invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
 }
+
+pub fn get_redemption_fee(trove_manager: &TroveManager, sol_drawn:u128)->u128{
+    calc_redemption_fee(get_redemption_rate(trove_manager), sol_drawn)
+}
+pub fn calc_redemption_fee(redemption_rate: u128,sol_drawn: u128)->u128{
+    let redemption_fee = redemption_rate * sol_drawn / DECIMAL_PRECISION;
+    //require(redemptionFee < _ETHDrawn, "TroveManager: Fee would eat up all returned collateral");
+    return redemption_fee;
+}
+pub fn get_redemption_rate(trove_manager:&TroveManager)->u128{
+    calc_redemption_rate(trove_manager.base_rate)
+}
+pub fn calc_redemption_rate(base_rate: u128)->u128{
+    min(REDEMPTION_FEE_FLOOR + base_rate, DECIMAL_PRECISION)
+}
 pub fn get_pyth_product_quote_currency(pyth_product: &pyth::Product) -> Result<[u8; 32], ProgramError> {
     const LEN: usize = 14;
     const KEY: &[u8; LEN] = b"quote_currency";
@@ -238,20 +253,6 @@ pub fn get_market_price(
     Ok(market_price.try_round_u64().unwrap() as u128)
 }
 
-pub fn get_redemption_fee(trove_manager: &TroveManager, sol_drawn:u128)->u128{
-    calc_redemption_fee(get_redemption_rate(trove_manager), sol_drawn)
-}
-pub fn calc_redemption_fee(redemption_rate: u128,sol_drawn: u128)->u128{
-    let redemption_fee = redemption_rate * sol_drawn / DECIMAL_PRECISION;
-    //require(redemptionFee < _ETHDrawn, "TroveManager: Fee would eat up all returned collateral");
-    return redemption_fee;
-}
-pub fn get_redemption_rate(trove_manager:&TroveManager)->u128{
-    calc_redemption_rate(trove_manager.base_rate)
-}
-pub fn calc_redemption_rate(base_rate: u128)->u128{
-    min(REDEMPTION_FEE_FLOOR + base_rate, DECIMAL_PRECISION)
-}
 // --- Redemption fee function ---
 
 /*
@@ -314,47 +315,7 @@ pub fn update_system_snapshots_exclude_coll_reminder(
 
     trove_manager.total_collateral_snapshot = active_coll - coll_remainder + liquidate_coll;
 }
-pub fn redistribute_debt_and_coll(
-    trove_manager:&mut TroveManager,
-    active_pool:&mut ActivePool,
-    default_pool:&mut DefaultPool,
-    debt:u128,
-    coll:u128
-){
-    if debt == 0 {
-        return;
-    }
 
-    /*
-    * Add distributed coll and debt rewards-per-unit-staked to the running totals. Division uses a "feedback"
-    * error correction, to keep the cumulative error low in the running totals l_sol and l_solusd_debt:
-    *
-    * 1) Form numerators which compensate for the floor division errors that occurred the last time this
-    * function was called.
-    * 2) Calculate "per-unit-staked" ratios.
-    * 3) Multiply each ratio back by its denominator, to reveal the current floor division error.
-    * 4) Store these errors for use in the next correction when this function is called.
-    * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
-    */
-    let sol_numerator = coll * DECIMAL_PRECISION + trove_manager.last_sol_error_redistribution;
-    let solusd_debt_numerator = debt * DECIMAL_PRECISION + trove_manager.last_solusd_debt_error_redistribution;
-
-    // Get the per-unit-staked terms
-    let sol_reward_per_unit_staked = sol_numerator / trove_manager.total_stakes;
-    let solusd_debt_reward_per_unit_staked = solusd_debt_numerator / trove_manager.total_stakes;
-
-    trove_manager.last_sol_error_redistribution = sol_numerator - sol_reward_per_unit_staked * trove_manager.total_stakes;
-    trove_manager.last_solusd_debt_error_redistribution = solusd_debt_numerator - solusd_debt_reward_per_unit_staked * trove_manager.total_stakes;
-
-    // Add per-unit-staked terms to the running totals
-    trove_manager.l_sol += sol_reward_per_unit_staked;
-    trove_manager.l_solusd_debt += solusd_debt_reward_per_unit_staked;
-
-    active_pool.decrease_solusd_debt(debt);
-    default_pool.increase_solusd_debt(debt);
-    //_activePool.sendETH(address(_defaultPool), _coll);
-
-}
 pub fn get_total_from_batch_liquidate_normal_mode(
     trove_manager_data:&mut TroveManager,
     active_pool:&mut ActivePool,
@@ -395,6 +356,47 @@ pub fn get_total_from_batch_liquidate_normal_mode(
     }
 
     totals
+}
+pub fn redistribute_debt_and_coll(
+    trove_manager:&mut TroveManager,
+    active_pool:&mut ActivePool,
+    default_pool:&mut DefaultPool,
+    debt:u128,
+    coll:u128
+){
+    if debt == 0 {
+        return;
+    }
+
+    /*
+    * Add distributed coll and debt rewards-per-unit-staked to the running totals. Division uses a "feedback"
+    * error correction, to keep the cumulative error low in the running totals l_sol and l_solusd_debt:
+    *
+    * 1) Form numerators which compensate for the floor division errors that occurred the last time this
+    * function was called.
+    * 2) Calculate "per-unit-staked" ratios.
+    * 3) Multiply each ratio back by its denominator, to reveal the current floor division error.
+    * 4) Store these errors for use in the next correction when this function is called.
+    * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
+    */
+    let sol_numerator = coll * DECIMAL_PRECISION + trove_manager.last_sol_error_redistribution;
+    let solusd_debt_numerator = debt * DECIMAL_PRECISION + trove_manager.last_solusd_debt_error_redistribution;
+
+    // Get the per-unit-staked terms
+    let sol_reward_per_unit_staked = sol_numerator / trove_manager.total_stakes;
+    let solusd_debt_reward_per_unit_staked = solusd_debt_numerator / trove_manager.total_stakes;
+
+    trove_manager.last_sol_error_redistribution = sol_numerator - sol_reward_per_unit_staked * trove_manager.total_stakes;
+    trove_manager.last_solusd_debt_error_redistribution = solusd_debt_numerator - solusd_debt_reward_per_unit_staked * trove_manager.total_stakes;
+
+    // Add per-unit-staked terms to the running totals
+    trove_manager.l_sol += sol_reward_per_unit_staked;
+    trove_manager.l_solusd_debt += solusd_debt_reward_per_unit_staked;
+
+    active_pool.decrease_solusd_debt(debt);
+    default_pool.increase_solusd_debt(debt);
+    //_activePool.sendETH(address(_defaultPool), _coll);
+
 }
 pub fn get_total_from_batch_liquidate_recovery_mode(
     trove_manager_data:&mut TroveManager,
@@ -619,43 +621,7 @@ pub fn get_offset_and_redistribution_vals(debt:u128, coll:u128, solusd_in_stab_p
         (debt_to_offset, coll_to_send_to_sp, debt_to_redistribute, coll_to_redistribute)
     }
 }
-pub fn close_trove(borrower_trove:&mut Trove, reward_snapshots:&mut RewardSnapshot){
-    //assert(closedStatus != Status.nonExistent && closedStatus != Status.active);
 
-    //uint TroveOwnersArrayLength = TroveOwners.length;
-    //_requireMoreThanOneTroveInSystem(TroveOwnersArrayLength);
-
-    //borrower_trove.status = closedStatus;
-    borrower_trove.coll = 0;
-    borrower_trove.debt = 0;
-
-    reward_snapshots.sol = 0;
-    reward_snapshots.solusd_debt = 0;
-
-    //_removeTroveOwner(_borrower, TroveOwnersArrayLength);
-    //sortedTroves.remove(_borrower);
-}
-pub fn remove_stake(trove_manager:&mut TroveManager, borrower_trove:&mut Trove){
-    let stake = borrower_trove.stake;
-    trove_manager.total_stakes = trove_manager.total_stakes - stake;
-    borrower_trove.stake = 0;
-}
-pub fn get_coll_gas_compensation(entire_coll:u128)->u128{
-    entire_coll / PERCENT_DIVISOR
-}
-pub fn get_entire_debt_and_coll(trove_manager:&TroveManager, borrower_trove:&Trove, reward_snapshots:&RewardSnapshot)->(u128,u128,u128,u128){
-    let mut debt = borrower_trove.debt;
-    let mut coll = borrower_trove.coll;
-
-    let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager, borrower_trove, reward_snapshots);
-    let pending_sol_reward = get_pending_sol_reward(trove_manager, borrower_trove, reward_snapshots);
-
-    debt += pending_solusd_debt_reward;
-    coll += pending_sol_reward;
-
-    (debt, coll, pending_solusd_debt_reward, pending_sol_reward)
-
-}
 pub fn get_current_icr(
     trove_manager_data:&TroveManager, 
     borrower_trove:&mut Trove, 
@@ -678,6 +644,39 @@ pub fn get_current_trove_amounts(
     let current_solusd = borrower_trove.debt + pending_solusd_debt_reward;
 
     return (current_sol, current_solusd);
+}
+pub fn remove_stake(trove_manager:&mut TroveManager, borrower_trove:&mut Trove){
+    let stake = borrower_trove.stake;
+    trove_manager.total_stakes = trove_manager.total_stakes - stake;
+    borrower_trove.stake = 0;
+}
+pub fn get_coll_gas_compensation(entire_coll:u128)->u128{
+    entire_coll / PERCENT_DIVISOR
+}
+pub fn get_entire_debt_and_coll(trove_manager:&TroveManager, borrower_trove:&Trove, reward_snapshots:&RewardSnapshot)->(u128,u128,u128,u128){
+    let mut debt = borrower_trove.debt;
+    let mut coll = borrower_trove.coll;
+
+    let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager, borrower_trove, reward_snapshots);
+    let pending_sol_reward = get_pending_sol_reward(trove_manager, borrower_trove, reward_snapshots);
+
+    debt += pending_solusd_debt_reward;
+    coll += pending_sol_reward;
+
+    (debt, coll, pending_solusd_debt_reward, pending_sol_reward)
+
+}
+
+pub fn get_pending_sol_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u128{
+    let snapshot_sol = reward_snapshot.sol;
+    let reward_per_unit_staked = trove_manager_data.l_sol - snapshot_sol;
+
+    if reward_per_unit_staked == 0 || !borrower_trove.is_active() {
+        return 0;
+    }
+    let stake = borrower_trove.stake;
+    let pending_sol_reward = stake * reward_per_unit_staked / DECIMAL_PRECISION;
+    return pending_sol_reward;
 }
 pub fn apply_pending_rewards(
     trove_manager_data:&TroveManager, 
@@ -726,17 +725,6 @@ pub fn move_pending_trove_reward_to_active_pool(
     active_pool_data.sol += _sol;
 }
 
-pub fn get_pending_sol_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u128{
-    let snapshot_sol = reward_snapshot.sol;
-    let reward_per_unit_staked = trove_manager_data.l_sol - snapshot_sol;
-
-    if reward_per_unit_staked == 0 || !borrower_trove.is_active() {
-        return 0;
-    }
-    let stake = borrower_trove.stake;
-    let pending_sol_reward = stake * reward_per_unit_staked / DECIMAL_PRECISION;
-    return pending_sol_reward;
-}
 pub fn get_pending_solusd_debt_reward(trove_manager_data:&TroveManager, borrower_trove:&Trove, reward_snapshot:&RewardSnapshot)->u128{
     let snapshot_solusd_debt = reward_snapshot.solusd_debt;
     let reward_per_unit_staked = trove_manager_data.l_solusd_debt - snapshot_solusd_debt;
@@ -769,19 +757,38 @@ pub fn payout_solid_gains(
     frontend:&FrontEnd,
     depositor_frontend:&FrontEnd,
     snapshots:&Snapshots,
-    user_deposit:&Deposit
+    user_deposit:&Deposit,
+    epoch_to_scale:&EpochToScale, 
+    epoch_to_plus_scale:&EpochToScale
 ){
     // Pay out front end's SOLID gain
-    let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend);
+    let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend, epoch_to_scale, epoch_to_plus_scale);
     if frontend_solid_gain > 0 {
         // transfer SOLID token
         //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);
     }
 
-    let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend);
+    let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend, epoch_to_scale, epoch_to_plus_scale);
     if depositor_solid_gain > 0 {
         // transfer SOLID token
         //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
     }
 
+}
+
+pub fn close_trove(borrower_trove:&mut Trove, reward_snapshots:&mut RewardSnapshot){
+    //assert(closedStatus != Status.nonExistent && closedStatus != Status.active);
+
+    //uint TroveOwnersArrayLength = TroveOwners.length;
+    //_requireMoreThanOneTroveInSystem(TroveOwnersArrayLength);
+
+    //borrower_trove.status = closedStatus;
+    borrower_trove.coll = 0;
+    borrower_trove.debt = 0;
+
+    reward_snapshots.sol = 0;
+    reward_snapshots.solusd_debt = 0;
+
+    //_removeTroveOwner(_borrower, TroveOwnersArrayLength);
+    //sortedTroves.remove(_borrower);
 }

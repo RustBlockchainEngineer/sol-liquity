@@ -12,7 +12,8 @@ use {
             CommunityIssuance,
             Trove,
             TroveManager,
-            RewardSnapshot
+            RewardSnapshot,
+            EpochToScale
         },
         constant::{
             DECIMAL_PRECISION,
@@ -179,6 +180,10 @@ impl Processor {
 
         let community_issuance_info = next_account_info(account_info_iter)?;
 
+        let epoch_to_scale_info = next_account_info(account_info_iter)?; 
+
+        let epoch_to_plus_scale_info = next_account_info(account_info_iter)?;
+
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
 
@@ -196,9 +201,12 @@ impl Processor {
 
         let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
 
+        let mut epoch_to_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_scale_info.data.borrow())?;
+        let mut epoch_to_plus_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_plus_scale_info.data.borrow())?;
+
         let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
 
-        pool_data.trigger_solid_issuance(issue_solid);
+        pool_data.trigger_solid_issuance(issue_solid, &mut epoch_to_scale);
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
@@ -241,13 +249,13 @@ impl Processor {
 
         let initial_deposit = user_deposit.initial_value;
         let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
-        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -255,8 +263,7 @@ impl Processor {
         
         // update frontend stake and snaphots
         frontend_data.update_frontend_stake(new_frontend_stake);
-        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data);
-
+        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data, &mut epoch_to_scale);
 
         if amount > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool
@@ -272,9 +279,9 @@ impl Processor {
 
             // update deposit and snapshots
             user_deposit.initial_value += amount as u128;
-            snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data)
+            snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data, &mut epoch_to_scale)
         }
-
+ 
         if depositor_sol_gain > 0 {
             pool_data.sol -=  depositor_sol_gain;
             //send depositor_sol_gain to user (_sendETHGainToDepositor(depositorETHGain);) -- implemented below
@@ -349,6 +356,10 @@ impl Processor {
         // user community issuance account
         let community_issuance_info = next_account_info(account_info_iter)?;
 
+        let epoch_to_scale_info = next_account_info(account_info_iter)?;
+        let epoch_to_plus_scale_info = next_account_info(account_info_iter)?;
+        
+
         // user transfer authority
         let user_transfer_authority_info = next_account_info(account_info_iter)?;
 
@@ -370,9 +381,12 @@ impl Processor {
 
         let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
 
+        let mut epoch_to_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_scale_info.data.borrow())?;
+        let mut epoch_to_plus_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_plus_scale_info.data.borrow())?;
+
         let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
 
-        pool_data.trigger_solid_issuance(issue_solid);
+        pool_data.trigger_solid_issuance(issue_solid, &mut epoch_to_scale);
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
@@ -430,14 +444,14 @@ impl Processor {
 
         let initial_deposit = user_deposit.initial_value;
         let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
-        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
         let solusd_to_withdraw = if _amount < compounded_solusd_deposit.try_into().unwrap() {_amount} else {compounded_solusd_deposit.try_into().unwrap()};
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -445,7 +459,7 @@ impl Processor {
         
         // update frontend stake and snaphots
         frontend_data.update_frontend_stake(new_frontend_stake);
-        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data);
+        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data, &mut epoch_to_scale);
 
 
         if solusd_to_withdraw > 0 {
@@ -460,7 +474,7 @@ impl Processor {
                 solusd_to_withdraw
             )?;
             user_deposit.initial_value -= solusd_to_withdraw as u128;
-            snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data)
+            snapshots_data.update_snapshots_with_deposit(new_frontend_stake,&pool_data, &mut epoch_to_scale)
         }
 
         if depositor_sol_gain > 0 {
@@ -513,6 +527,9 @@ impl Processor {
         // user community issuance account
         let community_issuance_info = next_account_info(account_info_iter)?;
 
+        let epoch_to_scale_info = next_account_info(account_info_iter)?;
+        let epoch_to_plus_scale_info = next_account_info(account_info_iter)?;
+
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
 
@@ -526,9 +543,12 @@ impl Processor {
 
         let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
 
+        let mut epoch_to_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_scale_info.data.borrow())?;
+        let mut epoch_to_plus_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_plus_scale_info.data.borrow())?;
+
         let issue_solid = community_issuance_data.issue_solid(cur_timestamp);
 
-        pool_data.trigger_solid_issuance(issue_solid);
+        pool_data.trigger_solid_issuance(issue_solid, &mut epoch_to_scale);
 
         // check if this stability pool account was created by this program with authority and nonce
         // if fail, returns InvalidProgramAddress error
@@ -549,13 +569,13 @@ impl Processor {
 
         let initial_deposit = user_deposit.initial_value;
         let mut snapshots_data = try_from_slice_unchecked::<Snapshots>(&snapshots_info.data.borrow())?;
-        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data);
+        let depositor_sol_gain = pool_data.get_depositor_sol_gain(initial_deposit,&snapshots_data, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         let compounded_solusd_deposit = pool_data.get_compounded_solusd_deposit(initial_deposit,&snapshots_data);
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit);
+        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -563,7 +583,7 @@ impl Processor {
         
         // update frontend stake and snaphots
         frontend_data.update_frontend_stake(new_frontend_stake);
-        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data);
+        snapshots_data.update_snapshots_with_frontendstake(new_frontend_stake,&pool_data, &mut epoch_to_scale);
         
         if depositor_sol_gain > 0 {
             pool_data.sol -=  depositor_sol_gain;
