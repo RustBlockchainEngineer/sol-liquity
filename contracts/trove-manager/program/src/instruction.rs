@@ -36,6 +36,12 @@ pub enum TroveManagerInstruction {
 
         #[allow(dead_code)]
         max_fee_percentage: u128,
+
+        #[allow(dead_code)]
+        total_sol_drawn: u128,
+
+        #[allow(dead_code)]
+        total_solusd_to_redeem: u128,
     },
     LiquidateTroves(u128),
     

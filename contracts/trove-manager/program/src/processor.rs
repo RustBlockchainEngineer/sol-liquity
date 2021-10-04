@@ -102,9 +102,11 @@ impl Processor {
                 partial_redemption_hint_nicr,
                 max_iterations,
                 max_fee_percentage,
+                total_sol_drawn,
+                total_solusd_to_redeem
             } => {
                 // Instruction: Initialize
-                Self::process_redeem_collateral(program_id, accounts, solusd_amount, partial_redemption_hint_nicr, max_iterations, max_fee_percentage)
+                Self::process_redeem_collateral(program_id, accounts, solusd_amount, partial_redemption_hint_nicr, max_iterations, max_fee_percentage, total_sol_drawn,total_solusd_to_redeem)
             }
             TroveManagerInstruction::LiquidateTroves(number) => {
                 // Instruction: Initialize
@@ -336,7 +338,10 @@ impl Processor {
         solusd_amount:u128,
         partial_redemption_hint_nicr:u128,
         max_iterations:u128,
-        max_fee_percentage:u128
+        max_fee_percentage:u128,
+
+        total_sol_drawn: u128,
+        total_solusd_to_redeem:u128,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let trove_manager_id_info = next_account_info(account_info_iter)?;
@@ -429,8 +434,12 @@ impl Processor {
 
             totals.remainingLUSD = totals.remainingLUSD.sub(singleRedemption.LUSDLot);
             currentBorrower = nextUserToCheck;
-        }
+        } 
+        -------------implemented below
         */
+        totals.total_sol_drawn = total_sol_drawn;
+        totals.total_solusd_to_redeem = total_solusd_to_redeem;
+        totals.remaining_solusd = 0;
 
         if totals.total_sol_drawn <= 0 {
             return Err(LiquityError::ZeroAmount.into());
