@@ -504,7 +504,7 @@ impl Processor {
             authority_info.clone(), 
             nonce, 
             totals.total_solusd_to_redeem.try_into().unwrap()
-        );    
+        ).unwrap();    
 
         // Update Active Pool LUSD, and send ETH to account
         active_pool_data.decrease_solusd_debt(totals.total_solusd_to_redeem);

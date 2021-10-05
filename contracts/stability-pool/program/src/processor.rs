@@ -66,17 +66,28 @@ impl Processor {
                 // Instruction: Initialize
                 Self::process_initialize(program_id, accounts, nonce)
             }
-            StabilityPoolInstruction::ProvideToSP(amount) => {
+            StabilityPoolInstruction::ProvideToSP{
+                amount,
+                community_issuance_pool,
+                nonce,
+             } => {
                 // Instruction: ProvideToSP
-                Self::process_provide_to_sp(program_id, accounts, amount)
+                Self::process_provide_to_sp(program_id, accounts, amount, &community_issuance_pool, nonce)
             }
-            StabilityPoolInstruction::WithdrawFromSP(amount) => {
+            StabilityPoolInstruction::WithdrawFromSP{
+                amount,
+                community_issuance_pool,
+                nonce,
+            } => {
                 // Instruction: WithdrawFromSP
-                Self::process_withdraw_from_sp(program_id, accounts, amount)
+                Self::process_withdraw_from_sp(program_id, accounts, amount, &community_issuance_pool, nonce)
             }
-            StabilityPoolInstruction::WithdrawSOLGainToTrove => {
+            StabilityPoolInstruction::WithdrawSOLGainToTrove{
+                community_issuance_pool,
+                nonce,
+            } => {
                 // Instruction: WithdrawSOLGainToTrove
-                Self::process_withdraw_sol_gain_to_trove(program_id, accounts)
+                Self::process_withdraw_sol_gain_to_trove(program_id, accounts, &community_issuance_pool, nonce)
             }
             StabilityPoolInstruction::RegisterFrontEnd(kickback_rate) => {
                 // Instruction: RegisterFrontEnd
@@ -141,6 +152,8 @@ impl Processor {
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         amount: u64,
+        community_issuance_pool:&Pubkey,
+        nonce: u8,
     ) -> ProgramResult {
         // get account informations
         let account_info_iter = &mut accounts.iter();
@@ -183,6 +196,12 @@ impl Processor {
         let epoch_to_scale_info = next_account_info(account_info_iter)?; 
 
         let epoch_to_plus_scale_info = next_account_info(account_info_iter)?;
+
+
+        let source_info = next_account_info(account_info_iter)?;
+        let frontend_dest_info = next_account_info(account_info_iter)?;
+        let depositor_dest_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
 
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
@@ -255,7 +274,23 @@ impl Processor {
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
+        payout_solid_gains( 
+            &pool_data, 
+            &frontend_data, 
+            &depositor_frontend_data, 
+            &snapshots_data, 
+            &user_deposit, 
+            &mut epoch_to_scale, 
+            &mut epoch_to_plus_scale,
+
+            community_issuance_pool,
+            token_program_info.clone(),
+            source_info.clone(),
+            frontend_dest_info.clone(),
+            depositor_dest_info.clone(),
+            authority_info.clone(),
+            nonce,
+        );
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -313,6 +348,8 @@ impl Processor {
         program_id: &Pubkey,
         accounts: &[AccountInfo],
         amount: u64,
+        community_issuance_pool:&Pubkey,
+        nonce: u8,
     ) -> ProgramResult {
         // get account informations
         let account_info_iter = &mut accounts.iter();
@@ -365,6 +402,11 @@ impl Processor {
 
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
+
+        let source_info = next_account_info(account_info_iter)?;
+        let frontend_dest_info = next_account_info(account_info_iter)?;
+        let depositor_dest_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
 
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
@@ -451,7 +493,23 @@ impl Processor {
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
+        payout_solid_gains( 
+            &pool_data, 
+            &frontend_data, 
+            &depositor_frontend_data, 
+            &snapshots_data, 
+            &user_deposit, 
+            &mut epoch_to_scale, 
+            &mut epoch_to_plus_scale,
+
+            community_issuance_pool,
+            token_program_info.clone(),
+            source_info.clone(),
+            frontend_dest_info.clone(),
+            depositor_dest_info.clone(),
+            authority_info.clone(),
+            nonce,
+        );
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
@@ -506,6 +564,8 @@ impl Processor {
     pub fn process_withdraw_sol_gain_to_trove(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
+        community_issuance_pool:&Pubkey,
+        nonce: u8,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
 
@@ -532,6 +592,13 @@ impl Processor {
 
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
+
+        let source_info = next_account_info(account_info_iter)?;
+        let frontend_dest_info = next_account_info(account_info_iter)?;
+        let depositor_dest_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+
+        let token_program_info = next_account_info(account_info_iter)?;
 
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
@@ -575,7 +642,23 @@ impl Processor {
         let solusd_loss = initial_deposit - compounded_solusd_deposit;
 
         // First pay out any SOLID gains
-        payout_solid_gains( &pool_data, &frontend_data, &depositor_frontend_data, &snapshots_data, &user_deposit, &mut epoch_to_scale, &mut epoch_to_plus_scale);
+        payout_solid_gains( 
+            &pool_data, 
+            &frontend_data, 
+            &depositor_frontend_data, 
+            &snapshots_data, 
+            &user_deposit, 
+            &mut epoch_to_scale, 
+            &mut epoch_to_plus_scale,
+
+            community_issuance_pool,
+            token_program_info.clone(),
+            source_info.clone(),
+            frontend_dest_info.clone(),
+            depositor_dest_info.clone(),
+            authority_info.clone(),
+            nonce,
+        );
 
         // Update frontend stake
         let compounded_frontend_stake = pool_data.get_compounded_frontend_stake(&frontend_data,&snapshots_data);
