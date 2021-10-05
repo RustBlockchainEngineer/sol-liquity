@@ -42,8 +42,22 @@ pub enum TroveManagerInstruction {
 
         #[allow(dead_code)]
         total_solusd_to_redeem: u128,
+
+        #[allow(dead_code)]
+        nonce: u8,
     },
-    LiquidateTroves(u128),
+    LiquidateTroves{
+        number:u128,
+        total_coll_in_sequence:u128,
+        total_debt_in_sequence:u128,
+        total_coll_gas_compensation:u128,
+        total_solusd_gas_compensation:u128,
+        total_debt_to_offset:u128,
+        total_coll_to_send_to_sp:u128,
+        total_debt_to_redistribute:u128,
+        total_coll_to_redistribute:u128,
+        total_coll_surplus:u128,
+    },
     
 
 }

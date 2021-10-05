@@ -589,7 +589,7 @@ impl Processor {
             pool_data.sol -=  depositor_sol_gain;
         }
 
-        //borrowerOperations.moveETHGainToTrove{ value: depositorETHGain }(msg.sender, _upperHint, _lowerHint);
+        //borrowerOperations.moveETHGainToTrove{ value: depositorETHGain }(msg.sender, _upperHint, _lowerHint);  --in frontend
 
         // serialize/store this initialized stability pool again
         pool_data

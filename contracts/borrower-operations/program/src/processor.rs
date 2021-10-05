@@ -11,9 +11,6 @@ use {
         },
         utils::*,
         error::{LiquityError},
-        utils::{
-            authority_id
-        },
         constant::{
             DECIMAL_PRECISION,
             MIN_NET_DEBT,
@@ -141,7 +138,7 @@ impl Processor {
         nonce:u128,
         solusd_amount: u128,
         netdebt_increase: u128
-     )->{
+     ){
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
         active_pool_data.decrease_solusd_debt(netdebt_increase)
         active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])
@@ -165,7 +162,7 @@ impl Processor {
         token_program_info: &AccountInfo,
         solusd_change: u64,
         max_fee_percentage: u64
-    )->{
+    ){
         let mut trove_manager = TroveManager:try_from_slice(&trove_manager_info.data.borrow_mut())?;
         trove_manager.decay_base_rate_from_borrowing();
         u64 solusd_fee = trove_manager.get_borrowing_fee(solusd_amount);
@@ -197,7 +194,7 @@ impl Processor {
         is_coll_increase:u64,
         debt_change: u64, 
         is_debt_increase: u64
-    ) -> {
+    ) {
         let mut newColl = coll;
         let mut newDebt = debt;
 
@@ -222,7 +219,6 @@ impl Processor {
         return new_iCR;
     }
 
-    function _getNewNominalICRFromTroveChange
     fn  get_new_normal_icr_from_trove_change
     (
         coll:u64,

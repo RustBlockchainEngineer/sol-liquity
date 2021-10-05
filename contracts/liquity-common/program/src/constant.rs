@@ -15,7 +15,7 @@ pub const MINUTE_DECAY_FACTOR:u128 = 999037758833783000;
 pub const REDEMPTION_FEE_FLOOR:u128 = DECIMAL_PRECISION / 1000 * 5; // 0.5%
 pub const MAX_BORROWING_FEE:u128 = DECIMAL_PRECISION / 100 * 5; // 5%
 pub const SECONDS_IN_ONE_MINUTE:u128 = 60;
-pub const BORROWING_FEE_FLOOR:u128 = DECIMAL_PRECISION / 100 * 10; // 10%
+pub const BORROWING_FEE_FLOOR_10:u128 = DECIMAL_PRECISION / 100 * 10; // 10%
 /* Precision for Nominal ICR (independent of price). Rationale for the value:
 *
 * - Making it “too high” could lead to overflows.

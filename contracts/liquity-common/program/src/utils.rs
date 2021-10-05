@@ -31,8 +31,6 @@ use std::str::FromStr;
 use std::convert::TryInto;
 use std::io::Error;
 
-
-
 pub fn authority_id(
     program_id: &Pubkey,
     my_info: &Pubkey,
@@ -89,6 +87,31 @@ pub fn token_mint_to<'a>(
         amount,
     )?;
 
+    invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
+}
+
+pub fn token_burn<'a>(
+    owner: &Pubkey,
+    token_program: AccountInfo<'a>,
+    mint: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    nonce: u8,
+    amount: u64,
+) -> Result<(), ProgramError> {
+    let owner_bytes = owner.to_bytes();
+    let authority_signature_seeds = [&owner_bytes[..32], &[nonce]];
+    let signers = &[&authority_signature_seeds[..]];
+
+    let ix = spl_token::instruction::burn(
+        token_program.key,
+        destination.key,
+        mint.key,
+        authority.key,
+        &[],
+        amount
+    )?;
+    
     invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
 }
 
