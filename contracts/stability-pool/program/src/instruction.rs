@@ -51,7 +51,14 @@ pub enum StabilityPoolInstruction {
     ///   7. `[]` Token program id
     ///   8. `[]` StabilityPool program id
     ///   9. `[]` amount
-    ProvideToSP(u64),
+    ProvideToSP{
+        #[allow(dead_code)]
+        amount:u64,
+        #[allow(dead_code)]
+        community_issuance_pool:Pubkey,
+        #[allow(dead_code)]
+        nonce:u8
+    },
 
     /// Withdraw from stability pool
     ///
@@ -70,7 +77,14 @@ pub enum StabilityPoolInstruction {
     ///   6. `[]` Token program id
     ///   7. `[]` StabilityPool program id
     ///   8. `[]` amount
-    WithdrawFromSP(u64),
+    WithdrawFromSP{
+        #[allow(dead_code)]
+        amount: u64,
+        #[allow(dead_code)]
+        community_issuance_pool: Pubkey, 
+        #[allow(dead_code)]
+        nonce: u8
+    },
 
     /* withdrawSOLGainToTrove:
     * - Triggers a SOLID issuance, based on time passed since the last issuance. The SOLID issuance is shared between *all* depositors and front ends
@@ -79,7 +93,12 @@ pub enum StabilityPoolInstruction {
     * - Transfers the depositor's entire ETH gain from the Stability Pool to the caller's trove
     * - Leaves their compounded deposit in the Stability Pool
     * - Updates snapshots for deposit and tagged front end stake */
-    WithdrawSOLGainToTrove,
+    WithdrawSOLGainToTrove{
+        #[allow(dead_code)]
+        community_issuance_pool: Pubkey, 
+        #[allow(dead_code)]
+        nonce: u8
+    },
     
     RegisterFrontEnd(u64),
 

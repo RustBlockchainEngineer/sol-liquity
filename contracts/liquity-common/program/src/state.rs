@@ -1010,13 +1010,29 @@ pub struct SOLIDStaking {
     pub active_pool_id: Pubkey,
 
     /// total staked SOLID amount
-    pub total_staked_amount:u64,
+    pub total_staked_amount:u128,
 
     /// Running sum of SOL fees per-SOLID-staked
-    pub f_sol:u64,
+    pub f_sol:u128,
 
     /// Running sum of SOLID fees per-SOLID-staked
-    pub f_solusd:u64,
+    pub f_solusd:u128,
+}
+impl SOLIDStaking{
+    pub fn increase_f_sol(&mut self, sol_fee:u128){
+        let mut sol_fee_per_solid_staked = 0;
+        if self.total_staked_amount > 0 {
+            sol_fee_per_solid_staked = sol_fee * DECIMAL_PRECISION / self.total_staked_amount;
+        }
+        self.f_sol += sol_fee_per_solid_staked;
+    }
+    pub fn increase_f_solusd(&mut self, solusd_fee:u128){
+        let mut solusd_fee_per_solid_staked = 0;
+        if self.total_staked_amount > 0 {
+            solusd_fee_per_solid_staked = solusd_fee * DECIMAL_PRECISION / self.total_staked_amount;
+        }
+        self.f_solusd += solusd_fee_per_solid_staked;
+    }
 }
 
 #[repr(C)]

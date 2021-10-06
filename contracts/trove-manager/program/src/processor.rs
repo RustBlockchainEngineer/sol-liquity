@@ -22,7 +22,8 @@ use {
             StabilityPool,
             CommunityIssuance,
             CollSurplusPool,
-            EpochToScale
+            EpochToScale,
+            SOLIDStaking
         },
         constant::{
             DECIMAL_PRECISION,
@@ -102,13 +103,35 @@ impl Processor {
                 partial_redemption_hint_nicr,
                 max_iterations,
                 max_fee_percentage,
+                total_sol_drawn,
+                total_solusd_to_redeem,
+                nonce
             } => {
                 // Instruction: Initialize
-                Self::process_redeem_collateral(program_id, accounts, solusd_amount, partial_redemption_hint_nicr, max_iterations, max_fee_percentage)
+                Self::process_redeem_collateral(program_id, accounts, solusd_amount, partial_redemption_hint_nicr, max_iterations, max_fee_percentage, total_sol_drawn,total_solusd_to_redeem, nonce)
             }
-            TroveManagerInstruction::LiquidateTroves(number) => {
+            TroveManagerInstruction::LiquidateTroves{
+                number,
+                total_coll_in_sequence,
+                total_debt_in_sequence,
+                total_coll_gas_compensation,
+                total_solusd_gas_compensation,
+                total_debt_to_offset,
+                total_coll_to_send_to_sp,
+                total_debt_to_redistribute,
+                total_coll_to_redistribute,
+                total_coll_surplus,
+            } => {
                 // Instruction: Initialize
-                Self::process_liquidate_troves(program_id, accounts, number)
+                Self::process_liquidate_troves(program_id, accounts, number, total_coll_in_sequence,
+                    total_debt_in_sequence,
+                    total_coll_gas_compensation,
+                    total_solusd_gas_compensation,
+                    total_debt_to_offset,
+                    total_coll_to_send_to_sp,
+                    total_debt_to_redistribute,
+                    total_coll_to_redistribute,
+                    total_coll_surplus)
             }
         }
     }
@@ -285,7 +308,7 @@ impl Processor {
         if totals.total_debt_in_sequence <= 0 {
             return Err(LiquityError::NothingToLiquidate.into());
         }
-
+ 
         // Move liquidated SOL and SOLUSD to the appropriate pools
         //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP); -- implemented
         stability_pool_data.offset(totals.total_debt_to_offset, totals.total_coll_to_send_to_sp, community_issuance_data.issue_solid(cur_timestamp as u128), &mut active_pool_data, &mut epoch_to_scale);
@@ -336,7 +359,11 @@ impl Processor {
         solusd_amount:u128,
         partial_redemption_hint_nicr:u128,
         max_iterations:u128,
-        max_fee_percentage:u128
+        max_fee_percentage:u128,
+
+        total_sol_drawn: u128,
+        total_solusd_to_redeem:u128,
+        nonce:u8,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let trove_manager_id_info = next_account_info(account_info_iter)?;
@@ -347,16 +374,23 @@ impl Processor {
         let stability_pool_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
+
+        let owner_info = next_account_info(account_info_iter)?;
+        let solusd_token_mint_info = next_account_info(account_info_iter)?;
+        let solusd_dest_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+        let token_program_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
         let cur_timestamp = clock.unix_timestamp as u128;
 
         let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
         let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
+        let mut solid_staring_data = try_from_slice_unchecked::<SOLIDStaking>(&solid_staking_id_info.data.borrow())?;
         let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
 
         if max_fee_percentage < REDEMPTION_FEE_FLOOR || max_fee_percentage > DECIMAL_PRECISION {
-            return Err(LiquityError::MaxFeePercentageError.into());
+            return Err(LiquityError::ExceedMaxFeePercentage.into());
         }
         //_requireAfterBootstrapPeriod();
 
@@ -429,8 +463,12 @@ impl Processor {
 
             totals.remainingLUSD = totals.remainingLUSD.sub(singleRedemption.LUSDLot);
             currentBorrower = nextUserToCheck;
-        }
+        } 
+        -------------implemented below
         */
+        totals.total_sol_drawn = total_sol_drawn;
+        totals.total_solusd_to_redeem = total_solusd_to_redeem;
+        totals.remaining_solusd = 0;
 
         if totals.total_sol_drawn <= 0 {
             return Err(LiquityError::ZeroAmount.into());
@@ -448,16 +486,30 @@ impl Processor {
         }
 
         // send the sol fee to the SOLID staking contract
-        //contractsCache.activePool.sendETH(address(contractsCache.lqtyStaking), totals.ETHFee);
-        //contractsCache.lqtyStaking.increaseF_ETH(totals.ETHFee);
+        //contractsCache.activePool.sendETH(address(contractsCache.lqtyStaking), totals.ETHFee); --implemented
+        active_pool_data.sol -= totals.sol_fee;
+
+        //contractsCache.lqtyStaking.increaseF_ETH(totals.ETHFee); --implemented
+        solid_staring_data.increase_f_sol(totals.sol_fee);
 
         totals.sol_to_send_to_redeemer = totals.total_sol_drawn - totals.sol_fee;
 
         // Burn the total LUSD that is cancelled with debt, and send the redeemed ETH to msg.sender
-        //contractsCache.lusdToken.burn(msg.sender, totals.totalLUSDToRedeem);
+        //contractsCache.lusdToken.burn(msg.sender, totals.totalLUSDToRedeem);--implemented
+        token_burn(
+            owner_info.key, 
+            token_program_info.clone(), 
+            solusd_token_mint_info.clone(), 
+            solusd_dest_info.clone(), 
+            authority_info.clone(), 
+            nonce, 
+            totals.total_solusd_to_redeem.try_into().unwrap()
+        ).unwrap();    
+
         // Update Active Pool LUSD, and send ETH to account
         active_pool_data.decrease_solusd_debt(totals.total_solusd_to_redeem);
-        //contractsCache.activePool.sendETH(msg.sender, totals.ETHToSendToRedeemer);
+        //contractsCache.activePool.sendETH(msg.sender, totals.ETHToSendToRedeemer); --implemented
+        active_pool_data.sol -= totals.sol_to_send_to_redeemer;
 
         Ok(())
     } 
@@ -470,20 +522,38 @@ impl Processor {
         program_id: &Pubkey,        // this program id
         accounts: &[AccountInfo],   // all account informations
         number: u128,                  // nonce for authorizing
+
+        total_coll_in_sequence:u128,
+        total_debt_in_sequence:u128,
+        total_coll_gas_compensation:u128,
+        total_solusd_gas_compensation:u128,
+        total_debt_to_offset:u128,
+        total_coll_to_send_to_sp:u128,
+        total_debt_to_redistribute:u128,
+        total_coll_to_redistribute:u128,
+        total_coll_surplus:u128,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let trove_manager_id_info = next_account_info(account_info_iter)?;
         let default_pool_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
+        let community_issuance_info = next_account_info(account_info_iter)?;
+        let epoch_to_scale_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
 
+        let cur_timestamp = clock.unix_timestamp as u64;
+
         let mut trove_manager_data = try_from_slice_unchecked::<TroveManager>(&mut trove_manager_id_info.data.borrow())?;
         let mut default_pool_data = try_from_slice_unchecked::<DefaultPool>(&default_pool_info.data.borrow())?;
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
-        let stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
+        let mut stability_pool_data = try_from_slice_unchecked::<StabilityPool>(&stability_pool_info.data.borrow())?;
+        let mut community_issuance_data = try_from_slice_unchecked::<CommunityIssuance>(&community_issuance_info.data.borrow())?;
+        let mut epoch_to_scale = try_from_slice_unchecked::<EpochToScale>(&epoch_to_scale_info.data.borrow())?;
+        let mut coll_surplus_pool_data = try_from_slice_unchecked::<CollSurplusPool>(&coll_surplus_pool_info.data.borrow())?;
 
         let market_price = get_market_price(
             stability_pool_data.oracle_program_id,
@@ -500,23 +570,37 @@ impl Processor {
         vars.solusd_in_stab_pool = stability_pool_data.total_sol_usd_deposits as u128;
         vars.recovery_mode_at_start = trove_manager_data.check_recovery_mode(vars.price, &active_pool_data, &default_pool_data);
 
+        /*
         // Perform the appropriate liquidation sequence - tally the values, and obtain their totals
         if vars.recovery_mode_at_start == 1 {
-            //totals = _getTotalsFromLiquidateTrovesSequence_RecoveryMode(contractsCache, vars.price, vars.LUSDInStabPool, _n);
+            totals = _getTotalsFromLiquidateTrovesSequence_RecoveryMode(contractsCache, vars.price, vars.LUSDInStabPool, _n);
         }
         else {// if !vars.recoveryModeAtStart
-            //totals = _getTotalsFromLiquidateTrovesSequence_NormalMode(contractsCache.activePool, contractsCache.defaultPool, vars.price, vars.LUSDInStabPool, _n);
-        }
+            totals = _getTotalsFromLiquidateTrovesSequence_NormalMode(contractsCache.activePool, contractsCache.defaultPool, vars.price, vars.LUSDInStabPool, _n);
+        } ---implemented
+        */
+        totals.total_coll_in_sequence = total_coll_in_sequence;
+        totals.total_debt_in_sequence = total_debt_in_sequence;
+        totals.total_coll_gas_compensation = total_coll_gas_compensation;
+        totals.total_solusd_gas_compensation = total_solusd_gas_compensation;
+        totals.total_debt_to_offset = total_debt_to_offset;
+        totals.total_coll_to_send_to_sp = total_coll_to_send_to_sp;
+        totals.total_debt_to_redistribute = total_debt_to_redistribute;
+        totals.total_coll_to_redistribute = total_coll_to_redistribute;
+        totals.total_coll_surplus = total_coll_surplus;
 
         if totals.total_debt_in_sequence <= 0 {
             return Err(LiquityError::ZeroAmount.into());
         }
         // Move liquidated SOL and SOLUSD to the appropriate pools
-        //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP);
+        //stabilityPoolCached.offset(totals.totalDebtToOffset, totals.totalCollToSendToSP); --implemented
+        stability_pool_data.offset(totals.total_debt_to_offset, totals.total_coll_to_send_to_sp, community_issuance_data.issue_solid(cur_timestamp as u128), &mut active_pool_data, &mut epoch_to_scale);
         redistribute_debt_and_coll(&mut trove_manager_data, &mut active_pool_data, &mut default_pool_data, totals.total_debt_to_redistribute, totals.total_coll_to_redistribute);
 
         if totals.total_coll_surplus > 0 {
-            //contractsCache.activePool.sendETH(address(collSurplusPool), totals.totalCollSurplus);
+            //contractsCache.activePool.sendETH(address(collSurplusPool), totals.totalCollSurplus); --implemented
+            active_pool_data.sol -= totals.total_coll_surplus;
+            coll_surplus_pool_data.sol += totals.total_coll_surplus;
         }
         update_system_snapshots_exclude_coll_reminder(&mut trove_manager_data, &active_pool_data, &default_pool_data, totals.total_coll_gas_compensation);
 

@@ -11,9 +11,6 @@ use {
         },
         utils::*,
         error::{LiquityError},
-        utils::{
-            authority_id
-        },
         constant::{
             DECIMAL_PRECISION,
             MIN_NET_DEBT,
@@ -223,7 +220,7 @@ impl Processor {
         debt_change: u64,
         is_debt_increase:bool,
         price: u64
-    ) -> Option<u64>  {
+    ) -> u64  {
         let (new_coll, new_debt) = get_new_trove_amounts(coll, debt, coll_change, is_coll_ncrease, debt_change, is_debt_increase);
 
         let new_iCR = LiquityMath::compute_cr(new_coll, new_debt, price);
@@ -238,7 +235,7 @@ impl Processor {
         is_coll_increase: bool,
         debt_change: u64,
         is_debt_increase:bool,
-    ) -> Option<u64>  {
+    ) -> u64  {
         let (new_coll, new_debt) = get_new_trove_amounts(coll, debt, coll_change, is_coll_ncrease, debt_change, is_debt_increase);
 
         let new_iCR = LiquityMath::comput_normal_cr(new_coll, new_debt, price);

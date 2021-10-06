@@ -31,8 +31,6 @@ use std::str::FromStr;
 use std::convert::TryInto;
 use std::io::Error;
 
-
-
 pub fn authority_id(
     program_id: &Pubkey,
     my_info: &Pubkey,
@@ -89,6 +87,31 @@ pub fn token_mint_to<'a>(
         amount,
     )?;
 
+    invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
+}
+
+pub fn token_burn<'a>(
+    owner: &Pubkey,
+    token_program: AccountInfo<'a>,
+    mint: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    nonce: u8,
+    amount: u64,
+) -> Result<(), ProgramError> {
+    let owner_bytes = owner.to_bytes();
+    let authority_signature_seeds = [&owner_bytes[..32], &[nonce]];
+    let signers = &[&authority_signature_seeds[..]];
+
+    let ix = spl_token::instruction::burn(
+        token_program.key,
+        destination.key,
+        mint.key,
+        authority.key,
+        &[],
+        amount
+    )?;
+    
     invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
 }
 
@@ -395,7 +418,9 @@ pub fn redistribute_debt_and_coll(
 
     active_pool.decrease_solusd_debt(debt);
     default_pool.increase_solusd_debt(debt);
-    //_activePool.sendETH(address(_defaultPool), _coll);
+
+    active_pool.sol -= coll;
+    default_pool.sol += coll;
 
 }
 pub fn get_total_from_batch_liquidate_recovery_mode(
@@ -507,7 +532,7 @@ pub fn liquidate_normal_mode(
     single_liquidation.debt_to_redistribute = _debt_to_redistribute;
     single_liquidation.coll_to_redistribute = _coll_to_liquidate;
 
-    //_closeTrove(_borrower, Status.closedByLiquidation);
+    //_closeTrove(_borrower, Status.closedByLiquidation); --in frontend
     return single_liquidation;
 
 }
@@ -554,7 +579,7 @@ pub fn liquidate_recovery_mode(
         remove_stake(trove_manager,borrower_trove);
 
         let (_debt_to_offset, _coll_to_send_to_sp, _debt_to_redistribute, _coll_to_liquidate) = get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, vars.coll_to_liquidate, _solusd_in_stab_pool);
-        //_closeTrove(_borrower, Status.closedByLiquidation);
+        //_closeTrove(_borrower, Status.closedByLiquidation); -- in frontend
     }
     /*
     * If 110% <= ICR < current TCR (accounting for the preceding liquidations in the current sequence)
@@ -568,9 +593,9 @@ pub fn liquidate_recovery_mode(
         remove_stake(trove_manager,borrower_trove);
         get_capped_offset_vals(&mut single_liquidation, _price);
 
-        //_closeTrove(_borrower, Status.closedByLiquidation);
+        //_closeTrove(_borrower, Status.closedByLiquidation); -- in frontend
         if single_liquidation.coll_surplus > 0 {
-            //collSurplusPool.accountSurplus(_borrower, singleLiquidation.collSurplus);
+            //collSurplusPool.accountSurplus(_borrower, singleLiquidation.collSurplus); --in frontend
         }
     }
     else{
@@ -696,9 +721,6 @@ pub fn apply_pending_rewards(
             borrower_trove.debt = borrower_trove.debt + pending_solusd_debt_reward;
 
             reward_snapshot.update_trove_reward_snapshots(trove_manager_data);
-
-            
-
             // Transfer from DefaultPool to ActivePool
             move_pending_trove_reward_to_active_pool(
                 trove_manager_data, 
@@ -752,26 +774,52 @@ pub fn has_pending_rewards(trove_manager_data:&TroveManager, borrower_trove:&Tro
     }
     return reward_snapshot.sol < trove_manager_data.l_sol;
 }
-pub fn payout_solid_gains(
+pub fn payout_solid_gains<'a>(
     pool_data: &StabilityPool,
     frontend:&FrontEnd,
     depositor_frontend:&FrontEnd,
     snapshots:&Snapshots,
     user_deposit:&Deposit,
     epoch_to_scale:&EpochToScale, 
-    epoch_to_plus_scale:&EpochToScale
+    epoch_to_plus_scale:&EpochToScale,
+
+    community_issuance_pool:&Pubkey,
+    token_program: AccountInfo<'a>,
+    source: AccountInfo<'a>,
+    frontend_dest: AccountInfo<'a>,
+    depositor_dest: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    nonce: u8,
 ){
     // Pay out front end's SOLID gain
     let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend, epoch_to_scale, epoch_to_plus_scale);
     if frontend_solid_gain > 0 {
         // transfer SOLID token
-        //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);
+        //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);--implemented
+        token_transfer(
+            community_issuance_pool,
+            token_program.clone(),
+            source.clone(),
+            frontend_dest.clone(),
+            authority.clone(),
+            nonce,
+            frontend_solid_gain.try_into().unwrap()
+        ).unwrap();
     }
 
     let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend, epoch_to_scale, epoch_to_plus_scale);
     if depositor_solid_gain > 0 {
         // transfer SOLID token
-        //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
+        //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain); --implemented
+        token_transfer(
+            community_issuance_pool,
+            token_program.clone(),
+            source.clone(),
+            depositor_dest.clone(),
+            authority.clone(),
+            nonce,
+            depositor_solid_gain.try_into().unwrap()
+        ).unwrap();
     }
 
 }
