@@ -46,6 +46,11 @@ use {
     },
 };
 
+struct TroveAmount{
+    pub coll:u64,
+    pub debt: u64
+}
+
 /// Program state handler.
 /// Main logic of this program
 pub struct Processor {}
@@ -101,10 +106,10 @@ impl Processor {
             }
         }
     }
-    fn active_pool_add_coll(active_pool_info:&AccountInfo, amount:u128){
+    fn active_pool_add_coll(active_pool_info:&AccountInfo, amount:u128) -> Result<(), ProgramError> {
         let mut active_pool = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
-        active_pool.sol = amount
-        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])
+        active_pool.sol = amount;
+        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
     }
     fn withdraw_solusd(
         borrower_data_info: &AccountInfo,
@@ -116,10 +121,10 @@ impl Processor {
         nonce:u128,
         solusd_amount: u128,
         netdebt_increase: u128
-     )->{
+     )->Result<(), ProgramError> {
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
-        active_pool_data.increase_solusd_debt(netdebt_increase)
-        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])
+        active_pool_data.increase_solusd_debt(netdebt_increase);
+        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
 
         token_mint_to(            
             borrower_data_info,
@@ -141,10 +146,10 @@ impl Processor {
         nonce:u128,
         solusd_amount: u128,
         netdebt_increase: u128
-     )->{
+     )->Result<(), ProgramError> {
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
-        active_pool_data.decrease_solusd_debt(netdebt_increase)
-        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])
+        active_pool_data.decrease_solusd_debt(netdebt_increase);
+        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
 
         token_burn(            
             borrower_data_info,
@@ -165,10 +170,10 @@ impl Processor {
         token_program_info: &AccountInfo,
         solusd_change: u64,
         max_fee_percentage: u64
-    )->{
-        let mut trove_manager = TroveManager:try_from_slice(&trove_manager_info.data.borrow_mut())?;
+    )->Result<(u64), ProgramError> {
+        let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
         trove_manager.decay_base_rate_from_borrowing();
-        u64 solusd_fee = trove_manager.get_borrowing_fee(solusd_amount);
+        let solusd_fee:u64 = trove_manager.get_borrowing_fee(solusd_amount);
         if !(solusd_fee.mul(DECIMAL_PRECISION).div(solusd_amount) <= max_fee_percentage){
             Err(LiquityError::FeeExceeded.into());
         }
@@ -185,8 +190,8 @@ impl Processor {
             to_u64(solusd_fee)?,
         );
 
-        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])
-        solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..])
+        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..]);
+        solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..]);
 
         return solusd_fee;
     }
@@ -197,14 +202,17 @@ impl Processor {
         is_coll_increase:u64,
         debt_change: u64, 
         is_debt_increase: u64
-    ) -> {
+    ) ->Result<TroveAmount, ProgramError>  {
         let mut newColl = coll;
         let mut newDebt = debt;
 
-        newColl = is_coll_increase ? coll.add(coll_change) : coll.sub(coll_change);
-        newDebt = _is_debt_increase ? debt.add(debt_change) : debt.sub(debt_change);
+        newColl = if is_coll_increase {coll.add(coll_change)} else {coll.sub(coll_change)};
+        newDebt = if is_debt_increase {debt.add(debt_change)} else {debt.sub(debt_change)};
 
-        return (newColl, newDebt);
+        return TroveAmount{
+            coll:newColl, 
+            debt:newDebt
+        };
     }
     fn get_new_icr_from_trove_change
     (
@@ -222,7 +230,6 @@ impl Processor {
         return new_iCR;
     }
 
-    function _getNewNominalICRFromTroveChange
     fn  get_new_normal_icr_from_trove_change
     (
         coll:u64,
@@ -473,7 +480,8 @@ impl Processor {
             coll_change = coll_withdrawal;
         }
         vars.net_debt_change = solusd_change;
-        if is_debt_increase && !is_recovery_mode{
+        if is_debt_increase && !is_recovery_mode
+        {
             vars.solusd_fee = Self::trigger_borrowing_fee(
                 borrower_operation_info.clone(),
                 trove_manager_info.clone(),
@@ -481,7 +489,7 @@ impl Processor {
                 solid_staking_info.clone(),
                 token_program_info.clone(),
                 solusd_change,
-                max_fee_percentage
+                max_fee_percentage);
             vars.net_debt_change = vars.net_debt_change.add(vars.solusd_fee);
         }
 
@@ -511,7 +519,7 @@ impl Processor {
             vars.new_debt = borrower_trove.decreaseTroveDebt(debt_change)
         }
 
-        let mut new_nicr = get_new_normal_icr_from_trove_change()
+        let mut new_nicr = get_new_normal_icr_from_trove_change();
         
 
         borrower_trove.increase_trove_coll(vars.coll, vars.debt, vars.coll_change, vars.is_coll_increase, vars.net_debt_change, is_debt_increase);
@@ -530,7 +538,7 @@ impl Processor {
         if is_debt_increase{
             Self::withdraw_solusd(
                 active_pool_info.clone(),
-                solusd_token_info.clone(),.
+                solusd_token_info.clone(),
                 borrower_info.clone(),
                 solusd_change,
                 vars.net_debt_change
@@ -540,7 +548,7 @@ impl Processor {
         {
             Self::repay_solusd(
                 active_pool_info.clone(),
-                solusd_token_info.clone(),.
+                solusd_token_info.clone(),
                 borrower_info.clone(),
                 solusd_change,
                 vars.net_debt_change
@@ -629,6 +637,7 @@ impl Processor {
                 token_program_info.clone(),
                 solusd_change,
                 max_fee_percentage
+            );
             vars.net_debt_change = vars.net_debt_change.add(vars.solusd_fee);
         }
 
@@ -641,7 +650,7 @@ impl Processor {
         borrower_trove.close_trove();
         Self::repay_solusd(
             active_pool_info.clone(),
-            solusd_token_info.clone(),.
+            solusd_token_info.clone(),
             borrower_info.clone(),
             solusd_change,
             debt.sub(SOLUSD_GAS_COMPENSATION)
@@ -649,7 +658,7 @@ impl Processor {
 
         Self::repay_solusd(
             active_pool_info.clone(),
-            solusd_token_info.clone(),.
+            solusd_token_info.clone(),
             gas_pool_info.clone(),
             solusd_change,
             SOLUSD_GAS_COMPENSATION
