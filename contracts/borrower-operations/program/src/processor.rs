@@ -14,7 +14,7 @@ use {
         constant::{
             DECIMAL_PRECISION,
             MIN_NET_DEBT,
-            LUSD_GAS_COMPENSATION,
+            SOLUSD_GAS_COMPENSATION,
             BORROWING_FEE_FLOOR,
             MCR,
         },
@@ -53,7 +53,7 @@ struct TroveAmount{
 pub struct Processor {}
 impl Processor {
 
-    fn _requireValidMaxFeePercentage(_maxFeePercentage:u64, _isRecoveryMode:bool) ->ProgramResult{
+    fn require_valid_max_fee_percentage(_maxFeePercentage:u64, _isRecoveryMode:bool) -> Result<(), ProgramError> {
         if _isRecoveryMode {
             if (_maxFeePercentage as u128) > DECIMAL_PRECISION 
             {
@@ -106,7 +106,8 @@ impl Processor {
     fn active_pool_add_coll(active_pool_info:&AccountInfo, amount:u128) -> Result<(), ProgramError> {
         let mut active_pool = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
         active_pool.sol = amount;
-        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
+        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
+        Ok(())
     }
     fn withdraw_solusd(
         borrower_data_info: &AccountInfo,
@@ -124,14 +125,14 @@ impl Processor {
         active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
 
         token_mint_to(            
-            borrower_data_info,
+            borrower_data_info.key,
             token_program_info.clone(),
             solusd_token_info.clone(),
             destination_info.clone(),
             authority_info.clone(),
             nonce,
             to_u64(solusd_amount)?,
-        );
+        )?;
     }
     fn repay_solusd(
         borrower_data_info: &AccountInfo,
@@ -327,9 +328,9 @@ impl Processor {
         }
 
         let token_program_id = *token_program_info.key;
-        let market_price = Self::get_pyth_price(pyth_product_info, pyth_price_info, clock_info)
-        let is_recovery_mode = _checkRecoveryMode(market_price)
-        Self::_requireValidMaxFeePercentage(max_fee_percentage, is_recovery_mode);
+        let market_price = Self::get_pyth_price(pyth_product_info, pyth_price_info, clock_info);
+        let is_recovery_mode = _checkRecoveryMode(market_price);
+        Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode);
 
         if(borrower_trove.status == 1){
             return Err(BorrowerOperationError::TroveIsActive.into())
@@ -343,14 +344,14 @@ impl Processor {
         if(net_debt < MIN_NET_DEBT){
             return Err(BorrowerOperationError::InvalidNetDebt.into())
         }
-        let composite_debt =  net_debt + LUSD_GAS_COMPENSATION
+        let composite_debt =  net_debt + LUSD_GAS_COMPENSATION;
 
         if(composite_debt < 0 ){
             return Err(BorrowerOperationError::InvalidCompositeDebt.into())
         }
 
-        let icr = compute_cr(coll_increase, composit_debt, market_price)
-        let nicr = compute_nominal_cr(coll_increase, composit_debt, market_price)
+        let icr = compute_cr(coll_increase, composit_debt, market_price);
+        let nicr = compute_nominal_cr(coll_increase, composit_debt, market_price);
 
         let mut vars = LocalVariablesOpenTrove::new(*borrower_operations_info.key, *owner_id_info.key);
         vars.price = get_market_price(borrower_operations_data.oracle_program_id,);
@@ -367,7 +368,7 @@ impl Processor {
         let new_stake = trove_data.coll;
         let old_stake = trove_data.stake;
         trove_data.stake = new_stake;
-        trove_manager_data.total_stakes = trove_manager_data.total_stakes.sub(old_stake).add(new_stake)
+        trove_manager_data.total_stakes = trove_manager_data.total_stakes.sub(old_stake).add(new_stake);
 
         vars.stake = trove_manager_data.total_stakes;
 
@@ -379,9 +380,9 @@ impl Processor {
 
 
 
-        reward_snapshot_data.l_sol = trove_manager_data.l_sol
-        reward_snapshot_data.solusd_debt = trove_manager_data.solusd_debt
-        reward_snapshot_data.serialize(&mut &mut reward_snapshot_info.data.borrow_mut()[..])
+        reward_snapshot_data.l_sol = trove_manager_data.l_sol;
+        reward_snapshot_data.solusd_debt = trove_manager_data.solusd_debt;
+        reward_snapshot_data.serialize(&mut &mut reward_snapshot_info.data.borrow_mut()[..]);
 
         Self::withdraw_solusd(
             borrower_operation_info.clonse(), 
@@ -391,9 +392,9 @@ impl Processor {
             borrower_info.clone(),
             token_program_info.clone(), 
             borrower_operations.nonce,
-            borrower_operations.solusd_amount
+            borrower_operations.solusd_amount,
             vars.net_debt
-        )
+        )?;
 
         Self::withdraw_solusd(
             borrower_operation_info.clonse(), 
@@ -405,7 +406,7 @@ impl Processor {
             borrower_operations.nonce,
             SOLUSD_GAS_COMPENSATION,
             SOLUSD_GAS_COMPENSATION
-        )
+        )?;
 
         Ok(())
         
