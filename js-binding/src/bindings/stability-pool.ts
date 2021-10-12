@@ -13,30 +13,15 @@ import {
   Numberu64,
 } from "../utils";
 import {
-  addBudgetInstruction,
-  addInstanceInstruction,
-  BONFIDA_BNB,
-  closeAccountInstruction,
-  closePositionInstruction,
-  collectGarbageInstruction,
-  crankFundingInstruction,
-  crankLiquidationInstruction,
-  createMarketInstruction,
-  extractFundingInstruction,
-  increasePositionInstruction,
-  openPositionInstruction,
-  PositionType,
-  transferPositionInstruction,
-  transferUserAccountInstruction,
-  withdrawBudgetInstruction,
+  initializeInstruction,
 } from "../instructions/stability-pool";
-import { MarketState, OpenPosition, UserAccount } from "../state";
+import { StabilityPool } from "../state";
 import BN from "bn.js";
 
 ///////////////////////////////////////////////////////
 
 // mainnet;
-export const PERPS_PROGRAM_ID = new PublicKey(
+export const SP_PROGRAM_ID = new PublicKey(
   "perpke6JybKfRDitCmnazpCrGN5JRApxxukhA9Js6E6"
 );
 // devnet
