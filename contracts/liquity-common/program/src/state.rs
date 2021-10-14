@@ -810,10 +810,10 @@ impl ActivePool{
         self.default_pool_address = *default_pool_address;
 
     }
-    pub fn increase_solusd_debt(&mut self, amount:u128){
+    pub fn increase_solusd_debt(&mut self, amount:u64){
         self.solusd_debt += amount;
     }
-    pub fn decrease_solusd_debt(&mut self, amount:u128){
+    pub fn decrease_solusd_debt(&mut self, amount:u64){
         self.solusd_debt -= amount;
     }
 }

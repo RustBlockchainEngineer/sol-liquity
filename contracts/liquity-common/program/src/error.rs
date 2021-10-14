@@ -60,6 +60,7 @@ pub enum LiquityError {
     
     #[error("Max fee percentage must be between 0.5% and 100%")]
     InvalidMaxFeePercentage,
+    
     /// Max fee percentage must less than or equal to 100%
     #[error("Max fee percentage must less than or equal to 100%")]
     ExceedMaxFeePercentage,
@@ -72,6 +73,9 @@ pub enum LiquityError {
     
     #[error("BorrowerOps: Trove does not exist or is closed")]
     ErrorTroveisNotActive,
+
+    #[error("TroveManager: Caller is not the BorrowerOperations contract")]
+    NotTroveManagerSigner,
     
 
     /// TroveManager: Cannot redeem when TCR < MCR
