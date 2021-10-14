@@ -40,39 +40,31 @@ pub enum BorrowerOperationsInstruction {
     ///   7. `[]` Token program id
     ///   8. `[]` program id
     ///   9. `[]` amount
-    OpenTrove(OpenTroveInstruction),
+    OpenTrove{
+        /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
+        max_fee_percentage: u64,
 
-    AdjustTrove(AdjustTroveInstruction),
+        /// Minimum amount of DESTINATION token to output, prevents excessive slippage
+        solusd_amount: u64,
+        
+        /// Minimum amount of DESTINATION token to output, prevents excessive slippage
+        coll_increase:u64,
+
+        //sol amount to transfer
+        sol_amount:u64
+    },
+
+    AdjustTrove{
+        coll_withdrawal: u64,
+    
+        solusd_change: u64,
+        
+        is_debt_increase:bool,
+        
+        max_fee_percentage: u64,
+        
+        sol_amount: u64
+    },
 
     CloseTrove(u64),
 }
-
-/// OpenTrove instruction data
-#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
-#[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
-pub struct OpenTroveInstruction {
-    /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
-    pub max_fee_percentage: u64,
-    /// Minimum amount of DESTINATION token to output, prevents excessive slippage
-    pub solusd_amount: u64,
-    pub coll_increase:u64
-}
-
-/// OpenTrove instruction data
-#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
-#[repr(C)]
-#[derive(Clone, Debug, PartialEq)]
-pub struct AdjustTroveInstruction {
-    
-    pub coll_withdrawal: u64,
-    
-    pub solusd_change: u64,
-    
-    pub is_debt_increase:bool,
-    
-    pub max_fee_percentage: u64,
-    
-    pub sol_amount: u64
-}
-

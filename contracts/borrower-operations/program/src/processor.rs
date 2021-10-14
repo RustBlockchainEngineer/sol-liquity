@@ -3,11 +3,11 @@
 
 use {
     crate::{
-        instruction::{BorrowerOperationsInstruction, OpenTroveInstruction, AdjustTroveInstruction},
+        instruction::{BorrowerOperationsInstruction},
     },
     liquity_common::{
         state::{
-            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,ContractsCache,TroveManager, ActivePool, Trove
+            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,TroveManager, ActivePool, Trove
         },
         utils::*,
         error::{LiquityError},
@@ -57,13 +57,11 @@ impl Processor {
         if _isRecoveryMode {
             if (_maxFeePercentage as u128) > DECIMAL_PRECISION 
             {
-                Err(LiquityError::ExceedMaxFeePercentage.into());
+                return Err(LiquityError::ExceedMaxFeePercentage.into());
             }
-        } else {
-            if (_maxFeePercentage as u128) < BORROWING_FEE_FLOOR || (_maxFeePercentage as u128)> DECIMAL_PRECISION
-            {
-                Err(LiquityError::InvalidMaxFeePercentage.into());
-            }
+        } else if (_maxFeePercentage as u128) < BORROWING_FEE_FLOOR || (_maxFeePercentage as u128)> DECIMAL_PRECISION
+        {
+            return Err(LiquityError::InvalidMaxFeePercentage.into());
         }
         Ok(())
     }
@@ -79,21 +77,22 @@ impl Processor {
                 // Instruction: Initialize
                 Self::process_initialize(program_id, accounts, nonce)
             }
-            BorrowerOperationsInstruction::OpenTrove(OpenTroveInstruction{
+            BorrowerOperationsInstruction::OpenTrove{
                 max_fee_percentage,
                 solusd_amount,
                 coll_increase,
-            }) => {
+                sol_amount
+            } => {
                 // Instruction: OpenTrove
-                Self::process_open_trove(program_id, accounts, max_fee_percentage, solusd_amount, coll_increase)
+                Self::process_open_trove(program_id, accounts, max_fee_percentage, solusd_amount, coll_increase, sol_amount)
             }
-            BorrowerOperationsInstruction::AdjustTrove(AdjustTroveInstruction{
+            BorrowerOperationsInstruction::AdjustTrove{
                 coll_withdrawal,
                 solusd_change,
                 is_debt_increase,
                 max_fee_percentage,
                 sol_amount
-            }) => {
+            } => {
                 // Instruction: AdjustTrove
                 Self::process_adjust_trove(program_id, accounts, coll_withdrawal, solusd_change, is_debt_increase, max_fee_percentage, sol_amount)
             }
@@ -116,7 +115,7 @@ impl Processor {
         solusd_token_info: &AccountInfo,
         destination_info: & AccountInfo, 
         token_program_info: &AccountInfo,
-        nonce:u128,
+        nonce: u8,
         solusd_amount: u128,
         netdebt_increase: u128
      )->Result<(), ProgramError> {
@@ -131,8 +130,9 @@ impl Processor {
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            to_u64(solusd_amount)?,
+            solusd_amount as u64,
         )?;
+        Ok(())
     }
     fn repay_solusd(
         borrower_data_info: &AccountInfo,
@@ -141,7 +141,7 @@ impl Processor {
         solusd_token_info: &AccountInfo,
         destination_info: & AccountInfo, 
         token_program_info: &AccountInfo,
-        nonce:u128,
+        nonce: u8,
         solusd_amount: u128,
         netdebt_increase: u128
      )->Result<(), ProgramError> {
@@ -150,14 +150,15 @@ impl Processor {
         active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
 
         token_burn(            
-            borrower_data_info,
+            borrower_data_info.key,
             token_program_info.clone(),
             solusd_token_info.clone(),
             destination_info.clone(),
             authority_info.clone(),
             nonce,
-            to_u64(solusd_amount)?,
-        );
+            solusd_amount as u64,
+        )?;
+        Ok(())
     }
 
     fn trigger_borrowing_fee(
@@ -168,18 +169,19 @@ impl Processor {
         token_program_info: &AccountInfo,
         solusd_change: u64,
         max_fee_percentage: u64
-    )->Result<(u64), ProgramError> {
+    )->Result<(u128), ProgramError> {
         let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
-        trove_manager.decay_base_rate_from_borrowing();
-        let solusd_fee:u64 = trove_manager.get_borrowing_fee(solusd_amount);
-        if !(solusd_fee.mul(DECIMAL_PRECISION).div(solusd_amount) <= max_fee_percentage){
+        decay_base_rate_from_borrowing(trove_manager)?;
+        let solusd_fee:u128 = get_borrowing_fee(trove_manager, solusd_amount);
+        if !(solusd_fee * DECIMAL_PRECISION / solusd_amount <= max_fee_percentage){
             Err(LiquityError::FeeExceeded.into());
         }
+
         let mut solid_staking = SOLIDStaking::try_from_slice(&solid_staking_info.data.borrow_mut())?;
         solid_staking.increasef_solusd(solusd_fee);
 
         token_mint_to(            
-            borrower_operation_info.clone(),
+            borrower_operation_info.key,
             token_program_info.clone(),
             solusd_token_info.clone(),
             solid_staking_info.clone(),
@@ -330,7 +332,7 @@ impl Processor {
         let token_program_id = *token_program_info.key;
         let market_price = Self::get_pyth_price(pyth_product_info, pyth_price_info, clock_info);
         let is_recovery_mode = _checkRecoveryMode(market_price);
-        Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode);
+        Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode)?;
 
         if(borrower_trove.status == 1){
             return Err(BorrowerOperationError::TroveIsActive.into())

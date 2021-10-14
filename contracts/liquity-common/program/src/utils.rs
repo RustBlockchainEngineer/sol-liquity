@@ -118,14 +118,45 @@ pub fn token_burn<'a>(
 pub fn get_redemption_fee(trove_manager: &TroveManager, sol_drawn:u128)->u128{
     calc_redemption_fee(get_redemption_rate(trove_manager), sol_drawn)
 }
+
 pub fn calc_redemption_fee(redemption_rate: u128,sol_drawn: u128)->u128{
     let redemption_fee = redemption_rate * sol_drawn / DECIMAL_PRECISION;
     //require(redemptionFee < _ETHDrawn, "TroveManager: Fee would eat up all returned collateral");
     return redemption_fee;
 }
+
 pub fn get_redemption_rate(trove_manager:&TroveManager)->u128{
     calc_redemption_rate(trove_manager.base_rate)
 }
+
+pub fn  decay_base_rate_from_borrowing(trove_manager:&TroveManager, borrower_operation_info: &AccountInfo) -> Result<(), ProgramError>{
+
+    if trove_manager.borrower_operations_id != *borrower_operation_info.key
+    {
+        return Err(LiquityError::NotTroveManagerSigner.into());
+    }
+    Ok(())
+}
+
+pub fn calc_borrowing_rate(rate:u128)->u128{
+    let new_rate = BORROWING_FEE_FLOOR + rate;
+    return min(new_rate, MAX_BORROWING_FEE);
+}
+
+pub fn calc_borrowing_fee(borrowing_rate:u128, solusd_amount: u128)->u128
+{
+    return borrowing_rate * solusd_amount / DECIMAL_PRECISION;
+}
+
+
+pub fn get_borrowing_rate(trove_manager:&TroveManager)->u128{
+    return calc_borrowing_rate(trove_manager.base_rate);
+}
+
+pub fn get_borrowing_fee(trove_manager:&TroveManager, solusd_amount: u128)->u128{
+    return calc_borrowing_fee(get_borrowing_rate(trove_manager), solusd_amount)
+}
+
 pub fn calc_redemption_rate(base_rate: u128)->u128{
     min(REDEMPTION_FEE_FLOOR + base_rate, DECIMAL_PRECISION)
 }
