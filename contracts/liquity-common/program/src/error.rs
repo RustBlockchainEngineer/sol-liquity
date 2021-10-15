@@ -74,6 +74,16 @@ pub enum LiquityError {
     #[error("BorrowerOps: Trove does not exist or is closed")]
     ErrorTroveisNotActive,
 
+    #[error("BorrowerOps: Trove is active")]
+    ErrorTroveisActive,
+
+    #[error("BorrowerOps: Trove's net debt must be greater than minimum")]
+    ErrorMinNetDebt,
+
+    #[error("BorrowerOps: Invalid Composite debt")]
+    InvalidCompositeDebt,
+    
+
     #[error("TroveManager: Caller is not the BorrowerOperations contract")]
     NotTroveManagerSigner,
     

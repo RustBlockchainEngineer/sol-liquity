@@ -916,11 +916,17 @@ pub struct LocalVariablesOpenTrove {
 
     pub price:u128,
     pub solusd_fee:u128,
-    pub new_debt:u128,
-    pub composit_debt:u128,
+    
+    pub net_debt:u128,
+
+    pub composite_debt:u128,
+    
     pub icr:u128,
+    
     pub nicr:u128,
+    
     pub stake:u128,
+    
     pub array_index:u128,
 }
 impl LocalVariablesOpenTrove {
