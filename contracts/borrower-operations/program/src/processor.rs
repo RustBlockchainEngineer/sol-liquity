@@ -7,7 +7,7 @@ use {
     },
     liquity_common::{
         state::{
-            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,TroveManager, ActivePool, Trove
+            BorrowerOperations,LocalVariablesAdjustTrove,LocalVariablesOpenTrove,TroveManager, ActivePool, Trove, SOLIDStaking
         },
         utils::*,
         error::{LiquityError},
@@ -43,9 +43,10 @@ use {
     },
 };
 
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize)]
 struct TroveAmount{
-    pub coll:u64,
-    pub debt: u64
+    pub coll:u128,
+    pub debt: u128
 }
 
 /// Program state handler.
@@ -53,7 +54,7 @@ struct TroveAmount{
 pub struct Processor {}
 impl Processor {
 
-    fn require_valid_max_fee_percentage(_maxFeePercentage:u64, _isRecoveryMode:bool) -> Result<(), ProgramError> {
+    fn require_valid_max_fee_percentage(_maxFeePercentage:u128, _isRecoveryMode:bool) -> Result<(), ProgramError> {
         if _isRecoveryMode {
             if (_maxFeePercentage as u128) > DECIMAL_PRECISION 
             {
@@ -163,13 +164,15 @@ impl Processor {
 
     fn trigger_borrowing_fee(
         borrower_operation_info:&AccountInfo,
+        authority_info:&AccountInfo,
         trove_manager_info:&AccountInfo,
         solusd_token_info: &AccountInfo,
         solid_staking_info: &AccountInfo,
         token_program_info: &AccountInfo,
-        solusd_change: u64,
-        max_fee_percentage: u64
-    )->Result<(u128), ProgramError> {
+        nonce:u8,
+        solusd_amount: u128,
+        max_fee_percentage: u128
+    )->Result<u128, ProgramError> {
         let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
         decay_base_rate_from_borrowing(trove_manager)?;
         let solusd_fee:u128 = get_borrowing_fee(trove_manager, solusd_amount);
@@ -178,7 +181,7 @@ impl Processor {
         }
 
         let mut solid_staking = SOLIDStaking::try_from_slice(&solid_staking_info.data.borrow_mut())?;
-        solid_staking.increasef_solusd(solusd_fee);
+        solid_staking.increase_f_solusd(solusd_fee);
 
         token_mint_to(            
             borrower_operation_info.key,
@@ -187,61 +190,61 @@ impl Processor {
             solid_staking_info.clone(),
             authority_info.clone(),
             nonce,
-            to_u64(solusd_fee)?,
+            solusd_fee as u64,
         );
 
         trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..]);
         solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..]);
 
-        return solusd_fee;
+        Ok(solusd_fee)
     }
     fn get_new_trove_amounts(
-        coll:u64,
-        debt:u64,
-        coll_change:u64,
-        is_coll_increase:u64,
-        debt_change: u64, 
-        is_debt_increase: u64
+        coll:u128,
+        debt:u128,
+        coll_change:u128,
+        is_coll_increase:bool,
+        debt_change: u128, 
+        is_debt_increase: bool
     ) ->Result<TroveAmount, ProgramError>  {
         let mut newColl = coll;
         let mut newDebt = debt;
 
-        newColl = if is_coll_increase {coll.add(coll_change)} else {coll.sub(coll_change)};
-        newDebt = if is_debt_increase {debt.add(debt_change)} else {debt.sub(debt_change)};
+        newColl = if is_coll_increase {coll + coll_change} else {coll - coll_change};
+        newDebt = if is_debt_increase {debt + debt_change} else {debt - debt_change};
 
-        return TroveAmount{
+        Ok(TroveAmount{
             coll:newColl, 
             debt:newDebt
-        };
+        })
     }
     fn get_new_icr_from_trove_change
     (
-        coll:u64,
-        debt: u64,
-        coll_change: u64,
+        coll:u128,
+        debt: u128,
+        coll_change: u128,
         is_coll_increase: bool,
-        debt_change: u64,
+        debt_change: u128,
         is_debt_increase:bool,
-        price: u64
-    ) -> u64  {
-        let (new_coll, new_debt) = get_new_trove_amounts(coll, debt, coll_change, is_coll_ncrease, debt_change, is_debt_increase);
+        price: u128
+    ) -> u128  {
+        let res = Self::get_new_trove_amounts(coll, debt, coll_change, is_coll_increase, debt_change, is_debt_increase);
 
-        let new_iCR = LiquityMath::compute_cr(new_coll, new_debt, price);
+        let new_iCR = compute_cr(res.coll, res.debt, price);
         return new_iCR;
     }
 
     fn  get_new_normal_icr_from_trove_change
     (
-        coll:u64,
-        debt: u64,
-        coll_change: u64,
+        coll:u128,
+        debt: u128,
+        coll_change: u128,
         is_coll_increase: bool,
-        debt_change: u64,
+        debt_change: u128,
         is_debt_increase:bool,
-    ) -> u64  {
-        let (new_coll, new_debt) = get_new_trove_amounts(coll, debt, coll_change, is_coll_ncrease, debt_change, is_debt_increase);
-
-        let new_iCR = LiquityMath::comput_normal_cr(new_coll, new_debt, price);
+        price: u128,
+    ) -> u128  {
+        let (new_coll, new_debt) = Self::get_new_trove_amounts(coll, debt, coll_change, is_coll_increase, debt_change, is_debt_increase);
+        let new_iCR = comput_normal_cr(new_coll, new_debt, price);
         return new_iCR;
     }
 
@@ -295,10 +298,10 @@ impl Processor {
     pub fn process_open_trove(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
-        max_fee_percentage: u64,
-        solusd_amount: u64,
-        coll_increase:u64,
-        sol_amount:u64
+        max_fee_percentage: u128,
+        solusd_amount: u128,
+        coll_increase:u128,
+        sol_amount:u128
     ) -> ProgramResult {
         
         let account_info_iter = &mut accounts.iter();
@@ -418,11 +421,11 @@ impl Processor {
     pub fn process_adjust_trove(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
-        coll_withdrawal: u64,
-        solusd_change: u64,
+        coll_withdrawal: u128,
+        solusd_change: u128,
         is_debt_increase:bool,
-        max_fee_percentage: u64,
-        sol_amount: u64
+        max_fee_percentage: u128,
+        sol_amount: u128
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let borrower_operation_info = next_account_info(account_info_iter)?;
@@ -470,7 +473,7 @@ impl Processor {
             Err(LiquityError::ErrorTroveisNotActive.into());
         }
 
-        let mut coll_change:u64 = 0;
+        let mut coll_change:u128 = 0;
         let mut is_coll_increase:bool = false;
         if sol_amount != 0{
             coll_change = sol_amount;
@@ -571,7 +574,7 @@ impl Processor {
     pub fn process_close_trove(
         program_id: &Pubkey,
         accounts: &[AccountInfo],
-        amount: u64,
+        amount: u128,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let borrower_operation_info = next_account_info(account_info_iter)?;
@@ -618,7 +621,7 @@ impl Processor {
             Err(LiquityError::ErrorTroveisNotActive.into());
         }
 
-        let mut coll_change:u64 = 0;
+        let mut coll_change:u128 = 0;
         let mut is_coll_increase:bool = false;
         if sol_amount != 0{
             coll_change = sol_amount;
@@ -668,4 +671,82 @@ impl Processor {
         Ok(())
         
     }
+    
+    /// process WithdrawFromSP instruction
+    pub fn process_trove(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        coll_withdrawal: u128,
+        solusd_change: u128,
+        is_debt_increase:bool,
+        max_fee_percentage: u128,
+        sol_amount: u128
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let borrower_operation_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+        let trove_manager_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        //let default_pool_info = next_account_info(account_info_iter)?;
+        //let stability_pool_info = next_account_info(account_info_iter)?;
+        let gas_pool_info = next_account_info(account_info_iter)?;
+        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
+        let price_feed_info = next_account_info(account_info_iter)?;
+        let borrower_info = next_account_info(account_info_iter)?;
+        let borrower_trove_info = next_account_info(account_info_iter)?;
+        
+        let borrower_operations = BorrowerOperations::try_from_slice(&borrower_operation_info.data.borrow())?;
+        let borrower_trove = Trove::try_from_slice(&borrower_trove_info.data.borrow())?;
+
+        if *authority_info.key != Self::authority_id(program_id, borrower_info.key, borrower_operations.nonce)? {
+            return Err(BorrowerOperationsError::InvalidProgramAddress.into());
+        }
+
+        let mut vars = LocalVariablesAdjustTrove::new(*borrower_operations_info.key, *owner_id_info.key);
+        vars.price = get_market_price(borrower_operations_data.oracle_program_id,);
+        if !(sol_amount == 0 || coll_withdrawal == 0)
+        {
+            Err(LiquityError::ErrorSignularCollChange.into());
+        }
+
+        if !(sol_amount != 0 || coll_withdrawal != 0 || solusd_change != 0)
+        {
+            Err(LiquityError::ErrorNoneZeroAdjustment.into());
+        }
+
+        let trove_manager_data = TroveManager::try_from_slice(&trove_manager_info.data.borrow())?;
+        if !(trove_manager_data.get_trove_status() == 1)
+        {
+            Err(LiquityError::ErrorTroveisNotActive.into());
+        }
+
+        let mut coll_change:u128 = 0;
+        let mut is_coll_increase:bool = false;
+        if sol_amount != 0{
+            coll_change = sol_amount;
+            is_coll_increase = true;
+        }
+        else{
+            coll_change = coll_withdrawal;
+        }
+        vars.net_debt_change = solusd_change;
+        if is_debt_increase && !is_recovery_mode
+        {
+            vars.solusd_fee = Self::trigger_borrowing_fee(
+                borrower_operation_info.clone(),
+                trove_manager_info.clone(),
+                solusd_token_info.clone(),
+                solid_staking_info.clone(),
+                token_program_info.clone(),
+                solusd_change,
+                max_fee_percentage);
+            vars.net_debt_change = vars.net_debt_change.add(vars.solusd_fee);
+        }
+
+        let mut borrower_trove = Trove::try_from_slice(borrower_trove_info.data.borrow_mut())?;
+
+        // check if given pool token account is same with pool token account
+        Ok(())
+    }
+
 }
