@@ -62,13 +62,13 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
       </Link>
       <Link to={`/artists`}>
         <Button className="app-btn">Creators</Button>
-      </Link> */}
+      </Link>
       <Link to={`/store-list`}>
         <Button className="app-btn">Store</Button>
       </Link>
       <Link to={`/lottery`}>
         <Button className="app-btn">Lottery</Button>
-      </Link>
+      </Link> */}
     </div>
   );
 };
