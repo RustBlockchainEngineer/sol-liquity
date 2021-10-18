@@ -1,4 +1,4 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   PublicKey,
   SystemProgram,
@@ -8,8 +8,8 @@ import {
   Keypair,
   Transaction,
   AccountInfo,
-} from "@solana/web3.js";
-import BN from "bn.js";
+} from '@solana/web3.js';
+import BN from 'bn.js';
 
 export class Numberu64 extends BN {
   /**
@@ -21,7 +21,7 @@ export class Numberu64 extends BN {
     if (b.length === 8) {
       return b;
     }
-    assert(b.length < 8, "Numberu64 too large");
+    assert(b.length < 8, 'Numberu64 too large');
 
     const zeroPad = Buffer.alloc(8);
     b.copy(zeroPad);
@@ -31,30 +31,30 @@ export class Numberu64 extends BN {
   /**
    * Construct a Numberu64 from Buffer representation
    */
-  static fromBuffer(buffer): any {
+  static fromBuffer(buffer: any): any {
     assert(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
     return new BN(
       [...buffer]
         .reverse()
-        .map((i) => `00${i.toString(16)}`.slice(-2))
-        .join(""),
-      16
+        .map(i => `00${i.toString(16)}`.slice(-2))
+        .join(''),
+      16,
     );
   }
 }
 
 export const ASSOCIATED_TOKEN_PROGRAM_ID: PublicKey = new PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+  'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
 );
 
 export const createAssociatedTokenAccount = async (
   fundingAddress: PublicKey,
   walletAddress: PublicKey,
-  splTokenMintAddress: PublicKey
+  splTokenMintAddress: PublicKey,
 ): Promise<TransactionInstruction> => {
   const associatedTokenAddress = await findAssociatedTokenAddress(
     walletAddress,
-    splTokenMintAddress
+    splTokenMintAddress,
   );
   const keys = [
     {
@@ -102,7 +102,7 @@ export const createAssociatedTokenAccount = async (
 
 export async function findAssociatedTokenAddress(
   walletAddress: PublicKey,
-  tokenMintAddress: PublicKey
+  tokenMintAddress: PublicKey,
 ): Promise<PublicKey> {
   return (
     await PublicKey.findProgramAddress(
@@ -111,7 +111,7 @@ export async function findAssociatedTokenAddress(
         TOKEN_PROGRAM_ID.toBuffer(),
         tokenMintAddress.toBuffer(),
       ],
-      ASSOCIATED_TOKEN_PROGRAM_ID
+      ASSOCIATED_TOKEN_PROGRAM_ID,
     )
   )[0];
 }
@@ -121,14 +121,14 @@ export const signAndSendTransactionInstructions = async (
   connection: Connection,
   signers: Array<Keypair>,
   feePayer: Keypair,
-  txInstructions: Array<TransactionInstruction>
+  txInstructions: Array<TransactionInstruction>,
 ): Promise<string> => {
   const tx = new Transaction();
   tx.feePayer = feePayer.publicKey;
   signers.push(feePayer);
   tx.add(...txInstructions);
   return await connection.sendTransaction(tx, signers, {
-    preflightCommitment: "single",
+    preflightCommitment: 'single',
   });
 };
 
@@ -136,30 +136,30 @@ export const signAndSendTransactionInstructions = async (
 export async function getFilteredProgramAccounts(
   connection: Connection,
   programId: PublicKey,
-  filters
+  filters: any,
 ): Promise<{ publicKey: PublicKey; accountInfo: AccountInfo<Buffer> }[]> {
   // @ts-ignore
-  const resp = await connection._rpcRequest("getProgramAccounts", [
+  const resp = await connection._rpcRequest('getProgramAccounts', [
     programId.toBase58(),
     {
       commitment: connection.commitment,
       filters,
-      encoding: "base64",
+      encoding: 'base64',
     },
   ]);
   if (resp.error) {
     throw new Error(resp.error.message);
   }
-  return resp.result.map(
+  return (resp.result as []).map(
     ({ pubkey, account: { data, executable, owner, lamports } }) => ({
       publicKey: new PublicKey(pubkey),
       accountInfo: {
-        data: Buffer.from(data[0], "base64"),
+        data: Buffer.from(data[0], 'base64'),
         executable,
         owner: new PublicKey(owner),
         lamports,
       },
-    })
+    }),
   );
 }
 
