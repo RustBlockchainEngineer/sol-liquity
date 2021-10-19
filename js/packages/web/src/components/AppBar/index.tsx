@@ -24,9 +24,6 @@ const UserActions = () => {
     <>
       {store && (
         <>
-          {/* <Link to={`#`}>
-            <Button className="app-btn">Bids</Button>
-          </Link> */}
           {canCreate ? (
             <Link to={`/art/create`}>
               <Button className="app-btn">Create</Button>
@@ -86,7 +83,7 @@ const MetaplexMenu = () => {
           trigger={['click']}
           overlay={
             <Menu>
-              <Menu.Item>
+              {/* <Menu.Item>
                 <Link to={`/store-list`}>
                   <Button className="app-btn">Store</Button>
                 </Link>
@@ -96,7 +93,7 @@ const MetaplexMenu = () => {
                 <Link to={`/lottery`}>
                   <Button className="app-btn">Lottery</Button>
                 </Link>
-              </Menu.Item>
+              </Menu.Item> */}
             </Menu>
           }
         >

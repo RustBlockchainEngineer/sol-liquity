@@ -1,91 +1,59 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import {
-  PublicKey,
-  SYSVAR_CLOCK_PUBKEY,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import BN from "bn.js";
-import { deserializeUnchecked, Schema, serialize } from "borsh";
-import { Numberu64 } from "../utils";
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { programIds } from '../../../utils/programIds';
+import { serialize } from 'borsh';
+import { StringPublicKey, toPublicKey } from '../../../utils';
+import { SCHEMA, STABILITY_POOL_TAG } from '../state';
+import { CreateStabilityPoolArgs } from '..';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
-export class initializeInstruction {
-  tag: number;
-  nonce: number;
-  static schema: Schema = new Map([
-    [
-      initializeInstruction,
-      {
-        kind: "struct",
-        fields: [
-          ["tag", "u8"],
-          ["nonce", "u8"],
-        ],
-      },
-    ],
-  ]);
+export async function createStabilityPoolInstruction(
+  stabilityPoolKey: StringPublicKey,
+  SOLUSDPoolKey: StringPublicKey,
+  communityIssuanceKey: StringPublicKey,
+  instructions: TransactionInstruction[],
+) {
+  const stabilityPoolProgramId = programIds().stability_pool;
+  const [aurthority, nonce] = await PublicKey.findProgramAddress(
+    [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
+    toPublicKey(stabilityPoolProgramId),
+  );
 
-  constructor(obj: {
-    nonce: number;
-  }) {
-    this.tag = 0;
-    this.nonce = obj.nonce;
-  }
+  const data = Buffer.from(
+    serialize(SCHEMA, new CreateStabilityPoolArgs({ nonce })),
+  );
 
-  serialize(): Uint8Array {
-    return serialize(initializeInstruction.schema, this);
-  }
-
-  getInstruction(
-    programId: PublicKey,
-    stabilityPoolId: PublicKey,
-    authority: PublicKey,
-    solusdPoolTokenAccount: PublicKey,
-    community_issuance_account: PublicKey
-  ): TransactionInstruction {
-    const data = Buffer.from(this.serialize());
-    let keys = [
-      {
-        pubkey: stabilityPoolId,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: authority,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: solusdPoolTokenAccount,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: community_issuance_account,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: TOKEN_PROGRAM_ID,
-        isSigner: false,
-        isWritable: true,
-      },
-    ];
-
-    return new TransactionInstruction({
-      keys,
-      programId: programId,
-      data,
-    });
-  }
-}
-
-export type StabilityPoolInstruction =
-  | initializeInstruction;
-
-export function parseInstructionData(buffer: Buffer): StabilityPoolInstruction {
-  let types = [
-    initializeInstruction,
+  const keys = [
+    {
+      pubkey: toPublicKey(stabilityPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: aurthority,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(SOLUSDPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(communityIssuanceKey),
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: TOKEN_PROGRAM_ID,
+      isSigner: false,
+      isWritable: false,
+    },
   ];
-  let t = types[buffer[0]];
-  return deserializeUnchecked(t.schema, t, buffer);
+  instructions.push(
+    new TransactionInstruction({
+      keys,
+      programId: toPublicKey(stabilityPoolProgramId),
+      data: data,
+    }),
+  );
 }
