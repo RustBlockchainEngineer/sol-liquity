@@ -601,6 +601,35 @@ impl Trove {
             }
         }
     }
+    pub fn close_trove(&mut self) {
+        self.coll = 0;
+        self.debt = 0;
+        self.status = Status::ClosedByOwner as u8;
+    }
+    pub fn remove_stake(&mut self) {
+        self.stake = 0;
+    }
+
+    pub fn increase_trove_coll(&mut self, coll_change:u128) ->u128  {
+        self.coll += coll_change;
+        return self.coll;
+    }
+
+    pub fn decrease_trove_coll(&mut self, coll_change:u128) ->u128  {
+        self.coll -= coll_change;
+        return self.coll;
+    }
+
+    pub fn increase_trove_debt(&mut self, debt_change:u128) ->u128  {
+        self.debt += debt_change;
+        return self.debt;
+    }
+
+    pub fn decrease_trove_debt(&mut self, debt_change:u128) ->u128 {
+        self.debt -= debt_change;
+        return self.debt;
+    }
+
 }
 
 #[repr(C)]
@@ -619,6 +648,10 @@ impl RewardSnapshot{
     pub fn update_trove_reward_snapshots(&mut self, trove_manager:&TroveManager){
         self.sol = trove_manager.l_sol;
         self.solusd_debt = trove_manager.l_solusd_debt;
+    }
+    pub fn reset(&mut self){
+        self.sol = 0;
+        self.solusd_debt = 0;
     }
 }
 
@@ -787,7 +820,7 @@ pub struct SingleRedemptionValues {
 
 
 #[repr(C)]
-#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct ActivePool {
     pub borrower_operations_address: Pubkey,
     pub trove_manager_address: Pubkey,
@@ -810,12 +843,21 @@ impl ActivePool{
         self.default_pool_address = *default_pool_address;
 
     }
+    
+    pub fn increase_coll(&mut self, amount: u128){
+        self.sol += amount;
+    }
+
     pub fn increase_solusd_debt(&mut self, amount:u128){
         self.solusd_debt += amount;
     }
     pub fn decrease_solusd_debt(&mut self, amount:u128){
         self.solusd_debt -= amount;
     }
+    pub fn send_sol(&mut self, _amount:u128){
+
+    }
+
 }
 
 
@@ -892,7 +934,7 @@ pub struct LocalVariablesAdjustTrove {
     pub price:u128,
     pub coll_change:u128,
     pub net_debt_change:u128,
-    pub is_coll_increase:u8,
+    pub is_coll_increase:bool,
     pub debt:u128,
     pub coll:u128,
     pub old_icr:u128,
@@ -904,7 +946,27 @@ pub struct LocalVariablesAdjustTrove {
     pub stake:u128,
 }
 
-
+impl LocalVariablesAdjustTrove {
+    pub fn new(pool_id_pubkey:Pubkey, owner_pubkey: Pubkey)->LocalVariablesAdjustTrove{
+        LocalVariablesAdjustTrove{
+            pool_id_pubkey,
+            owner_pubkey,
+            price:0,
+            coll_change:0,
+            net_debt_change:0,
+            is_coll_increase:false,
+            debt:0,
+            coll:0,
+            old_icr:0,
+            new_icr:0,
+            new_tcr:0,
+            solusd_fee:0,
+            new_debt:0,
+            new_coll:0,
+            stake:0,
+        }
+    }
+}
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct LocalVariablesOpenTrove {
@@ -936,8 +998,8 @@ impl LocalVariablesOpenTrove {
             owner_pubkey,
             price:0,
             solusd_fee:0,
-            new_debt:0,
-            composit_debt:0,
+            net_debt:0,
+            composite_debt:0,
             icr:0,
             nicr:0,
             stake:0,

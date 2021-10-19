@@ -58,6 +58,7 @@ pub enum LiquityError {
     #[error("Nothing to liquidate")]
     NothingToLiquidate,
     
+    ///Max fee percentage must be between 0.5% and 100%
     #[error("Max fee percentage must be between 0.5% and 100%")]
     InvalidMaxFeePercentage,
     
@@ -65,25 +66,32 @@ pub enum LiquityError {
     #[error("Max fee percentage must less than or equal to 100%")]
     ExceedMaxFeePercentage,
 
+    ///Cannot withdraw and add coll
     #[error("BorrowerOperations: Cannot withdraw and add coll")]
     ErrorSignularCollChange,
     
+     ///There must be either a collateral change or a debt change
     #[error("BorrowerOps: There must be either a collateral change or a debt change")]
     ErrorNoneZeroAdjustment,
     
+    ///Trove does not exist or is closed
     #[error("BorrowerOps: Trove does not exist or is closed")]
     ErrorTroveisNotActive,
 
+    /// BorrowerOps: Trove is active
     #[error("BorrowerOps: Trove is active")]
     ErrorTroveisActive,
 
+    /// BorrowerOps: Trove's net debt must be greater than minimum
     #[error("BorrowerOps: Trove's net debt must be greater than minimum")]
     ErrorMinNetDebt,
 
+    /// BorrowerOps: Invalid Composite debt
     #[error("BorrowerOps: Invalid Composite debt")]
     InvalidCompositeDebt,
     
 
+    /// BorrowerOps: Caller is not the BorrowerOperations contract
     #[error("TroveManager: Caller is not the BorrowerOperations contract")]
     NotTroveManagerSigner,
     
