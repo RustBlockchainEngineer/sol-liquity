@@ -1,6 +1,6 @@
 import { HashRouter, Route, Switch } from 'react-router-dom';
 import { Providers } from './providers';
-import { Liquity } from './views/liquity';
+import { LiquityView } from './views/liquity';
 
 export function Routes() {
   return (
@@ -8,8 +8,8 @@ export function Routes() {
       <HashRouter basename={'/'}>
         <Providers>
           <Switch> 
-            <Route exact path="/liquity" component={() => <Liquity />} />
-            <Route path="/" component={() => <div />} />
+            <Route exact path="/liquity" component={() => <LiquityView />} />
+            <Route path="/" component={() => <LiquityView />} />
           </Switch>
         </Providers>
       </HashRouter>
