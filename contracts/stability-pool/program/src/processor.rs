@@ -160,7 +160,7 @@ impl Processor {
 
         // pool account information to provide
         let pool_id_info = next_account_info(account_info_iter)?;
-
+ 
         // authority information of this farm account
         let authority_info = next_account_info(account_info_iter)?;
 

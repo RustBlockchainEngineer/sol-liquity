@@ -70,6 +70,23 @@ export class CreateStabilityPoolArgs {
     this.nonce = args.nonce;
   }
 }
+
+export class ProvideToSPArgs {
+  instruction: number = 1;
+  amount: BN;
+  communityIssuancePool: StringPublicKey;
+  nonce: number;
+  constructor(args: {
+    amount: number;
+    communityIssuancePool: StringPublicKey;
+    nonce: number;
+  }) {
+    this.amount = new BN(args.amount);
+    this.communityIssuancePool = args.communityIssuancePool;
+    this.nonce = args.nonce;
+  }
+}
+
 export const decodeState = (buffer: Buffer, classType: any) => {
   return deserializeUnchecked(SCHEMA, classType, buffer);
 };
@@ -149,6 +166,18 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    ProvideToSPArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['amount', 'u64'],
+        ['communityIssuancePool', 'pubkeyAsString'],
         ['nonce', 'u8'],
       ],
     },

@@ -2,3 +2,4 @@ target
 .env.local
 webpack
 node_modules
+.next

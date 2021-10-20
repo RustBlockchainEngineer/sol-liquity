@@ -55,7 +55,7 @@ pub enum StabilityPoolInstruction {
         #[allow(dead_code)]
         amount:u64,
         #[allow(dead_code)]
-        community_issuance_pool:Pubkey,
+        community_issuance_pool:Pubkey, 
         #[allow(dead_code)]
         nonce:u8
     },
