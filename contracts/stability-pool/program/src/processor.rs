@@ -201,7 +201,6 @@ impl Processor {
         let source_info = next_account_info(account_info_iter)?;
         let frontend_dest_info = next_account_info(account_info_iter)?;
         let depositor_dest_info = next_account_info(account_info_iter)?;
-        let authority_info = next_account_info(account_info_iter)?;
 
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;

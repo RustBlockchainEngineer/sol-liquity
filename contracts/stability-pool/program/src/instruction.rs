@@ -59,7 +59,7 @@ pub enum StabilityPoolInstruction {
         #[allow(dead_code)]
         nonce:u8
     },
-
+ 
     /// Withdraw from stability pool
     ///
     /// - Triggers a SOLID issuance, based on time passed since the last issuance. The SOLID issuance is shared between *all* depositors and front ends
