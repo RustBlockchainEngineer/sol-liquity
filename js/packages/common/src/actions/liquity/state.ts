@@ -87,6 +87,39 @@ export class ProvideToSPArgs {
   }
 }
 
+export class WithdrawFromSPArgs {
+  instruction: number = 2;
+  amount: BN;
+  communityIssuancePool: StringPublicKey;
+  nonce: number;
+  constructor(args: {
+    amount: number;
+    communityIssuancePool: StringPublicKey;
+    nonce: number;
+  }) {
+    this.amount = new BN(args.amount);
+    this.communityIssuancePool = args.communityIssuancePool;
+    this.nonce = args.nonce;
+  }
+}
+
+export class WithdrawSOLGainToTroveArgs {
+  instruction: number = 3;
+  communityIssuancePool: StringPublicKey;
+  nonce: number;
+  constructor(args: { communityIssuancePool: StringPublicKey; nonce: number }) {
+    this.communityIssuancePool = args.communityIssuancePool;
+    this.nonce = args.nonce;
+  }
+}
+
+export class RegisterFrontendArgs {
+  instruction: number = 4;
+  kickbackRate: BN;
+  constructor(args: { kickbackRate: number }) {
+    this.kickbackRate = new BN(args.kickbackRate);
+  }
+}
 export const decodeState = (buffer: Buffer, classType: any) => {
   return deserializeUnchecked(SCHEMA, classType, buffer);
 };
@@ -179,6 +212,39 @@ export const SCHEMA = new Map<any, any>([
         ['amount', 'u64'],
         ['communityIssuancePool', 'pubkeyAsString'],
         ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    WithdrawFromSPArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['amount', 'u64'],
+        ['communityIssuancePool', 'pubkeyAsString'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    WithdrawSOLGainToTroveArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['communityIssuancePool', 'pubkeyAsString'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    RegisterFrontendArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['kickbackRate', 'u64'],
       ],
     },
   ],
