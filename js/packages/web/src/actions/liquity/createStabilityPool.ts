@@ -13,7 +13,7 @@ import {
   sizeOfState,
   programIds,
   StabilityPool,
-  SOLUSD_TOKEN_MINT,
+  SOLUSD_TOKEN_MINT_KEY,
 } from '@oyster/common';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
@@ -43,7 +43,7 @@ export async function createStabilityPool(
       newAccountPubkey: stabilityPoolKey.publicKey,
       lamports: stabilityPoolRentExempt,
       space: stabilityPoolSpan,
-      programId: toPublicKey(programIds().stability_pool),
+      programId: toPublicKey(programIds().stabilityPool),
     }),
   );
 
@@ -52,7 +52,7 @@ export async function createStabilityPool(
     connection,
     wallet.publicKey,
     stabilityPoolKey.publicKey,
-    toPublicKey(SOLUSD_TOKEN_MINT),
+    toPublicKey(SOLUSD_TOKEN_MINT_KEY),
   );
 
   const communityIssuanceKey = new Keypair();
@@ -72,7 +72,7 @@ export async function createStabilityPool(
     wallet,
     instructions,
     signers,
-    'single',
+    'confirmed',
   );
 
   return { txid, slot };

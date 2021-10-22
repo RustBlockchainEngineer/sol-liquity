@@ -2,8 +2,6 @@ import { deserializeUnchecked } from 'borsh';
 import BN from 'bn.js';
 import { StringPublicKey } from '../../utils';
 
-export const SOLUSD_TOKEN_MINT = '';
-
 export const STABILITY_POOL_TAG = 'liquity_stability_pool';
 export const TROVE_MANAGER_TAG = 'liquity_trove_manager';
 export const BORROWER_OPERATIONS_TAG = 'liquity_borrower_operations';

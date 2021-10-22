@@ -22,7 +22,7 @@ export async function createStabilityPoolInstruction(
   communityIssuanceKey: StringPublicKey,
   instructions: TransactionInstruction[],
 ) {
-  const stabilityPoolProgramId = programIds().stability_pool;
+  const stabilityPoolProgramId = programIds().stabilityPool;
   const [aurthority, nonce] = await PublicKey.findProgramAddress(
     [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
     toPublicKey(stabilityPoolProgramId),
@@ -89,7 +89,7 @@ export async function provideToSPInstruction(
 
   amount: number,
 ) {
-  const stabilityPoolProgramId = programIds().stability_pool;
+  const stabilityPoolProgramId = programIds().stabilityPool;
   const [aurthority, nonce] = await PublicKey.findProgramAddress(
     [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
     toPublicKey(stabilityPoolProgramId),
@@ -238,7 +238,7 @@ export async function withdrawFromSPInstruction(
 
   amount: number,
 ) {
-  const stabilityPoolProgramId = programIds().stability_pool;
+  const stabilityPoolProgramId = programIds().stabilityPool;
   const [aurthority, nonce] = await PublicKey.findProgramAddress(
     [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
     toPublicKey(stabilityPoolProgramId),
@@ -400,7 +400,7 @@ export async function withdrawSOLGainToTroveInstruction(
   depositorDestKey: StringPublicKey,
   instructions: TransactionInstruction[],
 ) {
-  const stabilityPoolProgramId = programIds().stability_pool;
+  const stabilityPoolProgramId = programIds().stabilityPool;
   const [aurthority, nonce] = await PublicKey.findProgramAddress(
     [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
     toPublicKey(stabilityPoolProgramId),
@@ -505,7 +505,7 @@ export async function registerFrontendInstruction(
 
   kickbackRate: number,
 ) {
-  const stabilityPoolProgramId = programIds().stability_pool;
+  const stabilityPoolProgramId = programIds().stabilityPool;
   const [aurthority] = await PublicKey.findProgramAddress(
     [Buffer.from(STABILITY_POOL_TAG), toPublicKey(stabilityPoolKey).toBuffer()],
     toPublicKey(stabilityPoolProgramId),
