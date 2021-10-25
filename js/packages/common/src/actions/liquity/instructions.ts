@@ -3,10 +3,10 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { programIds } from '../../../utils/programIds';
+import { programIds } from '../../utils/programIds';
 import { serialize } from 'borsh';
-import { StringPublicKey, toPublicKey } from '../../../utils';
-import { SCHEMA, STABILITY_POOL_TAG } from '../state';
+import { StringPublicKey, toPublicKey } from '../../utils';
+import { SCHEMA, STABILITY_POOL_TAG } from './state';
 import {
   CreateStabilityPoolArgs,
   ProvideToSPArgs,

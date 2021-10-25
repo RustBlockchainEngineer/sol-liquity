@@ -61,6 +61,171 @@ export class StabilityPool {
   }
 }
 
+export class BorrowerOperations {
+  nonce: number;
+  tokenProgramPubkey: StringPublicKey;
+  troveManagerId: StringPublicKey;
+  activePoolId: StringPublicKey;
+  defaultPoolId: StringPublicKey;
+  stabilityPoolId: StringPublicKey;
+  gasPoolId: StringPublicKey;
+  collSurplusPoolId: StringPublicKey;
+  solusdTokenId: StringPublicKey;
+  solidStakingId: StringPublicKey;
+
+  oracleProgramId: StringPublicKey;
+  pythProductId: StringPublicKey;
+  pythPriceId: StringPublicKey;
+  quoteCurrency: StringPublicKey;
+
+  constructor(obj: {
+    nonce: number;
+    tokenProgramPubkey: StringPublicKey;
+    troveManagerId: StringPublicKey;
+    activePoolId: StringPublicKey;
+    defaultPoolId: StringPublicKey;
+    stabilityPoolId: StringPublicKey;
+    gasPoolId: StringPublicKey;
+    collSurplusPoolId: StringPublicKey;
+    solusdTokenId: StringPublicKey;
+    solidStakingId: StringPublicKey;
+
+    oracleProgramId: StringPublicKey;
+    pythProductId: StringPublicKey;
+    pythPriceId: StringPublicKey;
+    quoteCurrency: StringPublicKey;
+  }) {
+    this.nonce = obj.nonce;
+    this.tokenProgramPubkey = obj.tokenProgramPubkey;
+    this.troveManagerId = obj.troveManagerId;
+    this.activePoolId = obj.activePoolId;
+    this.defaultPoolId = obj.defaultPoolId;
+    this.stabilityPoolId = obj.stabilityPoolId;
+    this.gasPoolId = obj.gasPoolId;
+    this.collSurplusPoolId = obj.collSurplusPoolId;
+    this.solusdTokenId = obj.solusdTokenId;
+    this.solidStakingId = obj.solidStakingId;
+    this.oracleProgramId = obj.oracleProgramId;
+    this.pythProductId = obj.pythProductId;
+    this.pythPriceId = obj.pythPriceId;
+    this.quoteCurrency = obj.quoteCurrency;
+  }
+}
+
+export class TroveManager {
+  nonce: number;
+  borrowerOperationsId: StringPublicKey;
+  stabilityPoolId: StringPublicKey;
+  gasPoolId: StringPublicKey;
+  collSurplusPoolId: StringPublicKey;
+  SOLUSDTokenPubkey: StringPublicKey;
+  SOLIDTokenPubkey: StringPublicKey;
+  SOLIDStakingPubkey: StringPublicKey;
+  tokenProgramId: StringPublicKey;
+  defaultPoolId: StringPublicKey;
+  activePoolId: StringPublicKey;
+  oracleProgramId: StringPublicKey;
+  pythProductId: StringPublicKey;
+  pythPriceId: StringPublicKey;
+  quoteCurrency: StringPublicKey;
+  baseRate: BN;
+  lasstFeeOperationTime: BN;
+  totalStakes: BN;
+  totalStakesSnapshot: BN;
+  totalCollateralSnapshot: BN;
+  lSol: BN;
+  lSOLUSDDebt: BN;
+  lastSOLErrorRedistribution: BN;
+  lastSOLUSDDebtErrorRedistribution: BN;
+
+  constructor(obj: {
+    nonce: number;
+    borrowerOperationsId: StringPublicKey;
+    stabilityPoolId: StringPublicKey;
+    gasPoolId: StringPublicKey;
+    collSurplusPoolId: StringPublicKey;
+    SOLUSDTokenPubkey: StringPublicKey;
+    SOLIDTokenPubkey: StringPublicKey;
+    SOLIDStakingPubkey: StringPublicKey;
+    tokenProgramId: StringPublicKey;
+    defaultPoolId: StringPublicKey;
+    activePoolId: StringPublicKey;
+    oracleProgramId: StringPublicKey;
+    pythProductId: StringPublicKey;
+    pythPriceId: StringPublicKey;
+    quoteCurrency: StringPublicKey;
+    baseRate: BN;
+    lasstFeeOperationTime: BN;
+    totalStakes: BN;
+    totalStakesSnapshot: BN;
+    totalCollateralSnapshot: BN;
+    lSol: BN;
+    lSOLUSDDebt: BN;
+    lastSOLErrorRedistribution: BN;
+    lastSOLUSDDebtErrorRedistribution: BN;
+  }) {
+    this.nonce = obj.nonce;
+    this.borrowerOperationsId = obj.borrowerOperationsId;
+    this.stabilityPoolId = obj.stabilityPoolId;
+    this.gasPoolId = obj.gasPoolId;
+    this.collSurplusPoolId = obj.collSurplusPoolId;
+    this.SOLUSDTokenPubkey = obj.SOLUSDTokenPubkey;
+    this.SOLIDTokenPubkey = obj.SOLIDTokenPubkey;
+    this.SOLIDStakingPubkey = obj.SOLIDStakingPubkey;
+    this.tokenProgramId = obj.tokenProgramId;
+    this.defaultPoolId = obj.defaultPoolId;
+    this.activePoolId = obj.activePoolId;
+    this.oracleProgramId = obj.oracleProgramId;
+    this.pythProductId = obj.pythProductId;
+    this.pythPriceId = obj.pythPriceId;
+    this.quoteCurrency = obj.quoteCurrency;
+    this.baseRate = obj.baseRate;
+    this.lasstFeeOperationTime = obj.lasstFeeOperationTime;
+    this.totalStakes = obj.totalStakes;
+    this.totalStakesSnapshot = obj.totalStakesSnapshot;
+    this.totalCollateralSnapshot = obj.totalCollateralSnapshot;
+    this.lSol = obj.lSol;
+    this.lSOLUSDDebt = obj.lSOLUSDDebt;
+    this.lastSOLErrorRedistribution = obj.lastSOLErrorRedistribution;
+    this.lastSOLUSDDebtErrorRedistribution =
+      obj.lastSOLUSDDebtErrorRedistribution;
+  }
+}
+
+export class SOLIDStaking {
+  nonce: number;
+  tokenProgramPubkey: StringPublicKey;
+  solidPoolTokenPubkey: StringPublicKey;
+  troveManagerId: StringPublicKey;
+  borrowerOperationsId: StringPublicKey;
+  activePoolId: StringPublicKey;
+  totalStakedAmount: BN;
+  fSol: BN;
+  fSolusd: BN;
+
+  constructor(obj: {
+    nonce: number;
+    tokenProgramPubkey: StringPublicKey;
+    solidPoolTokenPubkey: StringPublicKey;
+    troveManagerId: StringPublicKey;
+    borrowerOperationsId: StringPublicKey;
+    activePoolId: StringPublicKey;
+    totalStakedAmount: BN;
+    fSol: BN;
+    fSolusd: BN;
+  }) {
+    this.nonce = obj.nonce;
+    this.tokenProgramPubkey = obj.tokenProgramPubkey;
+    this.solidPoolTokenPubkey = obj.solidPoolTokenPubkey;
+    this.troveManagerId = obj.troveManagerId;
+    this.borrowerOperationsId = obj.borrowerOperationsId;
+    this.activePoolId = obj.activePoolId;
+    this.totalStakedAmount = obj.totalStakedAmount;
+    this.fSol = obj.fSol;
+    this.fSolusd = obj.fSolusd;
+  }
+}
+
 export class CreateStabilityPoolArgs {
   instruction: number = 0;
   nonce: number;
@@ -118,6 +283,167 @@ export class RegisterFrontendArgs {
     this.kickbackRate = new BN(args.kickbackRate);
   }
 }
+
+export class CreateBorrowerOperationsArgs {
+  instruction: number = 0;
+  nonce: number;
+  constructor(args: { nonce: number }) {
+    this.nonce = args.nonce;
+  }
+}
+
+export class OpenTroveArgs {
+  instruction: number = 1;
+  maxFeePercentage: BN;
+  solusdAmount: BN;
+  collIncrease: BN;
+  SOLAmount: BN;
+  constructor(args: {
+    maxFeePercentage: number;
+    solusdAmount: number;
+    collIncrease: number;
+    SOLAmount: number;
+  }) {
+    this.maxFeePercentage = new BN(args.maxFeePercentage);
+    this.solusdAmount = new BN(args.solusdAmount);
+    this.collIncrease = new BN(args.collIncrease);
+    this.SOLAmount = new BN(args.SOLAmount);
+  }
+}
+
+export class AdjustTroveArgs {
+  instruction: number = 2;
+  collWithdrawal: BN;
+  SOLUSDChange: BN;
+  isDebtIncrease: number;
+  maxFeePercentage: BN;
+  SOLAmount: BN;
+  constructor(args: {
+    collWithdrawal: number;
+    SOLUSDChange: number;
+    isDebtIncrease: number;
+    maxFeePercentage: number;
+    SOLAmount: number;
+  }) {
+    this.collWithdrawal = new BN(args.collWithdrawal);
+    this.SOLUSDChange = new BN(args.SOLUSDChange);
+    this.isDebtIncrease = args.isDebtIncrease;
+    this.maxFeePercentage = new BN(args.maxFeePercentage);
+    this.SOLAmount = new BN(args.SOLAmount);
+  }
+}
+
+export class CloseTroveArgs {
+  instruction: number = 3;
+  amount: BN;
+  constructor(args: { amount: number }) {
+    this.amount = new BN(args.amount);
+  }
+}
+
+export class CreateTroveManagerArgs {
+  instruction: number = 0;
+  nonce: number;
+  constructor(args: { nonce: number }) {
+    this.nonce = args.nonce;
+  }
+}
+export class ApplyPendingRewardsArgs {
+  instruction: number = 1;
+  constructor() {}
+}
+
+export class LiquidateArgs {
+  instruction: number = 2;
+  constructor() {}
+}
+
+export class RedeemCollateralArgs {
+  instruction: number = 3;
+  solusdAmount: BN;
+  partialRedemptionHintNicr: BN;
+  maxIterations: BN;
+  maxFeePercentage: BN;
+  totalSolDrawn: BN;
+  totalSolusdToRedeem: BN;
+  nonce: number;
+  constructor(args: {
+    solusdAmount: number;
+    partialRedemptionHintNicr: number;
+    maxIterations: number;
+    maxFeePercentage: number;
+    totalSolDrawn: number;
+    totalSolusdToRedeem: number;
+    nonce: number;
+  }) {
+    this.solusdAmount = new BN(args.solusdAmount);
+    this.partialRedemptionHintNicr = new BN(args.partialRedemptionHintNicr);
+    this.maxIterations = new BN(args.maxIterations);
+    this.maxFeePercentage = new BN(args.maxFeePercentage);
+    this.totalSolDrawn = new BN(args.totalSolDrawn);
+    this.totalSolusdToRedeem = new BN(args.totalSolusdToRedeem);
+    this.nonce = args.nonce;
+  }
+}
+
+export class LiquidateTrovesArgs {
+  instruction: number = 4;
+  totalCollInSequence: BN;
+  totalDebtInSequence: BN;
+  totalCollGasCompensation: BN;
+  totalSolusdGasCompensation: BN;
+  totalDebtToOffset: BN;
+  totalCollToSendToSp: BN;
+  totalDebtToRedistribute: BN;
+  totalCollToRedistribute: BN;
+  totalCollSurplus: BN;
+  constructor(args: {
+    totalCollInSequence: number;
+    totalDebtInSequence: number;
+    totalCollGasCompensation: number;
+    totalSolusdGasCompensation: number;
+    totalDebtToOffset: number;
+    totalCollToSendToSp: number;
+    totalDebtToRedistribute: number;
+    totalCollToRedistribute: number;
+    totalCollSurplus: number;
+  }) {
+    this.totalCollInSequence = new BN(args.totalCollInSequence);
+    this.totalDebtInSequence = new BN(args.totalDebtInSequence);
+    this.totalCollGasCompensation = new BN(args.totalCollGasCompensation);
+    this.totalSolusdGasCompensation = new BN(args.totalSolusdGasCompensation);
+    this.totalDebtToOffset = new BN(args.totalDebtToOffset);
+    this.totalCollToSendToSp = new BN(args.totalCollToSendToSp);
+    this.totalDebtToRedistribute = new BN(args.totalDebtToRedistribute);
+    this.totalCollToRedistribute = new BN(args.totalCollToRedistribute);
+    this.totalCollSurplus = new BN(args.totalCollSurplus);
+  }
+}
+
+export class CreateSolidStakingArgs {
+  instruction: number = 0;
+  nonce: number;
+  constructor(args: { nonce: number }) {
+    this.nonce = args.nonce;
+  }
+}
+
+export class StakeArgs {
+  instruction: number = 1;
+  amount: BN;
+  constructor(args: { amount: number }) {
+    this.amount = new BN(args.amount);
+  }
+}
+
+export class UnstakeArgs {
+  instruction: number = 2;
+  amount: BN;
+  constructor(args: { amount: number }) {
+    this.amount = new BN(args.amount);
+  }
+}
+
 export const decodeState = (buffer: Buffer, classType: any) => {
   return deserializeUnchecked(SCHEMA, classType, buffer);
 };
@@ -192,6 +518,77 @@ export const SCHEMA = new Map<any, any>([
     },
   ],
   [
+    BorrowerOperations,
+    {
+      kind: 'struct',
+      fields: [
+        ['nonce', 'u8'],
+        ['tokenProgramPubkey', 'pubkeyAsString'],
+        ['troveManagerId', 'pubkeyAsString'],
+        ['activePoolId', 'pubkeyAsString'],
+        ['defaultPoolId', 'pubkeyAsString'],
+        ['stabilityPoolId', 'pubkeyAsString'],
+        ['gasPoolId', 'pubkeyAsString'],
+        ['collSurplusPoolId', 'pubkeyAsString'],
+        ['solusdTokenId', 'pubkeyAsString'],
+        ['solidStakingId', 'pubkeyAsString'],
+        ['oracleProgramId', 'pubkeyAsString'],
+        ['pythProductId', 'pubkeyAsString'],
+        ['pythPriceId', 'pubkeyAsString'],
+        ['quoteCurrency', 'pubkeyAsString'],
+      ],
+    },
+  ],
+  [
+    TroveManager,
+    {
+      kind: 'struct',
+      fields: [
+        ['nonce', 'u8'],
+        ['borrowerOperationsId', 'pubkeyAsString'],
+        ['stabilityPoolId', 'pubkeyAsString'],
+        ['gasPoolId', 'pubkeyAsString'],
+        ['collSurplusPoolId', 'pubkeyAsString'],
+        ['SOLUSDTokenPubkey', 'pubkeyAsString'],
+        ['SOLIDTokenPubkey', 'pubkeyAsString'],
+        ['SOLIDStakingPubkey', 'pubkeyAsString'],
+        ['tokenProgramId', 'pubkeyAsString'],
+        ['defaultPoolId', 'pubkeyAsString'],
+        ['activePoolId', 'pubkeyAsString'],
+        ['oracleProgramId', 'pubkeyAsString'],
+        ['pythProductId', 'pubkeyAsString'],
+        ['pythPriceId', 'pubkeyAsString'],
+        ['quoteCurrency', 'pubkeyAsString'],
+        ['baseRate', 'u128'],
+        ['lasstFeeOperationTime', 'u128'],
+        ['totalStakes', 'u128'],
+        ['totalStakesSnapshot', 'u128'],
+        ['totalCollateralSnapshot', 'u128'],
+        ['lSol', 'u128'],
+        ['lSOLUSDDebt', 'u128'],
+        ['lastSOLErrorRedistribution', 'u128'],
+        ['lastSOLUSDDebtErrorRedistribution', 'u128'],
+      ],
+    },
+  ],
+  [
+    SOLIDStaking,
+    {
+      kind: 'struct',
+      fields: [
+        ['nonce', 'u8'],
+        ['tokenProgramPubkey', 'pubkeyAsString'],
+        ['solidPoolTokenPubkey', 'pubkeyAsString'],
+        ['troveManagerId', 'pubkeyAsString'],
+        ['borrowerOperationsId', 'pubkeyAsString'],
+        ['activePoolId', 'pubkeyAsString'],
+        ['totalStakedAmount', 'u128'],
+        ['fSol', 'u128'],
+        ['fSolusd', 'u128'],
+      ],
+    },
+  ],
+  [
     CreateStabilityPoolArgs,
     {
       kind: 'struct',
@@ -246,24 +643,159 @@ export const SCHEMA = new Map<any, any>([
       ],
     },
   ],
+  [
+    CreateBorrowerOperationsArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    OpenTroveArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['maxFeePercentage', 'u64'],
+        ['solusdAmount', 'u64'],
+        ['collIncrease', 'u64'],
+        ['SOLAmount', 'u64'],
+      ],
+    },
+  ],
+  [
+    AdjustTroveArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['collWithdrawal', 'u64'],
+        ['SOLUSDChange', 'u64'],
+        ['isDebtIncrease', 'u8'],
+        ['maxFeePercentage', 'u64'],
+        ['SOLAmount', 'u64'],
+      ],
+    },
+  ],
+  [
+    CloseTroveArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['amount', 'u64'],
+      ],
+    },
+  ],
+  [
+    CreateTroveManagerArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    ApplyPendingRewardsArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    LiquidateArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    RedeemCollateralArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['solusdAmount', 'u128'],
+        ['partialRedemptionHintNicr', 'u128'],
+        ['maxIterations', 'u128'],
+        ['maxFeePercentage', 'u128'],
+        ['totalSolDrawn', 'u128'],
+        ['totalSolusdToRedeem', 'u128'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    LiquidateTrovesArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['totalCollInSequence', 'u128'],
+        ['totalDebtInSequence', 'u128'],
+        ['totalCollGasCompensation', 'u128'],
+        ['totalSolusdGasCompensation', 'u128'],
+        ['totalDebtToOffset', 'u128'],
+        ['totalCollToSendToSp', 'u128'],
+        ['totalDebtToRedistribute', 'u128'],
+        ['totalCollToRedistribute', 'u128'],
+        ['totalCollSurplus', 'u128'],
+      ],
+    },
+  ],
+  [
+    CreateSolidStakingArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['nonce', 'u8'],
+      ],
+    },
+  ],
+  [
+    StakeArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['amount', 'u128'],
+      ],
+    },
+  ],
+  [
+    UnstakeArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['amount', 'u128'],
+      ],
+    },
+  ],
 ]);
 
 // export class Frontend {
-//   poolIdPubkey: PublicKey;
-//   ownerPubkey: PublicKey;
+//   poolIdPubkey: StringPublicKey;
+//   ownerPubkey: StringPublicKey;
 //   kickbackRate: number;
 //   registered: boolean;
 //   frontendStake:number;
 
 //   constructor(obj: {
-//     poolIdPubkey: Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey: StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     kickbackRate: BN;
 //     registered: number;
 //     frontendStake: BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.kickbackRate = obj.kickbackRate.toNumber();
 //     this.registered = obj.registered >= 0;
 //     this.frontendStake = obj.frontendStake.toNumber();
@@ -271,26 +803,26 @@ export const SCHEMA = new Map<any, any>([
 // }
 
 // export class Deposit {
-//   poolIdPubkey: PublicKey;
-//   ownerPubkey: PublicKey;
+//   poolIdPubkey: StringPublicKey;
+//   ownerPubkey: StringPublicKey;
 //   initialValue: number;
-//   frontendTag: PublicKey;
+//   frontendTag: StringPublicKey;
 
 //   constructor(obj: {
-//     poolIdPubkey: Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey: StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     initialValue: BN;
-//     frontendTag: Uint8Array;
+//     frontendTag: StringPublicKey;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.initialValue = obj.initialValue.toNumber();
-//     this.frontendTag = new PublicKey(obj.frontendTag);
+//     this.frontendTag = obj.frontendTag);
 //   }
 // }
 // export class Snapshots {
-//   poolIdPubkey: PublicKey;
-//   ownerPubkey: PublicKey;
+//   poolIdPubkey: StringPublicKey;
+//   ownerPubkey: StringPublicKey;
 //   s: number;
 //   p: number;
 //   g: number;
@@ -298,100 +830,21 @@ export const SCHEMA = new Map<any, any>([
 //   epoch: number;
 
 //   constructor(obj: {
-//     poolIdPubkey: Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey: StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     s: BN;
 //     p: BN;
 //     g: BN;
 //     scale: BN;
 //     epoch: BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.s = obj.s.toNumber();
 //     this.p = obj.p.toNumber();
 //     this.g = obj.g.toNumber();
 //     this.scale = obj.scale.toNumber();
 //     this.epoch = obj.epoch.toNumber();
-//   }
-// }
-
-// export class TroveManager {
-//   nonce: number;
-//   borrowerOperationsId: PublicKey;
-//   stabilityPoolId: PublicKey;
-//   gasPoolId: PublicKey;
-//   collSurplusPoolId: PublicKey;
-//   SOLUSDTokenPubkey: PublicKey;
-//   SOLIDTokenPubkey: PublicKey;
-//   SOLIDStakingPubkey: PublicKey;
-//   tokenProgramId: PublicKey;
-//   defaultPoolId: PublicKey;
-//   activePoolId: PublicKey;
-//   oracleProgramId: PublicKey;
-//   pythProductId: PublicKey;
-//   pythPriceId: PublicKey;
-//   quoteCurrency: PublicKey;
-//   baseRate: number;
-//   lasstFeeOperationTime: number;
-//   totalStakes: number;
-//   totalStakesSnapshot: number;
-//   totalCollateralSnapshot: number;
-//   lSol: number;
-//   lSOLUSDDebt: number;
-//   lastSOLErrorRedistribution: number;
-//   lastSOLUSDDebtErrorRedistribution: number;
-
-//   constructor(obj: {
-//     nonce: number,
-//     borrowerOperationsId: Uint8Array;
-//     stabilityPoolId: Uint8Array;
-//     gasPoolId: Uint8Array;
-//     collSurplusPoolId: Uint8Array;
-//     SOLUSDTokenPubkey: Uint8Array;
-//     SOLIDTokenPubkey: Uint8Array;
-//     SOLIDStakingPubkey: Uint8Array;
-//     tokenProgramId: Uint8Array;
-//     defaultPoolId: Uint8Array;
-//     activePoolId: Uint8Array;
-//     oracleProgramId: Uint8Array;
-//     pythProductId: Uint8Array;
-//     pythPriceId: Uint8Array;
-//     quoteCurrency: Uint8Array;
-//     baseRate: BN;
-//     lasstFeeOperationTime: BN;
-//     totalStakes: BN;
-//     totalStakesSnapshot: BN;
-//     totalCollateralSnapshot: BN;
-//     lSol: BN;
-//     lSOLUSDDebt: BN;
-//     lastSOLErrorRedistribution: BN;
-//     lastSOLUSDDebtErrorRedistribution: BN;
-//   }) {
-//     this.nonce = obj.nonce;
-//     this.borrowerOperationsId = new PublicKey(obj.borrowerOperationsId);
-//     this.stabilityPoolId = new PublicKey(obj.stabilityPoolId);
-//     this.gasPoolId = new PublicKey(obj.gasPoolId);
-//     this.collSurplusPoolId = new PublicKey(obj.collSurplusPoolId);
-//     this.SOLUSDTokenPubkey = new PublicKey(obj.SOLUSDTokenPubkey);
-//     this.SOLIDTokenPubkey = new PublicKey(obj.SOLIDTokenPubkey);
-//     this.SOLIDStakingPubkey = new PublicKey(obj.SOLIDStakingPubkey);
-//     this.tokenProgramId = new PublicKey(obj.tokenProgramId);
-//     this.defaultPoolId = new PublicKey(obj.defaultPoolId);
-//     this.activePoolId = new PublicKey(obj.activePoolId);
-//     this.oracleProgramId = new PublicKey(obj.oracleProgramId);
-//     this.pythProductId = new PublicKey(obj.pythProductId);
-//     this.pythPriceId = new PublicKey(obj.pythPriceId);
-//     this.quoteCurrency = new PublicKey(obj.quoteCurrency);
-//     this.baseRate = obj.baseRate.toNumber();
-//     this.lasstFeeOperationTime = obj.lasstFeeOperationTime.toNumber();
-//     this.totalStakes = obj.totalStakes.toNumber();
-//     this.totalStakesSnapshot = obj.totalStakesSnapshot.toNumber();
-//     this.totalCollateralSnapshot = obj.totalCollateralSnapshot.toNumber();
-//     this.lSol = obj.lSol.toNumber();
-//     this.lSOLUSDDebt = obj.lSOLUSDDebt.toNumber();
-//     this.lastSOLErrorRedistribution = obj.lastSOLErrorRedistribution.toNumber();
-//     this.lastSOLUSDDebtErrorRedistribution = obj.lastSOLUSDDebtErrorRedistribution.toNumber();
 //   }
 // }
 
@@ -421,8 +874,8 @@ export const SCHEMA = new Map<any, any>([
 // }
 
 // export class Trove {
-//   poolIdPubkey: PublicKey;
-//   ownerPubkey: PublicKey;
+//   poolIdPubkey: StringPublicKey;
+//   ownerPubkey: StringPublicKey;
 //   debt: number;
 //   coll: number;
 //   stake: number;
@@ -430,16 +883,16 @@ export const SCHEMA = new Map<any, any>([
 //   array_index: number;
 
 //   constructor(obj: {
-//     poolIdPubkey: Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey: StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     debt: BN;
 //     coll: BN;
 //     stake: BN;
 //     status: number;
 //     array_index: BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.debt = obj.debt.toNumber();
 //     this.coll = obj.coll.toNumber();
 //     this.stake = obj.stake.toNumber();
@@ -449,19 +902,19 @@ export const SCHEMA = new Map<any, any>([
 // }
 
 // export class RewardSnapshot {
-//   poolIdPubkey: PublicKey;
-//   ownerPubkey: PublicKey;
+//   poolIdPubkey: StringPublicKey;
+//   ownerPubkey: StringPublicKey;
 //   sol: number;
 //   solusdDebt: number;
 
 //   constructor(obj: {
-//     poolIdPubkey: Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey: StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     sol: BN;
 //     solusdDebt: BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.sol = obj.sol.toNumber();
 //     this.solusdDebt = obj.solusdDebt.toNumber();
 //   }
@@ -509,7 +962,7 @@ export const SCHEMA = new Map<any, any>([
 //   remainingSOLUSDInStabPool:number;
 //   i:number;
 //   icr:number;
-//   user?:PublicKey;
+//   user?:StringPublicKey;
 //   backToNormalMode:number;
 //   entireSystemDebt:number;
 //   entireSystemColl:number;
@@ -518,7 +971,7 @@ export const SCHEMA = new Map<any, any>([
 //     remainingSOLUSDInStabPool:BN;
 //     i:BN;
 //     icr:BN;
-//     user?:Uint8Array;
+//     user?:StringPublicKey;
 //     backToNormalMode:number;
 //     entireSystemDebt:BN;
 //     entireSystemColl:BN;
@@ -530,7 +983,7 @@ export const SCHEMA = new Map<any, any>([
 //       this.user = undefined;
 //     }
 //     else{
-//       this.user = new PublicKey(obj.user);
+//       this.user = obj.user);
 //     }
 
 //     this.backToNormalMode = obj.backToNormalMode;
@@ -655,122 +1108,71 @@ export const SCHEMA = new Map<any, any>([
 // }
 
 // export class ActivePool {
-//   borrowerOperationsAddress: PublicKey;
-//   troveManagerAddress: PublicKey;
-//   stabilityPoolAddress: PublicKey;
-//   defaultPoolAddress: PublicKey;
+//   borrowerOperationsAddress: StringPublicKey;
+//   troveManagerAddress: StringPublicKey;
+//   stabilityPoolAddress: StringPublicKey;
+//   defaultPoolAddress: StringPublicKey;
 //   sol: number;
 //   solusdDebt: number;
 
 //   constructor(obj: {
-//     borrowerOperationsAddress: Uint8Array;
-//     troveManagerAddress: Uint8Array;
-//     stabilityPoolAddress: Uint8Array;
-//     defaultPoolAddress: Uint8Array;
+//     borrowerOperationsAddress: StringPublicKey;
+//     troveManagerAddress: StringPublicKey;
+//     stabilityPoolAddress: StringPublicKey;
+//     defaultPoolAddress: StringPublicKey;
 //     sol: BN;
 //     solusdDebt: BN;
 //   }) {
-//     this.borrowerOperationsAddress = new PublicKey(obj.borrowerOperationsAddress);
-//     this.troveManagerAddress = new PublicKey(obj.troveManagerAddress);
-//     this.stabilityPoolAddress = new PublicKey(obj.stabilityPoolAddress);
-//     this.defaultPoolAddress = new PublicKey(obj.defaultPoolAddress);
+//     this.borrowerOperationsAddress = obj.borrowerOperationsAddress);
+//     this.troveManagerAddress = obj.troveManagerAddress);
+//     this.stabilityPoolAddress = obj.stabilityPoolAddress);
+//     this.defaultPoolAddress = obj.defaultPoolAddress);
 //     this.sol = obj.sol.toNumber();
 //     this.solusdDebt = obj.solusdDebt.toNumber();
 //   }
 // }
 
 // export class CollSurplusPool {
-//   borrowerOperationsAddress: PublicKey;
-//   troveManagerAddress: PublicKey;
-//   activePoolAddress: PublicKey;
+//   borrowerOperationsAddress: StringPublicKey;
+//   troveManagerAddress: StringPublicKey;
+//   activePoolAddress: StringPublicKey;
 //   sol: number;
 
 //   constructor(obj: {
-//     borrowerOperationsAddress: Uint8Array;
-//     troveManagerAddress: Uint8Array;
-//     activePoolAddress: Uint8Array;
+//     borrowerOperationsAddress: StringPublicKey;
+//     troveManagerAddress: StringPublicKey;
+//     activePoolAddress: StringPublicKey;
 //     sol: BN;
 //   }) {
-//     this.borrowerOperationsAddress = new PublicKey(obj.borrowerOperationsAddress);
-//     this.troveManagerAddress = new PublicKey(obj.troveManagerAddress);
-//     this.activePoolAddress = new PublicKey(obj.activePoolAddress);
+//     this.borrowerOperationsAddress = obj.borrowerOperationsAddress);
+//     this.troveManagerAddress = obj.troveManagerAddress);
+//     this.activePoolAddress = obj.activePoolAddress);
 //     this.sol = obj.sol.toNumber();
 //   }
 // }
 
 // export class DefaultPool {
-//   troveManagerAddress: PublicKey;
-//   activePoolAddress: PublicKey;
+//   troveManagerAddress: StringPublicKey;
+//   activePoolAddress: StringPublicKey;
 //   sol: number;
 //   solusdDebt: number;
 
 //   constructor(obj: {
-//     troveManagerAddress: Uint8Array;
-//     activePoolAddress: Uint8Array;
+//     troveManagerAddress: StringPublicKey;
+//     activePoolAddress: StringPublicKey;
 //     sol: BN;
 //     solusdDebt: BN;
 //   }) {
-//     this.troveManagerAddress = new PublicKey(obj.troveManagerAddress);
-//     this.activePoolAddress = new PublicKey(obj.activePoolAddress);
+//     this.troveManagerAddress = obj.troveManagerAddress);
+//     this.activePoolAddress = obj.activePoolAddress);
 //     this.sol = obj.sol.toNumber();
 //     this.solusdDebt = obj.solusdDebt.toNumber();
 //   }
 // }
 
-// export class BorrowerOperations {
-//   nonce: number;
-//   tokenProgramPubkey: PublicKey;
-//   troveManagerId: PublicKey;
-//   activePoolId: PublicKey;
-//   defaultPoolId: PublicKey;
-//   stabilityPoolId: PublicKey;
-//   gasPoolId: PublicKey;
-//   collSurplusPoolId: PublicKey;
-//   solusdTokenId: PublicKey;
-//   solidStakingId: PublicKey;
-
-//   oracleProgramId: PublicKey;
-//   pythProductId: PublicKey;
-//   pythPriceId: PublicKey;
-//   quoteCurrency: PublicKey;
-
-//   constructor(obj: {
-//     nonce: number;
-//     tokenProgramPubkey: Uint8Array;
-//     troveManagerId: Uint8Array;
-//     activePoolId: Uint8Array;
-//     defaultPoolId: Uint8Array;
-//     stabilityPoolId: Uint8Array;
-//     gasPoolId: Uint8Array;
-//     collSurplusPoolId: Uint8Array;
-//     solusdTokenId: Uint8Array;
-//     solidStakingId: Uint8Array;
-
-//     oracleProgramId: Uint8Array;
-//     pythProductId: Uint8Array;
-//     pythPriceId: Uint8Array;
-//     quoteCurrency: Uint8Array;
-//   }) {
-//     this.nonce = obj.nonce;
-//     this.tokenProgramPubkey = new PublicKey(obj.tokenProgramPubkey);
-//     this.troveManagerId = new PublicKey(obj.troveManagerId);
-//     this.activePoolId = new PublicKey(obj.activePoolId);
-//     this.defaultPoolId = new PublicKey(obj.defaultPoolId);
-//     this.stabilityPoolId = new PublicKey(obj.stabilityPoolId);
-//     this.gasPoolId = new PublicKey(obj.gasPoolId);
-//     this.collSurplusPoolId = new PublicKey(obj.collSurplusPoolId);
-//     this.solusdTokenId = new PublicKey(obj.solusdTokenId);
-//     this.solidStakingId = new PublicKey(obj.solidStakingId);
-//     this.oracleProgramId = new PublicKey(obj.oracleProgramId);
-//     this.pythProductId = new PublicKey(obj.pythProductId);
-//     this.pythPriceId = new PublicKey(obj.pythPriceId);
-//     this.quoteCurrency = new PublicKey(obj.quoteCurrency);
-//   }
-// }
-
 // export class LocalVariablesAdjustTrove {
-//   poolIdPubkey:PublicKey;
-//   ownerPubkey:PublicKey;
+//   poolIdPubkey:StringPublicKey;
+//   ownerPubkey:StringPublicKey;
 //   price:number;
 //   collChange:number;
 //   netDebtChange:number;
@@ -786,8 +1188,8 @@ export const SCHEMA = new Map<any, any>([
 //   stake:number;
 
 //   constructor(obj: {
-//     poolIdPubkey:Uint8Array;
-//     ownerPubkey:Uint8Array;
+//     poolIdPubkey:StringPublicKey;
+//     ownerPubkey:StringPublicKey;
 //     price:BN;
 //     collChange:BN;
 //     netDebtChange:BN;
@@ -802,8 +1204,8 @@ export const SCHEMA = new Map<any, any>([
 //     newColl:BN;
 //     stake:BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.price = obj.price.toNumber();
 //     this.collChange = obj.collChange.toNumber();
 //     this.netDebtChange = obj.netDebtChange.toNumber();
@@ -821,8 +1223,8 @@ export const SCHEMA = new Map<any, any>([
 // }
 
 // export class LocalVariablesOpenTrove {
-//   poolIdPubkey:PublicKey;
-//   ownerPubkey:PublicKey;
+//   poolIdPubkey:StringPublicKey;
+//   ownerPubkey:StringPublicKey;
 //   price:number;
 //   solusdFee:number;
 //   newDebt:number;
@@ -833,8 +1235,8 @@ export const SCHEMA = new Map<any, any>([
 //   arrayIndex:number;
 
 //   constructor(obj: {
-//     poolIdPubkey:Uint8Array;
-//     ownerPubkey:Uint8Array;
+//     poolIdPubkey:StringPublicKey;
+//     ownerPubkey:StringPublicKey;
 //     price:BN;
 //     solusdFee:BN;
 //     newDebt:BN;
@@ -844,8 +1246,8 @@ export const SCHEMA = new Map<any, any>([
 //     stake:BN;
 //     arrayIndex:BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.price = obj.price.toNumber();
 //     this.solusdFee = obj.solusdFee.toNumber();
 //     this.newDebt = obj.newDebt.toNumber();
@@ -859,117 +1261,83 @@ export const SCHEMA = new Map<any, any>([
 
 // export class CommunityIssuance {
 //   nonce:number;
-//   tokenProgramPubkey:PublicKey;
-//   solidTokenPubkey:PublicKey;
-//   stabilityPoolPubkey:PublicKey;
+//   tokenProgramPubkey:StringPublicKey;
+//   solidTokenPubkey:StringPublicKey;
+//   stabilityPoolPubkey:StringPublicKey;
 //   totalSolidIssued:number;
 //   deploymentTime:number;
 
 //   constructor(obj: {
 //     nonce:number;
-//     tokenProgramPubkey:Uint8Array;
-//     solidTokenPubkey:Uint8Array;
-//     stabilityPoolPubkey:Uint8Array;
+//     tokenProgramPubkey:StringPublicKey;
+//     solidTokenPubkey:StringPublicKey;
+//     stabilityPoolPubkey:StringPublicKey;
 //     totalSolidIssued:BN;
 //     deploymentTime:BN;
 //   }) {
 //     this.nonce = obj.nonce;
-//     this.tokenProgramPubkey = new PublicKey(obj.tokenProgramPubkey);
-//     this.solidTokenPubkey = new PublicKey(obj.solidTokenPubkey);
-//     this.stabilityPoolPubkey = new PublicKey(obj.stabilityPoolPubkey);
+//     this.tokenProgramPubkey = obj.tokenProgramPubkey);
+//     this.solidTokenPubkey = obj.solidTokenPubkey);
+//     this.stabilityPoolPubkey = obj.stabilityPoolPubkey);
 //     this.totalSolidIssued = obj.totalSolidIssued.toNumber();
 //     this.deploymentTime = obj.deploymentTime.toNumber();
 //   }
 // }
 
-// export class SOLIDStaking {
-//   nonce:number;
-//   tokenProgramPubkey:PublicKey;
-//   solidPoolTokenPubkey: PublicKey;
-//   troveManagerId: PublicKey;
-//   borrowerOperationsId: PublicKey;
-//   activePoolId: PublicKey;
-//   totalStakedAmount:number;
-//   fSol:number;
-//   fSolusd:number;
-
-//   constructor(obj: {
-//     nonce:number;
-//     tokenProgramPubkey:Uint8Array;
-//     solidPoolTokenPubkey: Uint8Array;
-//     troveManagerId: Uint8Array;
-//     borrowerOperationsId: Uint8Array;
-//     activePoolId: Uint8Array;
-//     totalStakedAmount:BN;
-//     fSol:BN;
-//     fSolusd:BN;
-//   }) {
-//     this.nonce = obj.nonce;
-//     this.tokenProgramPubkey = new PublicKey(obj.tokenProgramPubkey);
-//     this.solidPoolTokenPubkey = new PublicKey(obj.solidPoolTokenPubkey);
-//     this.troveManagerId = new PublicKey(obj.troveManagerId);
-//     this.borrowerOperationsId = new PublicKey(obj.borrowerOperationsId);
-//     this.activePoolId = new PublicKey(obj.activePoolId);
-//     this.totalStakedAmount = obj.totalStakedAmount.toNumber();
-//     this.fSol = obj.fSol.toNumber();
-//     this.fSolusd = obj.fSolusd.toNumber();
-//   }
-// }
-
 // export class UserDeposit {
-//   poolIdPubkey:PublicKey;
+//   poolIdPubkey:StringPublicKey;
 
 //   /// owner pubkey
-//   ownerPubkey:PublicKey;
+//   ownerPubkey:StringPublicKey;
 
 //   /// deposited amount
 //   depositAmount:number;
 
 //   constructor(obj: {
-//     poolIdPubkey:Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey:StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     depositAmount:BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.depositAmount = obj.depositAmount.toNumber();
 //   }
 // }
 
 // export class Snapshot {
-//   poolIdPubkey:PublicKey;
-//   ownerPubkey:PublicKey;
+//   poolIdPubkey:StringPublicKey;
+//   ownerPubkey:StringPublicKey;
 //   fSolSnapshot:number;
 //   fSolusdSnapshot:number;
 
 //   constructor(obj: {
-//     poolIdPubkey:Uint8Array;
-//     ownerPubkey: Uint8Array;
+//     poolIdPubkey:StringPublicKey;
+//     ownerPubkey: StringPublicKey;
 //     fSolSnapshot:BN;
 //     fSolusdSnapshot:BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
-//     this.ownerPubkey = new PublicKey(obj.ownerPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
+//     this.ownerPubkey = obj.ownerPubkey);
 //     this.fSolSnapshot = obj.fSolSnapshot.toNumber();
 //     this.fSolusdSnapshot = obj.fSolusdSnapshot.toNumber();
 //   }
 // }
 
 // export class EpochToScale {
-//   poolIdPubkey:PublicKey;
+//   poolIdPubkey:StringPublicKey;
 //   scale:number;
 //   epoch:number;
 //   epochToScaleToSum:number;
 //   epochToScaleToG:number;
 
 //   constructor(obj: {
-//     poolIdPubkey:Uint8Array;
+//     poolIdPubkey:StringPublicKey;
 //     scale:BN;
 //     epoch:BN;
 //     epochToScaleToSum:BN;
 //     epochToScaleToG:BN;
 //   }) {
-//     this.poolIdPubkey = new PublicKey(obj.poolIdPubkey);
+//     this.poolIdPubkey = obj.poolIdPubkey);
 //     this.scale = obj.scale.toNumber();
 //     this.epoch = obj.epoch.toNumber();
 //     this.epochToScaleToSum = obj.epochToScaleToSum.toNumber();
@@ -1370,7 +1738,7 @@ export const SCHEMA = new Map<any, any>([
 //   ],
 // ]);
 
-// export async function retrievSchema(connection: Connection,account: PublicKey, classType:any): Promise<any>{
+// export async function retrievSchema(connection: Connection,account: StringPublicKey, classType:any): Promise<any>{
 //   let data = await connection.getAccountInfo(
 //     account,
 //     "processed"
@@ -1385,7 +1753,7 @@ export const SCHEMA = new Map<any, any>([
 //   );
 //   return res;
 // }
-// export function parse(address: PublicKey, data: Buffer, classType:any): any {
+// export function parse(address: StringPublicKey, data: Buffer, classType:any): any {
 //   let res: any = deserializeUnchecked(
 //     LIQUITY_SCHEMA,
 //     classType,
