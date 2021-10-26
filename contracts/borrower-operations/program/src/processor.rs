@@ -261,7 +261,66 @@ impl Processor {
         let new_iCR = compute_cr(res.coll, res.debt, price);
         Ok(new_iCR)
     }
+    #[allow(clippy::too_many_arguments)]
+    fn check_accounts(
+        borrower_operations: &dyn BorrowerOperations,
+        program_id: &Pubkey,
+        borrower_operation_info: &AccountInfo,
+        authority_info: &AccountInfo,
+        token_a_info: &AccountInfo,
+        token_b_info: &AccountInfo,
+        pool_mint_info: &AccountInfo,
+        token_program_info: &AccountInfo,
+        user_token_a_info: Option<&AccountInfo>,
+        user_token_b_info: Option<&AccountInfo>,
+    ) -> ProgramResult {
+        if swap_account_info.owner != program_id {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+        if *authority_info.key
+            != Self::authority_id(program_id, swap_account_info.key, token_swap.nonce())?
+        {
+            return Err(AmmError::InvalidProgramAddress.into());
+        }
 
+        let borrower_operations_info = next_account_info(account_info_iter)?;
+        let authority_info = next_account_info(account_info_iter)?;
+        let trove_manager_info = next_account_info(account_info_iter)?;
+        let active_pool_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
+        let stability_pool_info = next_account_info(account_info_iter)?;
+        let gas_pool_info = next_account_info(account_info_iter)?;
+        let coll_surplus_pool = next_account_info(account_info_iter)?;
+        let solusd_token_info = next_account_info(account_info_iter)?;
+        let solid_staking_info = next_account_info(account_info_iter)?;
+        let oracle_program_id_info = next_account_info(account_info_iter)?;
+        let pyth_product_id_info = next_account_info(account_info_iter)?;
+        let pyth_price_id_info = next_account_info(account_info_iter)?;
+
+        if *token_a_info.key != *token_swap.token_a_account() {
+            return Err(AmmError::IncorrectSwapAccount.into());
+        }
+        if *token_b_info.key != *token_swap.token_b_account() {
+            return Err(AmmError::IncorrectSwapAccount.into());
+        }
+        if *pool_mint_info.key != *token_swap.pool_mint() {
+            return Err(AmmError::IncorrectPoolMint.into());
+        }
+        if *token_program_info.key != *token_swap.token_program_id() {
+            return Err(AmmError::IncorrectTokenProgramId.into());
+        }
+        if let Some(user_token_a_info) = user_token_a_info {
+            if token_a_info.key == user_token_a_info.key {
+                return Err(AmmError::InvalidInput.into());
+            }
+        }
+        if let Some(user_token_b_info) = user_token_b_info {
+            if token_b_info.key == user_token_b_info.key {
+                return Err(AmmError::InvalidInput.into());
+            }
+        }
+        Ok(())
+    }
     fn  get_new_normal_icr_from_trove_change
     (
         coll:u128,
@@ -442,7 +501,11 @@ impl Processor {
             SOLUSD_GAS_COMPENSATION,
             SOLUSD_GAS_COMPENSATION
         )?;
-
+        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
+        borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
+        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+        stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
         Ok(())
         
     }
@@ -616,7 +679,12 @@ impl Processor {
         else{
             active_pool.send_sol(vars.coll_change);
         }
-
+        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
+        borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
+        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+        stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
+        
         // check if given pool token account is same with pool token account
         Ok(())
     }
@@ -717,6 +785,13 @@ impl Processor {
             SOLUSD_GAS_COMPENSATION
         )?;
         active_pool.send_sol(coll);
+
+        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
+        borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
+        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+        stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
+
         // check if given pool token account is same with pool token account
         Ok(())
         
