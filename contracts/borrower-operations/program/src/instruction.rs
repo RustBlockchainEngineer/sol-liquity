@@ -59,7 +59,7 @@ pub enum BorrowerOperationsInstruction {
     
         solusd_change: u64,
         
-        is_debt_increase:bool,
+        is_debt_increase:u8,
         
         max_fee_percentage: u64,
         
