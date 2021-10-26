@@ -15,6 +15,7 @@ import {
   WithdrawSOLGainToTroveArgs,
 } from '..';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { BORROWER_OPERATIONS_TAG, CreateBorrowerOperationsArgs } from '.';
 
 export async function createStabilityPoolInstruction(
   stabilityPoolKey: StringPublicKey,
@@ -546,6 +547,110 @@ export async function registerFrontendInstruction(
     new TransactionInstruction({
       keys,
       programId: toPublicKey(stabilityPoolProgramId),
+      data: data,
+    }),
+  );
+}
+
+export async function createBorrowerOperationsInstruction(
+  borrowerOperationsKey: StringPublicKey,
+  troveManagerKey: StringPublicKey,
+  activePoolKey: StringPublicKey,
+  defaultPoolKey: StringPublicKey,
+  stabilityPoolKey: StringPublicKey,
+  gasPoolKey: StringPublicKey,
+  collSurplusPoolKey: StringPublicKey,
+  solusdTokenKey: StringPublicKey,
+  solidStakingKey: StringPublicKey,
+  oracleProgramKey: StringPublicKey,
+  pythProductKey: StringPublicKey,
+  pythPriceKey: StringPublicKey,
+  instructions: TransactionInstruction[],
+) {
+  const borrowerOperationsProgramId = programIds().borrowerOperations;
+  const [aurthority, nonce] = await PublicKey.findProgramAddress(
+    [
+      Buffer.from(BORROWER_OPERATIONS_TAG),
+      toPublicKey(borrowerOperationsKey).toBuffer(),
+    ],
+    toPublicKey(borrowerOperationsKey),
+  );
+
+  const data = Buffer.from(
+    serialize(SCHEMA, new CreateBorrowerOperationsArgs({ nonce })),
+  );
+
+  const keys = [
+    {
+      pubkey: toPublicKey(borrowerOperationsKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: aurthority,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(troveManagerKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(activePoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(defaultPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(stabilityPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(gasPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(collSurplusPoolKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(solusdTokenKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(solidStakingKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(oracleProgramKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(pythProductKey),
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: toPublicKey(pythPriceKey),
+      isSigner: true,
+      isWritable: true,
+    },
+  ];
+  instructions.push(
+    new TransactionInstruction({
+      keys,
+      programId: toPublicKey(borrowerOperationsProgramId),
       data: data,
     }),
   );
