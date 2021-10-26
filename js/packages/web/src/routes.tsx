@@ -1,6 +1,7 @@
 import { HashRouter, Route, Switch } from 'react-router-dom';
 import { Providers } from './providers';
 import { LiquityView } from './views/liquity';
+import { ChangeDestination } from './views/change-destination';
 
 export function Routes() {
   return (

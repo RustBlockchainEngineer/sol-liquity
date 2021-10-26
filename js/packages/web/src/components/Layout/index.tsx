@@ -21,13 +21,14 @@ export const AppLayout = React.memo((props: any) => {
         title={LABELS.APP_TITLE}
         style={{
           padding: paddingForLayout(width),
+          margin:"auto",
           maxWidth: 1000,
         }}
       >
         <Header className="App-Bar">
           <AppBar />
         </Header>
-        <Content style={{ overflow: 'scroll', paddingBottom: 50 }}>
+        <Content style={{ paddingBottom: 50 }}>
           {props.children}
         </Content>
       </Layout>

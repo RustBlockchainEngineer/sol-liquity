@@ -48,23 +48,13 @@ const DefaultActions = ({ vertical = false }: { vertical?: boolean }) => {
         flexDirection: vertical ? 'column' : 'row',
       }}
     >
-      {/* <Link to={`/`}>
-        <Button className="app-btn">Explore</Button>
+      <Link to={`/`}>
+        <Button className="app-btn">Liquity</Button>
       </Link>
-      <Link to={`/artworks`}>
-        <Button className="app-btn">
-          {connected ? 'My Items' : 'Artworks'}
-        </Button>
-      </Link>
-      <Link to={`/artists`}>
-        <Button className="app-btn">Creators</Button>
-      </Link>
-      <Link to={`/store-list`}>
-        <Button className="app-btn">Store</Button>
-      </Link>
-      <Link to={`/lottery`}>
-        <Button className="app-btn">Lottery</Button>
+      {/* <Link to={`/liquity`}>
+        <Button className="app-btn">Liquity</Button>
       </Link> */}
+      
     </div>
   );
 };
@@ -82,17 +72,23 @@ const MetaplexMenu = () => {
           trigger={['click']}
           overlay={
             <Menu>
-              {/* <Menu.Item>
-                <Link to={`/store-list`}>
-                  <Button className="app-btn">Store</Button>
+              <Menu.Item>
+                <Link to={`/`}>
+                  <Button className="app-btn">Lock</Button>
                 </Link>
               </Menu.Item>
              
               <Menu.Item>
-                <Link to={`/lottery`}>
-                  <Button className="app-btn">Lottery</Button>
+                <Link to={`/unlock`}>
+                  <Button className="app-btn">Unlock</Button>
                 </Link>
-              </Menu.Item> */}
+              </Menu.Item>
+
+              <Menu.Item>
+                <Link to={`/change-destination`}>
+                  <Button className="app-btn">Change Destination</Button>
+                </Link>
+              </Menu.Item>
             </Menu>
           }
         >
