@@ -261,7 +261,7 @@ impl Processor {
         let new_iCR = compute_cr(res.coll, res.debt, price);
         Ok(new_iCR)
     }
-    #[allow(clippy::too_many_arguments)]
+    /*#[allow(clippy::too_many_arguments)]
     fn check_accounts(
         borrower_operations: &dyn BorrowerOperations,
         program_id: &Pubkey,
@@ -320,7 +320,7 @@ impl Processor {
             }
         }
         Ok(())
-    }
+    }*/
     fn  get_new_normal_icr_from_trove_change
     (
         coll:u128,
@@ -402,7 +402,7 @@ impl Processor {
         //let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
         //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        let price_feed_info = next_account_info(account_info_iter)?;
+        // let price_feed_info = next_account_info(account_info_iter)?;
         //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         //let solid_staking_info = next_account_info(account_info_iter)?;
@@ -530,18 +530,18 @@ impl Processor {
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
         //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        let price_feed_info = next_account_info(account_info_iter)?;
+        // let price_feed_info = next_account_info(account_info_iter)?;
         //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
+        let borrower_info = next_account_info(account_info_iter)?;
+        let borrower_trove_info = next_account_info(account_info_iter)?;
+
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock_info = next_account_info(account_info_iter)?;
-        let borrower_info = next_account_info(account_info_iter)?;
-        let borrower_trove_info = next_account_info(account_info_iter)?;
-        let pyth_price_info = next_account_info(account_info_iter)?;
         
         let borrower_operations = BorrowerOperations::try_from_slice(&borrower_operation_info.data.borrow())?;
         let borrower_trove = Trove::try_from_slice(&borrower_trove_info.data.borrow())?;
@@ -704,19 +704,19 @@ impl Processor {
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
         //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        let price_feed_info = next_account_info(account_info_iter)?;
+        // let price_feed_info = next_account_info(account_info_iter)?;
         //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
         let rewardsnapshot_info = next_account_info(account_info_iter)?;
-        let clock_info = next_account_info(account_info_iter)?;
+        let borrower_info = next_account_info(account_info_iter)?;
+        let borrower_trove_info = next_account_info(account_info_iter)?;
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock_info = next_account_info(account_info_iter)?;
-        let borrower_info = next_account_info(account_info_iter)?;
-        let borrower_trove_info = next_account_info(account_info_iter)?;
+
         
         let clock = &Clock::from_account_info(clock_info)?;
         
