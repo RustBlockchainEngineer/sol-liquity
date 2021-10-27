@@ -16,6 +16,9 @@ import { AccountInfo, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { getFilteredProgramAccounts } from '@solana/spl-name-service';
 import { Link } from 'react-router-dom';
 import {useConnection, useUserAccounts} from "@oyster/common";
+import { createBorrowerOperations } from '../../actions/liquity/createBorrowerOperations';
+import { createTroveManager } from '../../actions/liquity/createTroveManager';
+import { createSolidStaking } from '../../actions/liquity/createSolidStaking';
 
 export interface Schedule{
   createdTime:number,
@@ -26,33 +29,52 @@ export interface Schedule{
 export const LiquityView = () => {
   const connection = useConnection();
   const wallet = useWallet();
-  const userTokenAccounts = useUserAccounts();
-
-  const [contractSeed, setContractSeed] = useState('');
-  const [mintAddress, setMintAddress] = useState('');
-  const [destWallet, setDestWallet] = useState('');
-  const [sourceToken, setSourceToken] = useState('');
-  const [destToken, setDestToken] = useState('');
-  const [legacyMode, setLegacyMode] = useState(false);
-  const [schedules, setSchedules] = useState([] as Schedule[]);
+  //const userTokenAccounts = useUserAccounts();
 
   async function createSP() {
     if(wallet.connected){
       const {txid} = await createStabilityPool(connection, wallet);
       console.log(txid);
     }
-    else{
-      console.log("connect your wallet")
+    else{     console.log("connect your wallet");    }
+  }
+  async function createBO() {
+    if(wallet.connected){
+      const {txid} = await createBorrowerOperations(connection, wallet);
+      console.log(txid);
     }
-    
+    else{     console.log("connect your wallet");    }
+  }
+  async function createTM() {
+    if(wallet.connected){
+      const {txid} = await createTroveManager(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function createSS() {
+    if(wallet.connected){
+      const {txid} = await createSolidStaking(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
   }
   return (
     <>
     <br />
     <br />
     <br />
-    <Button htmlType="submit" style={{marginTop: 30 + 'px',marginLeft: 30 + 'px'}} onClick={e => createSP()}>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createSP()}>
       Create Stability Pool
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createBO()}>
+      Create Borrower Operations
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createTM()}>
+      Create Trove Manager
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createSS()}>
+      Create Solid Staking
     </Button>
 
     </>
