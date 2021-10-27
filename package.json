@@ -18,6 +18,23 @@
     "build:st": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml --bpf-out-dir=contracts/solid-staking/dist",
     "clean:st": "cargo clean --manifest-path=./contracts/solid-staking/program/Cargo.toml && rm -rf ./contracts/solid-staking/dist",
     "deploy:st":"solana program deploy contracts/solid-staking/dist/solid-staking.so",
-    "test:st": "cargo test-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml"
+    "test:st": "cargo test-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml",
+
+    "build:borrower": "cargo build-bpf --manifest-path=./contracts/borrower-operations/program/Cargo.toml",
+    "deploy:borrower": "solana program deploy ./contracts/borrower-operations/program/target/deploy/borrower_operations.so",
+
+    "build:pool": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
+    "deploy:pool": "solana program deploy ./contracts/stability-pool/program/target/deploy/stability_pool.so",
+
+    "build:staking": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml",
+    "deploy:staking": "solana program deploy ./contracts/solid-staking/program/target/deploy/stability_pool.so",
+
+
+    "build:trove": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
+    "deploy:trove": "solana program deploy ./contracts/stability-pool/program/target/deploy/stability_pool.so"
+
+
+
+
   }
 }

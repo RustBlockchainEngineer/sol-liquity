@@ -113,8 +113,14 @@ impl Processor {
                 max_fee_percentage,
                 sol_amount
             } => {
+                // let is_debt_increase_t =  match is_debt_increase
+                // {
+                //     [0] => false,
+                //     [1] => true,
+                //     _ => return Err(LiquityError::InvalidAccountInput),
+                // };
                 // Instruction: AdjustTrove
-                Self::process_adjust_trove(program_id, accounts, coll_withdrawal  as u128, solusd_change  as u128, is_debt_increase, max_fee_percentage  as u128, sol_amount  as u128)
+                Self::process_adjust_trove(program_id, accounts, coll_withdrawal  as u128, solusd_change  as u128, is_debt_increase != 0, max_fee_percentage  as u128, sol_amount  as u128)
             }
             BorrowerOperationsInstruction::CloseTrove(amount) => {
                 // Instruction: CloseTrove
@@ -192,7 +198,7 @@ impl Processor {
         solusd_amount: u128,
         max_fee_percentage: u128
     )->Result<u128, ProgramError> {
-        let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
+        let trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
         decay_base_rate_from_borrowing(&trove_manager, borrower_operation_info)?;
         let solusd_fee:u128 = get_borrowing_fee(&trove_manager, solusd_amount);
         if !(solusd_fee * DECIMAL_PRECISION / solusd_amount <= max_fee_percentage){
@@ -347,7 +353,7 @@ impl Processor {
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
         
-        let borrower_operations_info = next_account_info(account_info_iter)?;
+        let borrower_operation_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
@@ -361,7 +367,7 @@ impl Processor {
         let pyth_product_id_info = next_account_info(account_info_iter)?;
         let pyth_price_id_info = next_account_info(account_info_iter)?;
 
-        let mut borrower_operations = try_from_slice_unchecked::<BorrowerOperations>(&borrower_operations_info.data.borrow())?;
+        let mut borrower_operations = try_from_slice_unchecked::<BorrowerOperations>(&borrower_operation_info.data.borrow())?;
 
         borrower_operations.trove_manager_id = *trove_manager_info.key;
         borrower_operations.active_pool_id = *active_pool_info.key;
@@ -375,11 +381,11 @@ impl Processor {
         borrower_operations.pyth_product_id = *pyth_product_id_info.key;
         borrower_operations.pyth_price_id = *pyth_price_id_info.key;
 
-        if *authority_info.key != Self::authority_id(program_id, borrower_operations_info.key, nonce)? {
+        if *authority_info.key != Self::authority_id(program_id, borrower_operation_info.key, nonce)? {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
         
-        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        borrower_operations.serialize(&mut &mut borrower_operation_info.data.borrow_mut()[..])?;
         Ok(())
     } 
     
@@ -501,11 +507,11 @@ impl Processor {
             SOLUSD_GAS_COMPENSATION,
             SOLUSD_GAS_COMPENSATION
         )?;
-        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
-        active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
+        borrower_operations.serialize(&mut &mut borrower_operation_info.data.borrow_mut()[..])?;
+        // active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
         borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
         trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
-        stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
+        // stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
         Ok(())
         
     }
@@ -679,10 +685,10 @@ impl Processor {
         else{
             active_pool.send_sol(vars.coll_change);
         }
-        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        borrower_operations.serialize(&mut &mut borrower_operation_info.data.borrow_mut()[..])?;
         active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
         borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
-        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+        // trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
         stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
         
         // check if given pool token account is same with pool token account
@@ -786,7 +792,7 @@ impl Processor {
         )?;
         active_pool.send_sol(coll);
 
-        borrower_operations.serialize(&mut &mut borrower_operations_info.data.borrow_mut()[..])?;
+        borrower_operations.serialize(&mut &mut borrower_operation_info.data.borrow_mut()[..])?;
         active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
         borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
         trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
