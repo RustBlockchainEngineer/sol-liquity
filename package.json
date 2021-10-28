@@ -27,11 +27,11 @@
     "deploy:pool": "solana program deploy ./contracts/stability-pool/program/target/deploy/stability_pool.so",
 
     "build:staking": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml",
-    "deploy:staking": "solana program deploy ./contracts/solid-staking/program/target/deploy/stability_pool.so",
+    "deploy:staking": "solana program deploy ./contracts/solid-staking/program/target/deploy/solid_staking.so",
 
 
-    "build:trove": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
-    "deploy:trove": "solana program deploy ./contracts/stability-pool/program/target/deploy/stability_pool.so"
+    "build:trove": "cargo build-bpf --manifest-path=./contracts/trove-manager/program/Cargo.toml",
+    "deploy:trove": "solana program deploy ./contracts/trove-manager/program/target/deploy/trove_manager.so"
 
 
 

@@ -183,7 +183,7 @@ impl Processor {
         trove_manager_data.solid_staking_pubkey = *solid_staking_id_info.key;
         trove_manager_data.token_program_id = *token_program_info.key;
 
-        trove_manager.serialize(&mut &mut trove_manager_id_info.data.borrow_mut()[..]);
+        trove_manager_data.serialize(&mut &mut trove_manager_id_info.data.borrow_mut()[..]);
 
         Ok(())
     } 
