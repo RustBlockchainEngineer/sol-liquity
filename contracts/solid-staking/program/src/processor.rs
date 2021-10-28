@@ -93,9 +93,9 @@ impl Processor {
 
         // check if pool token account's owner is this program
         // if not, returns InvalidOwner error
-        if *solid_pool_info.owner != *program_id {
-            return Err(LiquityError::InvalidOwner.into());
-        }
+        // if *solid_pool_info.owner != *program_id {
+        //     return Err(LiquityError::InvalidOwner.into());
+        // }
 
         // borrow pool account data to initialize (mutable)
         let mut pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
