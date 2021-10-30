@@ -1,19 +1,9 @@
-import {
-  Connection,
-  Keypair,
-  SystemProgram,
-  TransactionInstruction,
-} from '@solana/web3.js';
+import { Connection, Keypair, TransactionInstruction } from '@solana/web3.js';
 import {
   WalletSigner,
   sendTransactionWithRetry,
-  toPublicKey,
-  createSPLTokenKeypair,
-  createStabilityPoolInstruction,
-  sizeOfState,
-  programIds,
   StabilityPool,
-  SOLUSD_TOKEN_MINT_KEY,
+  provideToSPInstruction,
 } from '@oyster/common';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
@@ -21,6 +11,19 @@ import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 export async function provideToSP(
   connection: Connection,
   wallet: WalletSigner,
+  stabilityPool: StabilityPool,
+  stabilityPoolId: string,
+  solusdUserTokenId: string,
+  userDepositId: string,
+  frontendId: string,
+  depositorFrontendId: string,
+  snapshotsId: string,
+  epochToScaleId: string,
+  epochToPlusScaleId: string,
+  sourceId: string,
+  frontednDestId: string,
+  depositorDestId: string,
+  amount: number,
 ): Promise<{
   txid: string;
   slot: number;
@@ -28,45 +31,30 @@ export async function provideToSP(
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
   const instructions: TransactionInstruction[] = [];
-
   const signers: Keypair[] = [];
+  const wsolPoolGainKey = Keypair.generate().publicKey.toBase58();
+  const wsolUserGainKey = Keypair.generate().publicKey.toBase58();
 
-  const stabilityPoolKey = new Keypair();
-
-  const stabilityPoolSpan = sizeOfState(StabilityPool);
-  const stabilityPoolRentExempt =
-    await connection.getMinimumBalanceForRentExemption(stabilityPoolSpan);
-
-  instructions.push(
-    SystemProgram.createAccount({
-      fromPubkey: wallet.publicKey,
-      newAccountPubkey: stabilityPoolKey.publicKey,
-      lamports: stabilityPoolRentExempt,
-      space: stabilityPoolSpan,
-      programId: toPublicKey(programIds().stabilityPool),
-    }),
-  );
-
-  const SOLUSDPoolAccount = await createSPLTokenKeypair(
+  await provideToSPInstruction(
+    stabilityPoolId,
+    stabilityPool.SOLUSDPoolTokenPubkey,
+    solusdUserTokenId,
+    wsolPoolGainKey,
+    wsolUserGainKey,
+    wallet.publicKey.toBase58(),
+    userDepositId,
+    frontendId,
+    depositorFrontendId,
+    snapshotsId,
+    stabilityPool.communityIssuancePubkey,
+    epochToScaleId,
+    epochToPlusScaleId,
+    sourceId,
+    frontednDestId,
+    depositorDestId,
     instructions,
-    connection,
-    wallet.publicKey,
-    stabilityPoolKey.publicKey,
-    toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+    amount,
   );
-
-  const communityIssuanceKey = new Keypair();
-
-  await createStabilityPoolInstruction(
-    stabilityPoolKey.publicKey.toBase58(),
-    SOLUSDPoolAccount.publicKey.toBase58(),
-    communityIssuanceKey.publicKey.toBase58(),
-    instructions,
-  );
-
-  signers.push(stabilityPoolKey);
-  signers.push(SOLUSDPoolAccount);
-
   const { txid, slot } = await sendTransactionWithRetry(
     connection,
     wallet,

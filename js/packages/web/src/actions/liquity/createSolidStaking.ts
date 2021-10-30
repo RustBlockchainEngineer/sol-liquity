@@ -40,7 +40,7 @@ export async function createSolidStaking(
       newAccountPubkey: solidStakingKey.publicKey,
       lamports: rentExempt,
       space: span,
-      programId: toPublicKey(programIds().borrowerOperations),
+      programId: toPublicKey(programIds().solidStaking),
     }),
   );
 

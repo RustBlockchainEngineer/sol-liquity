@@ -737,7 +737,7 @@ export async function openTroveInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: toPublicKey(oracleProgramKey),
@@ -874,7 +874,7 @@ export async function adjustTroveInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: toPublicKey(pythProductKey),
@@ -994,7 +994,7 @@ export async function closeTroveInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: toPublicKey(rewardSnapshotsKey),
@@ -1131,7 +1131,7 @@ export async function createTroveManagerInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
   ];
   instructions.push(
@@ -1420,7 +1420,7 @@ export async function redeemCollateralInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: toPublicKey(SYSVAR_CLOCK_PUBKEY),
@@ -1580,7 +1580,7 @@ export async function createSolidStakingInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
   ];
   instructions.push(
@@ -1651,7 +1651,7 @@ export async function stakeInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
   ];
   instructions.push(
@@ -1715,7 +1715,7 @@ export async function unstakeInstruction(
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
   ];
   instructions.push(

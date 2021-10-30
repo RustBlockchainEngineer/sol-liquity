@@ -508,6 +508,7 @@ export const SCHEMA = new Map<any, any>([
         ['totalSOLUSDDeposits', 'u128'],
         ['lastSOLIDError', 'u128'],
         ['lastSOLErrorOffset', 'u128'],
+        ['lastSOLUSDLossErrorOffset', 'u128'],
         ['p', 'u128'],
         ['currentScale', 'u128'],
         ['currentEpoch', 'u128'],
