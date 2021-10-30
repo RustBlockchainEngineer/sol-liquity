@@ -731,7 +731,7 @@ export async function openTroveInstruction(
     },
     {
       pubkey: toPublicKey(solusdTokenKey),
-      isSigner: true,
+      isSigner: false,
       isWritable: true,
     },
     {

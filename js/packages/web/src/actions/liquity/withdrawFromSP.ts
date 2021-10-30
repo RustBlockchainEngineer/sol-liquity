@@ -1,19 +1,13 @@
-import {
-  Connection,
-  Keypair,
-  SystemProgram,
-  TransactionInstruction,
-} from '@solana/web3.js';
+import { Connection, Keypair, TransactionInstruction } from '@solana/web3.js';
 import {
   WalletSigner,
   sendTransactionWithRetry,
+  SOLUSD_TOKEN_MINT_KEY,
   toPublicKey,
   createSPLTokenKeypair,
-  createStabilityPoolInstruction,
-  sizeOfState,
-  programIds,
+  decodeState,
   StabilityPool,
-  SOLUSD_TOKEN_MINT_KEY,
+  withdrawFromSPInstruction,
 } from '@oyster/common';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
@@ -21,6 +15,7 @@ import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 export async function withdrawFromSP(
   connection: Connection,
   wallet: WalletSigner,
+  solusdUserToken: string = '',
 ): Promise<{
   txid: string;
   slot: number;
@@ -28,45 +23,62 @@ export async function withdrawFromSP(
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
   const instructions: TransactionInstruction[] = [];
-
   const signers: Keypair[] = [];
 
-  const stabilityPoolKey = new Keypair();
+  const stabilityPoolKey = localStorage.getItem('stability-pool-id');
+  if (stabilityPoolKey === null) {
+    alert('please create stability-pool before this operation');
+  }
 
-  const stabilityPoolSpan = sizeOfState(StabilityPool);
-  const stabilityPoolRentExempt =
-    await connection.getMinimumBalanceForRentExemption(stabilityPoolSpan);
+  const solusdUserAccountKey =
+    solusdUserToken === '' || solusdUserToken === null
+      ? (
+          await createSPLTokenKeypair(
+            instructions,
+            connection,
+            wallet.publicKey,
+            wallet.publicKey,
+            toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+          )
+        ).publicKey.toBase58()
+      : solusdUserToken;
 
-  instructions.push(
-    SystemProgram.createAccount({
-      fromPubkey: wallet.publicKey,
-      newAccountPubkey: stabilityPoolKey.publicKey,
-      lamports: stabilityPoolRentExempt,
-      space: stabilityPoolSpan,
-      programId: toPublicKey(programIds().stabilityPool),
-    }),
-  );
+  const data = (
+    await connection.getAccountInfo(
+      toPublicKey(stabilityPoolKey as string),
+      'confirmed',
+    )
+  )?.data as Buffer;
+  if (!data) {
+    alert("can't load account data");
+  }
+  const stabilityPool = decodeState(data, StabilityPool);
 
-  const SOLUSDPoolAccount = await createSPLTokenKeypair(
+  await withdrawFromSPInstruction(
+    stabilityPoolKey as string,
+    stabilityPool.SOLUSDPoolTokenPubkey,
+    solusdUserAccountKey,
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    stabilityPool.communityIssuancePubkey,
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
+    new Keypair().publicKey.toBase58(),
     instructions,
-    connection,
-    wallet.publicKey,
-    stabilityPoolKey.publicKey,
-    toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+    10,
   );
-
-  const communityIssuanceKey = new Keypair();
-
-  await createStabilityPoolInstruction(
-    stabilityPoolKey.publicKey.toBase58(),
-    SOLUSDPoolAccount.publicKey.toBase58(),
-    communityIssuanceKey.publicKey.toBase58(),
-    instructions,
-  );
-
-  signers.push(stabilityPoolKey);
-  signers.push(SOLUSDPoolAccount);
-
   const { txid, slot } = await sendTransactionWithRetry(
     connection,
     wallet,

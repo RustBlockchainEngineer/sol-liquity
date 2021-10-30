@@ -75,5 +75,10 @@ export async function createStabilityPool(
     'confirmed',
   );
 
+  localStorage.setItem(
+    'stability-pool-id',
+    stabilityPoolKey.publicKey.toBase58(),
+  ); // for demo
+
   return { txid, slot };
 }

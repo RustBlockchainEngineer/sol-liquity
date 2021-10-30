@@ -10,12 +10,12 @@ import {
 } from 'antd';
 import { useWallet } from '@solana/wallet-adapter-react';
 import moment from 'moment';
-import { createStabilityPool, openTrove } from '../../actions';
+import { adjustTrove, closeTrove, createStabilityPool, openTrove, provideToSP, withdrawFromSP } from '../../actions';
 import BN from 'bn.js';
 import { AccountInfo, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { getFilteredProgramAccounts } from '@solana/spl-name-service';
 import { Link } from 'react-router-dom';
-import {useConnection, useUserAccounts} from "@oyster/common";
+import {SOLUSD_TOKEN_MINT_KEY, useConnection, useUserAccounts} from "@oyster/common";
 import { createBorrowerOperations } from '../../actions/liquity/createBorrowerOperations';
 import { createTroveManager } from '../../actions/liquity/createTroveManager';
 import { createSolidStaking } from '../../actions/liquity/createSolidStaking';
@@ -29,7 +29,7 @@ export interface Schedule{
 export const LiquityView = () => {
   const connection = useConnection();
   const wallet = useWallet();
-  //const userTokenAccounts = useUserAccounts();
+  const userTokenAccounts = useUserAccounts();
 
   
   async function createBO() {
@@ -48,21 +48,21 @@ export const LiquityView = () => {
   }
   async function repayTroveBO() {
     if(wallet.connected){
-      const {txid} = await createBorrowerOperations(connection, wallet);
+      const {txid} = await adjustTrove(connection, wallet, userTokenAccounts.accountByMint.get(SOLUSD_TOKEN_MINT_KEY.toBase58())?.pubkey,1);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
   }
   async function withdrawTroveBO() {
     if(wallet.connected){
-      const {txid} = await createBorrowerOperations(connection, wallet);
+      const {txid} = await adjustTrove(connection, wallet, userTokenAccounts.accountByMint.get(SOLUSD_TOKEN_MINT_KEY.toBase58())?.pubkey,0);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
   }
   async function closeTroveBO() {
     if(wallet.connected){
-      const {txid} = await createBorrowerOperations(connection, wallet);
+      const {txid} = await closeTrove(connection, wallet, userTokenAccounts.accountByMint.get(SOLUSD_TOKEN_MINT_KEY.toBase58())?.pubkey);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
@@ -78,18 +78,19 @@ export const LiquityView = () => {
   }
   async function provideSP() {
     if(wallet.connected){
-      const {txid} = await createStabilityPool(connection, wallet);
+      const {txid} = await provideToSP(connection, wallet, userTokenAccounts.accountByMint.get(SOLUSD_TOKEN_MINT_KEY.toBase58())?.pubkey);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
   }
   async function withdrawSP() {
     if(wallet.connected){
-      const {txid} = await createStabilityPool(connection, wallet);
+      const {txid} = await withdrawFromSP(connection, wallet, userTokenAccounts.accountByMint.get(SOLUSD_TOKEN_MINT_KEY.toBase58())?.pubkey);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
   }
+  
   async function withdrawSOLGainToTrove() {
     if(wallet.connected){
       const {txid} = await createStabilityPool(connection, wallet);
