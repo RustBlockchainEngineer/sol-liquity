@@ -69,6 +69,10 @@ export async function createBorrowerOperations(
     signers,
     'confirmed',
   );
+  localStorage.setItem(
+    'borrower-operation-id',
+    borrowerOperationsKey.publicKey.toBase58(),
+  ); // for demo
 
   return { txid, slot };
 }
