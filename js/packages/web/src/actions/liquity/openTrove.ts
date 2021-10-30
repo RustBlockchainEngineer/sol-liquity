@@ -13,6 +13,7 @@ import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 export async function openTrove(
   connection: Connection,
   wallet: WalletSigner,
+  solusdUserToken: string = '',
 ): Promise<{
   txid: string;
   slot: number;
@@ -28,20 +29,25 @@ export async function openTrove(
     alert('please create borrower-operation before this operation');
   }
 
-  const solusdUserAccount = await createSPLTokenKeypair(
-    instructions,
-    connection,
-    wallet.publicKey,
-    wallet.publicKey,
-    toPublicKey(SOLUSD_TOKEN_MINT_KEY),
-  );
+  const solusdUserAccountKey =
+    solusdUserToken === '' || solusdUserToken === null
+      ? (
+          await createSPLTokenKeypair(
+            instructions,
+            connection,
+            wallet.publicKey,
+            wallet.publicKey,
+            toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+          )
+        ).publicKey.toBase58()
+      : solusdUserToken;
 
   await openTroveInstruction(
     borrowerOperationsKey as string,
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
-    solusdUserAccount.publicKey.toBase58(),
+    solusdUserAccountKey,
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
@@ -55,8 +61,6 @@ export async function openTrove(
     0,
     0,
   );
-
-  signers.push(solusdUserAccount);
 
   const { txid, slot } = await sendTransactionWithRetry(
     connection,
