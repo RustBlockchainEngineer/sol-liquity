@@ -28,6 +28,7 @@ export async function provideToSP(
   const stabilityPoolKey = localStorage.getItem('stability-pool-id');
   if (stabilityPoolKey === null) {
     alert('please create stability-pool before this operation');
+    return { txid: '', slot: 0 };
   }
 
   const solusdUserAccountKey =

@@ -27,20 +27,20 @@ export async function closeTrove(
   const borrowerOperationsKey = localStorage.getItem('borrower-operation-id');
   if (borrowerOperationsKey === null) {
     alert('please create borrower-operation before this operation');
+    return { txid: '', slot: 0 };
   }
 
-  const solusdUserAccountKey =
-    solusdUserToken === '' || solusdUserToken === null
-      ? (
-          await createSPLTokenKeypair(
-            instructions,
-            connection,
-            wallet.publicKey,
-            wallet.publicKey,
-            toPublicKey(SOLUSD_TOKEN_MINT_KEY),
-          )
-        ).publicKey.toBase58()
-      : solusdUserToken;
+  if (solusdUserToken === '' || solusdUserToken === null) {
+    const solusdUserAccount = await createSPLTokenKeypair(
+      instructions,
+      connection,
+      wallet.publicKey,
+      wallet.publicKey,
+      toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+    );
+    signers.push(solusdUserAccount);
+    solusdUserToken = solusdUserAccount.publicKey.toBase58();
+  }
 
   await closeTroveInstruction(
     borrowerOperationsKey as string,
@@ -49,7 +49,7 @@ export async function closeTrove(
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
-    solusdUserAccountKey,
+    solusdUserToken,
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),

@@ -28,20 +28,20 @@ export async function withdrawFromSP(
   const stabilityPoolKey = localStorage.getItem('stability-pool-id');
   if (stabilityPoolKey === null) {
     alert('please create stability-pool before this operation');
+    return { txid: '', slot: 0 };
   }
 
-  const solusdUserAccountKey =
-    solusdUserToken === '' || solusdUserToken === null
-      ? (
-          await createSPLTokenKeypair(
-            instructions,
-            connection,
-            wallet.publicKey,
-            wallet.publicKey,
-            toPublicKey(SOLUSD_TOKEN_MINT_KEY),
-          )
-        ).publicKey.toBase58()
-      : solusdUserToken;
+  if (solusdUserToken === '' || solusdUserToken === null) {
+    const solusdUserAccount = await createSPLTokenKeypair(
+      instructions,
+      connection,
+      wallet.publicKey,
+      wallet.publicKey,
+      toPublicKey(SOLUSD_TOKEN_MINT_KEY),
+    );
+    signers.push(solusdUserAccount);
+    solusdUserToken = solusdUserAccount.publicKey.toBase58();
+  }
 
   const data = (
     await connection.getAccountInfo(
@@ -57,7 +57,7 @@ export async function withdrawFromSP(
   await withdrawFromSPInstruction(
     stabilityPoolKey as string,
     stabilityPool.SOLUSDPoolTokenPubkey,
-    solusdUserAccountKey,
+    solusdUserToken,
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
     new Keypair().publicKey.toBase58(),
