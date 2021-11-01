@@ -10,7 +10,7 @@ import {
 } from 'antd';
 import { useWallet } from '@solana/wallet-adapter-react';
 import moment from 'moment';
-import { adjustTrove, closeTrove, createStabilityPool, openTrove, provideToSP, withdrawFromSP } from '../../actions';
+import { adjustTrove, applyPendingRewards, closeTrove, createStabilityPool, liquidate, liquidateTroves, openTrove, provideToSP, redeemCollateral, withdrawFromSP } from '../../actions';
 import BN from 'bn.js';
 import { AccountInfo, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { getFilteredProgramAccounts } from '@solana/spl-name-service';
@@ -136,6 +136,35 @@ export const LiquityView = () => {
     }
     else{     console.log("connect your wallet");    }
   }
+  async function applyPendingRewardsTM() {
+    if(wallet.connected){
+      const {txid} = await applyPendingRewards(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function liquidateTM() {
+    if(wallet.connected){
+      const {txid} = await liquidate(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function redeemCollateralTM() {
+    if(wallet.connected){
+      const {txid} = await redeemCollateral(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function liquidateTrovesTM() {
+    if(wallet.connected){
+      const {txid} = await liquidateTroves(connection, wallet);
+      console.log(txid);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+
   
   return (
     <>
@@ -190,6 +219,24 @@ export const LiquityView = () => {
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => unstakeSS()}>
       Unstake
     </Button>
+
+    <br /><br />
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createTM()}>
+      Create Trove Manager
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => applyPendingRewardsTM()}>
+      Apply Pending Rewards
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => liquidateTM()}>
+      Liquidate
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => redeemCollateralTM()}>
+      Redeem Collateral
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => liquidateTrovesTM()}>
+      Liquidate Troves
+    </Button>
+
     </>
   );
 };
