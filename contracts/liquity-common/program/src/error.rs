@@ -105,6 +105,10 @@ pub enum LiquityError {
     /// Fee exceeded provided maximum
     #[error("Fee exceeded provided maximum")]
     FeeExceeded,
+
+    /// Ivalid program derived address
+    #[error("Ivalid program derived address")]
+    InvalidPdaAddress,
 }
 impl From<LiquityError> for ProgramError {
     fn from(e: LiquityError) -> Self {

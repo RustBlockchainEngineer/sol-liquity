@@ -1,7 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
 
 export const SOLUSD_TOKEN_MINT_KEY = new PublicKey(
-  '4LYBL3LEUPfGdrYwArWt5gyd5Y9X3LQgwvcZM5DjKpE8',
+  '3imDcETEZR2S42FDPDtx6nEu5xk1YkinyVR8syg8e9Nz',
+);
+
+export const SOLID_TOKEN_MINT_KEY = new PublicKey(
+  'D6LMTYCdN1LfY7QNhEo8ha6ikrMMaUcbdBfkve4M1nNw',
 );
 
 export const STABILITY_POOL_PROGRAM_KEY = new PublicKey(

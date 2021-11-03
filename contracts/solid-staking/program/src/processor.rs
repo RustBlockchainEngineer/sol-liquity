@@ -4,36 +4,29 @@
 use {
     liquity_common::{
         error::LiquityError,
-        state::{SOLIDStaking,Snapshot,UserDeposit},
+        state::{SOLIDStaking,UserDeposit},
         utils::{
-            authority_id,token_transfer
+            authority_id,token_transfer,create_or_allocate_account_raw
         }
     },
     crate::{
         instruction::{SOLIDStakingInstruction},
     },
     borsh::{BorshDeserialize, BorshSerialize},
-    num_traits::FromPrimitive,
     solana_program::{
         account_info::{
             next_account_info,
             AccountInfo,
         },
         borsh::try_from_slice_unchecked,
-        decode_error::DecodeError,
         entrypoint::ProgramResult,
-        msg,
-        program::{ invoke_signed},
-        program_error::PrintProgramError,
         program_error::ProgramError,
+        msg,
         pubkey::Pubkey,
-        clock::Clock,
-        sysvar::Sysvar,
-        program_pack::Pack,
     },
-    spl_token::state::Mint, 
 };
-use std::str::FromStr;
+
+const PREFIX:&str = "liquity-solid-staking";
 
 /// Program state handler.
 /// Main logic of this program
@@ -69,6 +62,7 @@ impl Processor {
         nonce: u8,                  // nonce for authorizing
     ) -> ProgramResult {
         // start initializeing this SOLID staking pool ...
+        msg!("initializing solid staking ...");
 
         // get all account informations from accounts array by using iterator
         let account_info_iter = &mut accounts.iter();
@@ -91,12 +85,6 @@ impl Processor {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        // check if pool token account's owner is this program
-        // if not, returns InvalidOwner error
-        // if *solid_pool_info.owner != *program_id {
-        //     return Err(LiquityError::InvalidOwner.into());
-        // }
-
         // borrow pool account data to initialize (mutable)
         let mut pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
 
@@ -115,6 +103,7 @@ impl Processor {
         accounts: &[AccountInfo],
         amount: u64,
     ) -> ProgramResult {
+        msg!("staking ...");
         // get account informations
         let account_info_iter = &mut accounts.iter();
 
@@ -130,17 +119,16 @@ impl Processor {
         // user SOLID token account
         let solid_user_info = next_account_info(account_info_iter)?;
 
-        // user transfer authority
-        let user_transfer_authority_info = next_account_info(account_info_iter)?;
+        // user wallet
+        let depositor_info = next_account_info(account_info_iter)?;
 
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
 
-        // snapshot account info
-        let snapshot_info = next_account_info(account_info_iter)?;
-
         // spl-token program address
         let token_program_info = next_account_info(account_info_iter)?;
+        let rent_info = next_account_info(account_info_iter)?;
+        let system_info = next_account_info(account_info_iter)?;
 
         // borrow pool account data
         let pool_data = try_from_slice_unchecked::<SOLIDStaking>(&pool_id_info.data.borrow())?;
@@ -151,26 +139,32 @@ impl Processor {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        // check if pool token account's owner is this program
-        // if not, returns InvalidOwner error
-        if *solid_pool_info.owner != *program_id {
-            return Err(LiquityError::InvalidOwner.into());
-        }
+        let bump = Self::assert_pda(program_id, user_deposit_info.key, depositor_info.key, PREFIX)?;
 
-        // check if given pool token account is same with pool token account
-        if *solid_pool_info.key != pool_data.solid_pool_token_pubkey {
-            return Err(LiquityError::InvalidOwner.into());
+        let size = std::mem::size_of::<UserDeposit>();
+
+        let user_data_is_empty = user_deposit_info.data_is_empty();
+
+        if user_data_is_empty {
+            // Create account with enough space
+            create_or_allocate_account_raw(
+                *program_id,
+                user_deposit_info,
+                rent_info,
+                system_info,
+                depositor_info,
+                size,
+                &[
+                    PREFIX.as_bytes(),
+                    depositor_info.key.as_ref(),
+                    program_id.as_ref(),
+                    &[bump],
+                ],
+            )?;
         }
 
         // borrow user deposit data
         let mut user_deposit = try_from_slice_unchecked::<UserDeposit>(&user_deposit_info.data.borrow())?;
-
-        // borrow frontend account data
-        let snapshot = try_from_slice_unchecked::<Snapshot>(&snapshot_info.data.borrow())?;
-
-        if snapshot.pool_id_pubkey == *pool_id_info.key {
-            return Err(LiquityError::InvalidOwner.into());
-        }
 
         if amount > 0 {
             // transfer solUSD token amount from user's solUSD token account to pool's solUSD token pool
@@ -179,17 +173,21 @@ impl Processor {
                 token_program_info.clone(), 
                 solid_user_info.clone(), 
                 solid_pool_info.clone(), 
-                user_transfer_authority_info.clone(), 
+                depositor_info.clone(), 
                 pool_data.nonce, 
                 amount
             )?;
 
             user_deposit.deposit_amount += amount;
-        }
 
-        // serialize/store user info again
-        user_deposit
-            .serialize(&mut *user_deposit_info.data.borrow_mut())?;
+            if user_data_is_empty {
+                user_deposit.pool_id_pubkey = *pool_id_info.key;
+                user_deposit.owner_pubkey = *depositor_info.key;
+            }
+            // serialize/store user info again
+            user_deposit
+                .serialize(&mut *user_deposit_info.data.borrow_mut())?;
+        }
 
         // serialize/store this initialized SOLID staking pool again
         pool_data
@@ -204,6 +202,8 @@ impl Processor {
         accounts: &[AccountInfo],
         amount: u64,
     ) -> ProgramResult {
+        msg!("unstaking ...");
+
         // get account informations
         let account_info_iter = &mut accounts.iter();
 
@@ -219,8 +219,8 @@ impl Processor {
         // user SOLID token account
         let solid_user_info = next_account_info(account_info_iter)?;
 
-        // user transfer authority
-        let user_transfer_authority_info = next_account_info(account_info_iter)?;
+        // user wallet
+        let withdrawer_info = next_account_info(account_info_iter)?;
 
         // user deposit info
         let user_deposit_info = next_account_info(account_info_iter)?;
@@ -237,16 +237,7 @@ impl Processor {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        // check if pool token account's owner is this program
-        // if not, returns InvalidOwner error
-        if *solid_pool_info.owner != *program_id {
-            return Err(LiquityError::InvalidOwner.into());
-        }
-
-        // check if given pool token account is same with pool token account
-        if *solid_pool_info.key != pool_data.solid_pool_token_pubkey {
-            return Err(LiquityError::InvalidOwner.into());
-        }
+        Self::assert_pda(program_id, user_deposit_info.key, withdrawer_info.key, PREFIX)?;
 
         // borrow user deposit data
         let mut user_deposit = try_from_slice_unchecked::<UserDeposit>(&user_deposit_info.data.borrow())?;
@@ -264,7 +255,7 @@ impl Processor {
                 token_program_info.clone(),
                 solid_pool_info.clone(),
                 solid_user_info.clone(),
-                user_transfer_authority_info.clone(),
+                authority_info.clone(),
                 pool_data.nonce,
                 _amount
             )?;
@@ -281,7 +272,22 @@ impl Processor {
             .map_err(|e| e.into())
         
     }
+    
+    /// check if pda address is correct
+    pub fn assert_pda(program_id:&Pubkey, key: &Pubkey,authority: &Pubkey, tag: &str)->Result<u8, ProgramError>{
+        let seeds = [
+            tag.as_bytes(),
+            authority.as_ref(),
+            program_id.as_ref(),
+        ];
 
-    
-    
+        let (pda_key, _bump) = Pubkey::find_program_address(&seeds, program_id);
+        if pda_key != *key {
+            return Err(LiquityError::InvalidPdaAddress.into());
+        } 
+        else {
+            Ok(_bump)
+        }
+    }
+
 }

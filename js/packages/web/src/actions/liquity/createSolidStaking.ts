@@ -60,5 +60,10 @@ export async function createSolidStaking(
     'confirmed',
   );
 
+  localStorage.setItem(
+    'solid-staking-id',
+    solidStakingKey.publicKey.toBase58(),
+  ); // for demo
+
   return { txid, slot };
 }
