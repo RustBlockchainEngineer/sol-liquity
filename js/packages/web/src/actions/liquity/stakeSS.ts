@@ -37,7 +37,6 @@ export async function stakeSS(
     alert('please create solid-staking before this operation');
     return { txid: '', slot: 0 };
   }
-  console.log('solid staking key = ', solidStakingKey);
 
   if (solidUserToken === '' || solidUserToken === null) {
     const solidUserTokenAccount = await createSPLTokenKeypair(

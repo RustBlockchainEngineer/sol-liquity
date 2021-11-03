@@ -140,7 +140,7 @@ impl Processor {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        let bump = Self::assert_pda(program_id, solid_pool_info.key, user_deposit_info.key, depositor_info.key, PREFIX)?;
+        let bump = Self::assert_pda(program_id, pool_id_info.key, user_deposit_info.key, depositor_info.key, PREFIX)?;
 
         let size = std::mem::size_of::<UserDeposit>();
 
