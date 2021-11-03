@@ -107,7 +107,7 @@ pub enum LiquityError {
     FeeExceeded,
 
     /// Ivalid program derived address
-    #[error("Ivalid program derived address")]
+    #[error("Invalid program derived address")]
     InvalidPdaAddress,
 }
 impl From<LiquityError> for ProgramError {
