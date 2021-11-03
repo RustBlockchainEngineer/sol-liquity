@@ -90,6 +90,7 @@ impl Processor {
 
         pool_data.token_program_pubkey = *token_program_info.key;
         pool_data.solid_pool_token_pubkey = *solid_pool_info.key;
+        pool_data.nonce = nonce;
         
         // serialize/store this initialized SOLID staking pool again
         pool_data

@@ -1621,7 +1621,7 @@ export async function stakeInstruction(
     {
       pubkey: toPublicKey(authority),
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: toPublicKey(solidPoolTokenKey),
@@ -1635,7 +1635,7 @@ export async function stakeInstruction(
     },
     {
       pubkey: toPublicKey(depositorKey),
-      isSigner: false,
+      isSigner: true,
       isWritable: true,
     },
     {
@@ -1644,17 +1644,17 @@ export async function stakeInstruction(
       isWritable: true,
     },
     {
-      pubkey: toPublicKey(TOKEN_PROGRAM_ID),
+      pubkey: TOKEN_PROGRAM_ID,
       isSigner: false,
       isWritable: false,
     },
     {
-      pubkey: toPublicKey(SYSVAR_RENT_PUBKEY),
+      pubkey: SYSVAR_RENT_PUBKEY,
       isSigner: false,
-      isWritable: false,
+      isWritable: true,
     },
     {
-      pubkey: toPublicKey(SystemProgram.programId),
+      pubkey: SystemProgram.programId,
       isSigner: false,
       isWritable: false,
     },

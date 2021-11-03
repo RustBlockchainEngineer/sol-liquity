@@ -18,5 +18,5 @@ export const TROVE_MANAGER_KEY = new PublicKey(
   'CDtNbPTQKo8pyYo9gATFkNNzncVeuTo5tJJQwi4GxF3Z',
 );
 export const SOLID_STAKING_KEY = new PublicKey(
-  'D2iXLd8Dw5NwDhpyySLN7JnpPudy9CHJwYJPvjajeQUY',
+  '5rrAhBySt4LRqwurfY9zBeg8zLpoTtCxdfWM7V6gJEcw',
 );

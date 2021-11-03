@@ -765,7 +765,7 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['amount', 'u128'],
+        ['amount', 'u64'],
       ],
     },
   ],
@@ -775,7 +775,7 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['amount', 'u128'],
+        ['amount', 'u64'],
       ],
     },
   ],

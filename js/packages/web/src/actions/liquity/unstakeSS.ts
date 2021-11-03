@@ -65,7 +65,7 @@ export async function unstakeSS(
     [
       Buffer.from('liquity-solid-staking'),
       wallet.publicKey.toBuffer(),
-      Buffer.from(solidStakingKey),
+      toPublicKey(solidStakingKey).toBuffer(),
     ],
     programIds().solidStaking,
   );

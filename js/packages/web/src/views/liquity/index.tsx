@@ -15,10 +15,12 @@ import BN from 'bn.js';
 import { AccountInfo, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { getFilteredProgramAccounts } from '@solana/spl-name-service';
 import { Link } from 'react-router-dom';
-import {SOLUSD_TOKEN_MINT_KEY, useConnection, useUserAccounts} from "@oyster/common";
+import {SOLID_TOKEN_MINT_KEY, SOLUSD_TOKEN_MINT_KEY, useConnection, useUserAccounts} from "@oyster/common";
 import { createBorrowerOperations } from '../../actions/liquity/createBorrowerOperations';
 import { createTroveManager } from '../../actions/liquity/createTroveManager';
 import { createSolidStaking } from '../../actions/liquity/createSolidStaking';
+import { stakeSS } from '../../actions/liquity/stakeSS';
+import { unstakeSS } from '../../actions/liquity/unstakeSS';
 
 export interface Schedule{
   createdTime:number,
@@ -114,16 +116,16 @@ export const LiquityView = () => {
     }
     else{     console.log("connect your wallet");    }
   }
-  async function stakeSS() {
+  async function stakeSolidStaking() {
     if(wallet.connected){
-      const {txid} = await createSolidStaking(connection, wallet);
+      const {txid} = await stakeSS(connection, wallet, userTokenAccounts.accountByMint.get(SOLID_TOKEN_MINT_KEY.toBase58())?.pubkey);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
   }
-  async function unstakeSS() {
+  async function unstakeSolidStaking() {
     if(wallet.connected){
-      const {txid} = await createSolidStaking(connection, wallet);
+      const {txid} = await unstakeSS(connection, wallet, userTokenAccounts.accountByMint.get(SOLID_TOKEN_MINT_KEY.toBase58())?.pubkey);
       console.log(txid);
     }
     else{     console.log("connect your wallet");    }
@@ -213,10 +215,10 @@ export const LiquityView = () => {
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createSS()}>
       Create Solid Staking
     </Button>
-    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => stakeSS()}>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => stakeSolidStaking()}>
       Stake
     </Button>
-    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => unstakeSS()}>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => unstakeSolidStaking()}>
       Unstake
     </Button>
 
