@@ -158,7 +158,7 @@ impl Processor {
                 &[
                     PREFIX.as_bytes(),
                     depositor_info.key.as_ref(),
-                    program_id.as_ref(),
+                    pool_id_info.key.as_ref(),
                     &[bump],
                 ],
             )?;
