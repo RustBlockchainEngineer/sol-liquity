@@ -63,20 +63,9 @@ export async function stakeSS(
 
   const [userDepositKey] = await PublicKey.findProgramAddress(
     [
-      Buffer.from('user-deposit'),
-      Buffer.from(solidStakingKey),
+      Buffer.from('liquity-solid-staking'),
       wallet.publicKey.toBuffer(),
-      programIds().solidStaking.toBuffer(),
-    ],
-    programIds().solidStaking,
-  );
-
-  const [userSnapshotsKey] = await PublicKey.findProgramAddress(
-    [
-      Buffer.from('user-snapshots'),
       Buffer.from(solidStakingKey),
-      wallet.publicKey.toBuffer(),
-      programIds().solidStaking.toBuffer(),
     ],
     programIds().solidStaking,
   );
@@ -87,7 +76,6 @@ export async function stakeSS(
     solidUserToken,
     wallet.publicKey.toBase58(),
     userDepositKey.toBase58(),
-    userSnapshotsKey.toBase58(),
     instructions,
     100,
   );

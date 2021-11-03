@@ -139,7 +139,7 @@ impl Processor {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        let bump = Self::assert_pda(program_id, user_deposit_info.key, depositor_info.key, PREFIX)?;
+        let bump = Self::assert_pda(solid_pool_info.key, user_deposit_info.key, depositor_info.key, PREFIX)?;
 
         let size = std::mem::size_of::<UserDeposit>();
 
@@ -274,14 +274,14 @@ impl Processor {
     }
     
     /// check if pda address is correct
-    pub fn assert_pda(program_id:&Pubkey, key: &Pubkey,authority: &Pubkey, tag: &str)->Result<u8, ProgramError>{
+    pub fn assert_pda(pool_key:&Pubkey, key: &Pubkey,authority: &Pubkey, tag: &str)->Result<u8, ProgramError>{
         let seeds = [
             tag.as_bytes(),
             authority.as_ref(),
-            program_id.as_ref(),
+            pool_key.as_ref(),
         ];
 
-        let (pda_key, _bump) = Pubkey::find_program_address(&seeds, program_id);
+        let (pda_key, _bump) = Pubkey::find_program_address(&seeds, pool_key);
         if pda_key != *key {
             return Err(LiquityError::InvalidPdaAddress.into());
         } 

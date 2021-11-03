@@ -1,6 +1,8 @@
 import {
   PublicKey,
+  SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
+  SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
 import { programIds } from '../../utils/programIds';
@@ -1596,9 +1598,8 @@ export async function stakeInstruction(
   solidStakingKey: StringPublicKey,
   solidPoolTokenKey: StringPublicKey,
   solidUserTokenKey: StringPublicKey,
-  userTransferAuthority: StringPublicKey,
+  depositorKey: StringPublicKey,
   userDepositKey: StringPublicKey,
-  snapshotsKey: StringPublicKey,
   instructions: TransactionInstruction[],
 
   amount: number,
@@ -1633,7 +1634,7 @@ export async function stakeInstruction(
       isWritable: true,
     },
     {
-      pubkey: toPublicKey(userTransferAuthority),
+      pubkey: toPublicKey(depositorKey),
       isSigner: false,
       isWritable: true,
     },
@@ -1642,14 +1643,18 @@ export async function stakeInstruction(
       isSigner: false,
       isWritable: true,
     },
-
-    {
-      pubkey: toPublicKey(snapshotsKey),
-      isSigner: false,
-      isWritable: true,
-    },
     {
       pubkey: toPublicKey(TOKEN_PROGRAM_ID),
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: toPublicKey(SYSVAR_RENT_PUBKEY),
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: toPublicKey(SystemProgram.programId),
       isSigner: false,
       isWritable: false,
     },
@@ -1667,7 +1672,7 @@ export async function unstakeInstruction(
   solidStakingKey: StringPublicKey,
   solidPoolTokenKey: StringPublicKey,
   solidUserTokenKey: StringPublicKey,
-  userTransferAuthority: StringPublicKey,
+  withdrawerKey: StringPublicKey,
   userDepositKey: StringPublicKey,
   instructions: TransactionInstruction[],
 
@@ -1703,7 +1708,7 @@ export async function unstakeInstruction(
       isWritable: true,
     },
     {
-      pubkey: toPublicKey(userTransferAuthority),
+      pubkey: toPublicKey(withdrawerKey),
       isSigner: false,
       isWritable: true,
     },
