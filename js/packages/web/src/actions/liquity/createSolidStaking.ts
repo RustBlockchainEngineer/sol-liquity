@@ -1,6 +1,7 @@
 import {
   Connection,
   Keypair,
+  PublicKey,
   SystemProgram,
   TransactionInstruction,
 } from '@solana/web3.js';
@@ -12,6 +13,8 @@ import {
   programIds,
   SOLIDStaking,
   createSolidStakingInstruction,
+  SOLID_TOKEN_MINT_KEY,
+  createSPLTokenKeypair,
 } from '@oyster/common';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
@@ -44,9 +47,24 @@ export async function createSolidStaking(
     }),
   );
 
+  const solidStakingProgramId = programIds().solidStaking;
+  const [authority] = await PublicKey.findProgramAddress(
+    [solidStakingKey.publicKey.toBuffer()],
+    solidStakingProgramId,
+  );
+
+  const solidPoolTokenAccount = await createSPLTokenKeypair(
+    instructions,
+    connection,
+    wallet.publicKey,
+    authority,
+    toPublicKey(SOLID_TOKEN_MINT_KEY),
+  );
+  signers.push(solidPoolTokenAccount);
+
   await createSolidStakingInstruction(
     solidStakingKey.publicKey.toBase58(),
-    new Keypair().publicKey.toBase58(),
+    solidPoolTokenAccount.publicKey.toBase58(),
     instructions,
   );
 
