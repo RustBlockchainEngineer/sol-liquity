@@ -99,6 +99,12 @@ pub enum LiquityError {
     /// TroveManager: Cannot redeem when TCR < MCR
     #[error("TroveManager: Cannot redeem when TCR < MCR")]
     TCRError,
+    /// BorrowerOps: Operation must leave trove with ICR >= CCR
+    #[error("BorrowerOps: Operation must leave trove with ICR >= CCR")]
+    CCRError,
+    /// BorrowerOps: An operation that would result in ICR < MCR is not permitted
+    #[error("BorrowerOps: An operation that would result in ICR < MCR is not permitted")]
+    MCRError,
     /// Amount must be greater than zero
     #[error("Amount must be greater than zero")]
     ZeroAmount,

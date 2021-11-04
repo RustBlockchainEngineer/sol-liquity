@@ -15,6 +15,7 @@ use {
             SOLUSD_GAS_COMPENSATION,
             BORROWING_FEE_FLOOR,
             MCR,
+            CCR
         },
         pyth,
         math::{Decimal, Rate, TryAdd, TryDiv, TryMul, WAD},
@@ -147,9 +148,9 @@ impl Processor {
      )->Result<(), ProgramError> {
         let mut active_pool_data = try_from_slice_unchecked::<ActivePool>(&active_pool_info.data.borrow())?;
         active_pool_data.increase_solusd_debt(netdebt_increase);
-        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..]);
+        active_pool_data.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
 
-        token_mint_to(            
+        token_mint_to(
             borrower_data_info.key,
             token_program_info.clone(),
             solusd_token_info.clone(),
@@ -216,10 +217,10 @@ impl Processor {
             authority_info.clone(),
             nonce,
             solusd_fee as u64,
-        );
+        )?;
 
-        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..]);
-        solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..]);
+        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+        solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..])?;
 
         Ok(solusd_fee)
     }
@@ -398,53 +399,62 @@ impl Processor {
         coll_increase:u128,
         sol_amount:u128
     ) -> ProgramResult {
-        
         let account_info_iter = &mut accounts.iter();
         let borrower_operation_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
+        let solid_staking_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
-        //let default_pool_info = next_account_info(account_info_iter)?;
-        //let stability_pool_info = next_account_info(account_info_iter)?;
-        let gas_pool_info = next_account_info(account_info_iter)?;
-        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        // let price_feed_info = next_account_info(account_info_iter)?;
-        //let sorted_troves_info = next_account_info(account_info_iter)?;
+        let default_pool_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
-        //let solid_staking_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
-
-
-        let oracle_program_info = next_account_info(account_info_iter)?;
-
         let pyth_product_info = next_account_info(account_info_iter)?;
         let pyth_price_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
-        
         let borrower_info = next_account_info(account_info_iter)?;
         let borrower_trove_info = next_account_info(account_info_iter)?;
         let owner_id_info = next_account_info(account_info_iter)?;
+
         let borrower_operations = BorrowerOperations::try_from_slice(&borrower_operation_info.data.borrow())?;
         let mut borrower_trove = Trove::try_from_slice(&borrower_trove_info.data.borrow())?;
         let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow())?;
+
+        let active_pool = ActivePool::try_from_slice(&active_pool_info.data.borrow())?;
+        let default_pool = DefaultPool::try_from_slice(&default_pool_info.data.borrow())?;
+
         if *authority_info.key != Self::authority_id(program_id, borrower_info.key, borrower_operations.nonce)? {
             return Err(LiquityError::InvalidProgramAddress.into());
         }
 
-        let token_program_id = *token_program_info.key;
-        let market_price = ((get_pyth_price( pyth_price_info, clock )?).try_round_u64()?) as u128;
-        // let is_recovery_mode = _checkRecoveryMode(market_price);
-        let is_recovery_mode = true;
+        let market_price = get_market_price(
+            borrower_operations.oracle_program_id,
+            borrower_operations.quote_currency,
+            pyth_product_info,
+            pyth_price_info,
+            clock
+        )?;
+        
+        let is_recovery_mode = trove_manager.check_recovery_mode(market_price, &active_pool, &default_pool) == 1;
 
         Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode)?;
 
         if borrower_trove.status == 1{
             return Err(LiquityError::ErrorTroveisActive.into())
         }
-        let solusd_fee = 0;
+
+        let mut solusd_fee = 0;
         let mut net_debt = solusd_amount;
         if !is_recovery_mode{
-            solusd_fee;
+            solusd_fee = Self::trigger_borrowing_fee(
+                &borrower_operation_info,
+                &authority_info,
+                &trove_manager_info,
+                &solusd_token_info,
+                &token_program_info,
+                &solid_staking_info,
+                borrower_operations.nonce,
+                solusd_amount,
+                max_fee_percentage)?;
             net_debt += solusd_fee;
         }
         if net_debt < MIN_NET_DEBT {
@@ -452,7 +462,7 @@ impl Processor {
         }
         let composite_debt =  net_debt + SOLUSD_GAS_COMPENSATION;
 
-        if composite_debt < 0 {
+        if composite_debt == 0 {
             return Err(LiquityError::InvalidCompositeDebt.into());
         }
 
@@ -466,6 +476,29 @@ impl Processor {
         vars.composite_debt = composite_debt;
         vars.icr = icr;
         vars.nicr = nicr;
+
+        if is_recovery_mode {
+            if vars.icr < CCR {
+                return Err(LiquityError::CCRError.into());
+            }
+        }
+        else {
+            if vars.icr < MCR {
+                return Err(LiquityError::MCRError.into());
+            }
+            let new_tcr = Self::get_new_tcr_from_trove_change(
+                active_pool, 
+                default_pool,
+                coll_increase, 
+                true, 
+                vars.composite_debt, 
+                true, 
+                vars.price);
+
+            if new_tcr < CCR {
+                return Err(LiquityError::CCRError.into());
+            }
+        }
        
         borrower_trove.status = 1;
         borrower_trove.coll += coll_increase;
@@ -477,12 +510,6 @@ impl Processor {
         trove_manager.total_stakes = trove_manager.total_stakes - old_stake + new_stake;
 
         vars.stake = trove_manager.total_stakes;
-
-        borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
-        
-        // reward_snapshot_data.l_sol = trove_manager_data.l_sol;
-        // reward_snapshot_data.solusd_debt = trove_manager_data.solusd_debt;
-        // reward_snapshot_data.serialize(&mut &mut reward_snapshot_info.data.borrow_mut()[..]);
 
         Self::withdraw_solusd(
             &borrower_operation_info, 
@@ -501,19 +528,21 @@ impl Processor {
             &authority_info,
             &active_pool_info,
             &solusd_token_info,
-            &borrower_info,
+            &borrower_info, 
             &token_program_info, 
             borrower_operations.nonce,
             SOLUSD_GAS_COMPENSATION,
             SOLUSD_GAS_COMPENSATION
         )?;
-        borrower_operations.serialize(&mut &mut borrower_operation_info.data.borrow_mut()[..])?;
-        // active_pool.serialize(&mut &mut active_pool_info.data.borrow_mut()[..])?;
-        borrower_trove.serialize(&mut &mut borrower_trove_info.data.borrow_mut()[..])?;
-        trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
-        // stability_pool.serialize(&mut &mut stability_pool_info.data.borrow_mut()[..])?;
-        Ok(())
+
+        borrower_operations
+            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
+        borrower_trove
+            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
+        trove_manager
+            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
         
+        Ok(())
     }
 
     /// process WithdrawFromSP instruction
