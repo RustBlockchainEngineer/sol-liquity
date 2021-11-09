@@ -25,8 +25,5 @@
     "deploy:staking": "solana program deploy ./contracts/solid-staking/program/target/deploy/solid_staking.so",
     "build:trove": "cargo build-bpf --manifest-path=./contracts/trove-manager/program/Cargo.toml",
     "deploy:trove": "solana program deploy ./contracts/trove-manager/program/target/deploy/trove_manager.so"
-  },
-  "dependencies": {
-    "yarn": "^1.22.17"
   }
 }
