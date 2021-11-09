@@ -385,6 +385,7 @@ pub fn calc_decayed_base_rate(trove_manager: &TroveManager, current_timestamp: u
 pub fn minutes_passed_since_last_fee_op(trove_manager:&TroveManager, current_timestamp: u128)->u128{
     return (current_timestamp - trove_manager.last_fee_operation_time) / SECONDS_IN_ONE_MINUTE;
 }
+
 pub fn get_tcr(price: u128, active_pool:&ActivePool, default_pool:&DefaultPool, trove_manager:&TroveManager)->u128{
     let entire_system_debt = active_pool.solusd_debt + default_pool.solusd_debt;
     let entire_system_coll = active_pool.sol + default_pool.sol;

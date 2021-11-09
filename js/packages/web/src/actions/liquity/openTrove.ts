@@ -41,7 +41,7 @@ export async function openTrove(
     signers.push(solusdUserAccount);
     solusdUserToken = solusdUserAccount.publicKey.toBase58();
   }
-
+ 
   await openTroveInstruction(
     borrowerOperationsKey as string,
     new Keypair().publicKey.toBase58(),

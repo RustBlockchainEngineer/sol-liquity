@@ -49,9 +49,6 @@ pub enum BorrowerOperationsInstruction {
         
         /// Minimum amount of DESTINATION token to output, prevents excessive slippage
         coll_increase:u64,
-
-        //sol amount to transfer
-        sol_amount:u64
     },
 
     AdjustTrove{
