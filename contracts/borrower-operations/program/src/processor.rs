@@ -102,10 +102,9 @@ impl Processor {
                 max_fee_percentage,
                 solusd_amount,
                 coll_increase,
-                sol_amount
             } => {
                 // Instruction: OpenTrove
-                Self::process_open_trove(program_id, accounts, max_fee_percentage as u128, solusd_amount  as u128, coll_increase  as u128, sol_amount  as u128)
+                Self::process_open_trove(program_id, accounts, max_fee_percentage as u128, solusd_amount  as u128, coll_increase  as u128)
             }
             BorrowerOperationsInstruction::AdjustTrove{
                 coll_withdrawal,
@@ -195,6 +194,7 @@ impl Processor {
         solusd_token_info: &AccountInfo<'a>,
         token_program_info: &AccountInfo<'a>,
         solid_staking_info: &AccountInfo<'a>,
+        solid_staking_token_pool_info: &AccountInfo<'a>,
         nonce:u8,
         solusd_amount: u128,
         max_fee_percentage: u128
@@ -213,7 +213,7 @@ impl Processor {
             borrower_operation_info.key,
             token_program_info.clone(),
             solusd_token_info.clone(),
-            solid_staking_info.clone(),
+            solid_staking_token_pool_info.clone(),
             authority_info.clone(),
             nonce,
             solusd_fee as u64,
@@ -397,152 +397,162 @@ impl Processor {
         max_fee_percentage: u128,
         solusd_amount: u128,
         coll_increase:u128,
-        sol_amount:u128
     ) -> ProgramResult {
+        // new code
         let account_info_iter = &mut accounts.iter();
-        let borrower_operation_info = next_account_info(account_info_iter)?;
-        let authority_info = next_account_info(account_info_iter)?;
-        let trove_manager_info = next_account_info(account_info_iter)?;
-        let solid_staking_info = next_account_info(account_info_iter)?;
-        let active_pool_info = next_account_info(account_info_iter)?;
-        let default_pool_info = next_account_info(account_info_iter)?;
-        let solusd_token_info = next_account_info(account_info_iter)?;
-        let token_program_info = next_account_info(account_info_iter)?;
-        let pyth_product_info = next_account_info(account_info_iter)?;
-        let pyth_price_info = next_account_info(account_info_iter)?;
-        let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
         let borrower_info = next_account_info(account_info_iter)?;
         let borrower_trove_info = next_account_info(account_info_iter)?;
-        let owner_id_info = next_account_info(account_info_iter)?;
+        let borrower_wsol_token_info = next_account_info(account_info_iter)?;
+        let borrower_solusd_token_info = next_account_info(account_info_iter)?;
 
-        let borrower_operations = BorrowerOperations::try_from_slice(&borrower_operation_info.data.borrow())?;
-        let mut borrower_trove = Trove::try_from_slice(&borrower_trove_info.data.borrow())?;
-        let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow())?;
+        let borrower_operations_info = next_account_info(account_info_iter)?;
+        let pool_wsol_token_info = next_account_info(account_info_iter)?;
 
-        let active_pool = ActivePool::try_from_slice(&active_pool_info.data.borrow())?;
-        let default_pool = DefaultPool::try_from_slice(&default_pool_info.data.borrow())?;
-
-        if *authority_info.key != Self::authority_id(program_id, borrower_info.key, borrower_operations.nonce)? {
-            return Err(LiquityError::InvalidProgramAddress.into());
-        }
-
-        let market_price = get_market_price(
-            borrower_operations.oracle_program_id,
-            borrower_operations.quote_currency,
-            pyth_product_info,
-            pyth_price_info,
-            clock
-        )?;
-        
-        let is_recovery_mode = trove_manager.check_recovery_mode(market_price, &active_pool, &default_pool) == 1;
-
-        Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode)?;
-
-        if borrower_trove.status == 1{
-            return Err(LiquityError::ErrorTroveisActive.into())
-        }
-
-        let mut solusd_fee = 0;
-        let mut net_debt = solusd_amount;
-        if !is_recovery_mode{
-            solusd_fee = Self::trigger_borrowing_fee(
-                &borrower_operation_info,
-                &authority_info,
-                &trove_manager_info,
-                &solusd_token_info,
-                &token_program_info,
-                &solid_staking_info,
-                borrower_operations.nonce,
-                solusd_amount,
-                max_fee_percentage)?;
-            net_debt += solusd_fee;
-        }
-        if net_debt < MIN_NET_DEBT {
-            return Err(LiquityError::ErrorMinNetDebt.into());
-        }
-        let composite_debt =  net_debt + SOLUSD_GAS_COMPENSATION;
-
-        if composite_debt == 0 {
-            return Err(LiquityError::InvalidCompositeDebt.into());
-        }
-
-        let icr = compute_cr(coll_increase, composite_debt, market_price);
-        let nicr = compute_nominal_cr(coll_increase, composite_debt);
-
-        let mut vars = LocalVariablesOpenTrove::new(*borrower_operation_info.key, *owner_id_info.key);
-        vars.price = market_price;
-        vars.solusd_fee = solusd_fee;
-        vars.net_debt = net_debt;
-        vars.composite_debt = composite_debt;
-        vars.icr = icr;
-        vars.nicr = nicr;
-
-        if is_recovery_mode {
-            if vars.icr < CCR {
-                return Err(LiquityError::CCRError.into());
-            }
-        }
-        else {
-            if vars.icr < MCR {
-                return Err(LiquityError::MCRError.into());
-            }
-            let new_tcr = Self::get_new_tcr_from_trove_change(
-                active_pool, 
-                default_pool,
-                coll_increase, 
-                true, 
-                vars.composite_debt, 
-                true, 
-                vars.price);
-
-            if new_tcr < CCR {
-                return Err(LiquityError::CCRError.into());
-            }
-        }
-       
-        borrower_trove.status = 1;
-        borrower_trove.coll += coll_increase;
-        borrower_trove.debt += composite_debt;
-
-        let new_stake = borrower_trove.coll;
-        let old_stake = borrower_trove.stake;
-        borrower_trove.stake = new_stake;
-        trove_manager.total_stakes = trove_manager.total_stakes - old_stake + new_stake;
-
-        vars.stake = trove_manager.total_stakes;
-
-        Self::withdraw_solusd(
-            &borrower_operation_info, 
-            &authority_info,
-            &active_pool_info,
-            &solusd_token_info,
-            &borrower_info,
-            &token_program_info, 
-            borrower_operations.nonce,
-            solusd_amount,
-            vars.net_debt
-        )?;
-
-        Self::withdraw_solusd(
-            &borrower_operation_info, 
-            &authority_info,
-            &active_pool_info,
-            &solusd_token_info,
-            &borrower_info, 
-            &token_program_info, 
-            borrower_operations.nonce,
-            SOLUSD_GAS_COMPENSATION,
-            SOLUSD_GAS_COMPENSATION
-        )?;
-
-        borrower_operations
-            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
-        borrower_trove
-            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
-        trove_manager
-            .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
-        
         Ok(())
+
+
+        // origin code
+        // let account_info_iter = &mut accounts.iter();
+        // let borrower_operation_info = next_account_info(account_info_iter)?;
+        // let authority_info = next_account_info(account_info_iter)?;
+        // let trove_manager_info = next_account_info(account_info_iter)?;
+        // let solid_staking_info = next_account_info(account_info_iter)?;
+        // let solid_staking_token_pool_info = next_account_info(account_info_iter)?;
+        // let active_pool_info = next_account_info(account_info_iter)?;
+        // let default_pool_info = next_account_info(account_info_iter)?;
+        // let solusd_token_info = next_account_info(account_info_iter)?;
+        // let token_program_info = next_account_info(account_info_iter)?;
+        // let pyth_product_info = next_account_info(account_info_iter)?;
+        // let pyth_price_info = next_account_info(account_info_iter)?;
+        // let clock = &Clock::from_account_info(next_account_info(account_info_iter)?)?;
+        // let borrower_info = next_account_info(account_info_iter)?;
+        // let borrower_trove_info = next_account_info(account_info_iter)?;
+
+        // let borrower_operations = BorrowerOperations::try_from_slice(&borrower_operation_info.data.borrow())?;
+        // let mut borrower_trove = Trove::try_from_slice(&borrower_trove_info.data.borrow())?;
+        // let mut trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow())?;
+
+        // let active_pool = ActivePool::try_from_slice(&active_pool_info.data.borrow())?;
+        // let default_pool = DefaultPool::try_from_slice(&default_pool_info.data.borrow())?;
+
+        // let market_price = get_market_price(
+        //     borrower_operations.oracle_program_id,
+        //     borrower_operations.quote_currency,
+        //     pyth_product_info,
+        //     pyth_price_info,
+        //     clock
+        // )?;
+        
+        // let is_recovery_mode = trove_manager.check_recovery_mode(market_price, &active_pool, &default_pool) == 1;
+
+        // Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode)?;
+
+        // if borrower_trove.status == 1{
+        //     return Err(LiquityError::ErrorTroveisActive.into())
+        // }
+
+        // let mut solusd_fee = 0;
+        // let mut net_debt = solusd_amount;
+        // if !is_recovery_mode{
+        //     solusd_fee = Self::trigger_borrowing_fee(
+        //         &borrower_operation_info.clone(),
+        //         &authority_info.clone(),
+        //         &trove_manager_info.clone(),
+        //         &solusd_token_info.clone(),
+        //         &token_program_info.clone(),
+        //         &solid_staking_info.clone(),
+        //         &solid_staking_token_pool_info.clone(),
+        //         borrower_operations.nonce,
+        //         solusd_amount,
+        //         max_fee_percentage)?;
+        //     net_debt += solusd_fee;
+        // }
+        // if net_debt < MIN_NET_DEBT {
+        //     return Err(LiquityError::ErrorMinNetDebt.into());
+        // }
+        // let composite_debt =  net_debt + SOLUSD_GAS_COMPENSATION;
+
+        // if composite_debt == 0 {
+        //     return Err(LiquityError::InvalidCompositeDebt.into());
+        // }
+
+        // let icr = compute_cr(coll_increase, composite_debt, market_price);
+        // let nicr = compute_nominal_cr(coll_increase, composite_debt);
+
+        // let mut vars = LocalVariablesOpenTrove::new(*borrower_operation_info.key, *borrower_info.key);
+        // vars.price = market_price;
+        // vars.solusd_fee = solusd_fee;
+        // vars.net_debt = net_debt;
+        // vars.composite_debt = composite_debt;
+        // vars.icr = icr;
+        // vars.nicr = nicr;
+
+        // if is_recovery_mode {
+        //     if vars.icr < CCR {
+        //         return Err(LiquityError::CCRError.into());
+        //     }
+        // }
+        // else {
+        //     if vars.icr < MCR {
+        //         return Err(LiquityError::MCRError.into());
+        //     }
+        //     let new_tcr = Self::get_new_tcr_from_trove_change(
+        //         active_pool, 
+        //         default_pool,
+        //         coll_increase, 
+        //         true, 
+        //         vars.composite_debt, 
+        //         true, 
+        //         vars.price);
+
+        //     if new_tcr < CCR {
+        //         return Err(LiquityError::CCRError.into());
+        //     }
+        // }
+       
+        // borrower_trove.status = 1;
+        // borrower_trove.coll += coll_increase;
+        // borrower_trove.debt += composite_debt;
+
+        // let new_stake = borrower_trove.coll;
+        // let old_stake = borrower_trove.stake;
+        // borrower_trove.stake = new_stake;
+        // trove_manager.total_stakes = trove_manager.total_stakes - old_stake + new_stake;
+
+        // vars.stake = trove_manager.total_stakes;
+
+        // Self::withdraw_solusd(
+        //     &borrower_operation_info, 
+        //     &authority_info,
+        //     &active_pool_info,
+        //     &solusd_token_info,
+        //     &borrower_info,
+        //     &token_program_info, 
+        //     borrower_operations.nonce,
+        //     solusd_amount,
+        //     vars.net_debt
+        // )?;
+
+        // Self::withdraw_solusd(
+        //     &borrower_operation_info, 
+        //     &authority_info,
+        //     &active_pool_info,
+        //     &solusd_token_info,
+        //     &borrower_info, 
+        //     &token_program_info, 
+        //     borrower_operations.nonce,
+        //     SOLUSD_GAS_COMPENSATION,
+        //     SOLUSD_GAS_COMPENSATION
+        // )?;
+
+        // borrower_operations
+        //     .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
+        // borrower_trove
+        //     .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
+        // trove_manager
+        //     .serialize(&mut *borrower_operation_info.data.borrow_mut())?;
+        
+        // Ok(())
     }
 
     /// process WithdrawFromSP instruction
@@ -561,14 +571,11 @@ impl Processor {
         let trove_manager_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let owner_id_info = next_account_info(account_info_iter)?;
-        //let default_pool_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
-        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        // let price_feed_info = next_account_info(account_info_iter)?;
-        //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
+        let solid_staking_token_pool_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
         let borrower_info = next_account_info(account_info_iter)?;
@@ -624,12 +631,13 @@ impl Processor {
         if is_debt_increase && !is_recovery_mode
         {
             vars.solusd_fee = Self::trigger_borrowing_fee(
-                &borrower_operation_info,
-                &authority_info,
-                &trove_manager_info,
-                &solusd_token_info,
-                &token_program_info,
-                &solid_staking_info,
+                &borrower_operation_info.clone(),
+                &authority_info.clone(),
+                &trove_manager_info.clone(),
+                &solusd_token_info.clone(),
+                &token_program_info.clone(),
+                &solid_staking_info.clone(),
+                &solid_staking_token_pool_info.clone(),
                 borrower_operations.nonce,
                 solusd_change,
                 max_fee_percentage)?;

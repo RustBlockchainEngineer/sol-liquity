@@ -3,38 +3,30 @@
   "version": "0.0.1",
   "description": "Solana Liquity Protocol",
   "scripts": {
-    "push":"git add . && git commit -m 'auto updates' && git push",
-    "switch-localnet":"solana config set --url localhost",
-    "switch-devnet":"solana config set --url devnet",
-    "switch-testnet":"solana config set --url testnet",
-    "switch-mainnet-beta":"solana config set --url mainnet-beta",
+    "push": "git add . && git commit -m 'auto updates' && git push",
+    "switch-localnet": "solana config set --url localhost",
+    "switch-devnet": "solana config set --url devnet",
+    "switch-testnet": "solana config set --url testnet",
+    "switch-mainnet-beta": "solana config set --url mainnet-beta",
     "start-server": "solana-test-validator",
-
     "build:sp": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml --bpf-out-dir=contracts/stability-pool/dist",
     "clean:sp": "cargo clean --manifest-path=./contracts/stability-pool/program/Cargo.toml && rm -rf ./contracts/stability-pool/dist",
-    "deploy:sp":"solana program deploy contracts/stability-pool/dist/stability-pool.so",
+    "deploy:sp": "solana program deploy contracts/stability-pool/dist/stability-pool.so",
     "test:sp": "cargo test-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
-
     "build:st": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml --bpf-out-dir=contracts/solid-staking/dist",
     "clean:st": "cargo clean --manifest-path=./contracts/solid-staking/program/Cargo.toml && rm -rf ./contracts/solid-staking/dist",
-    "deploy:st":"solana program deploy contracts/solid-staking/dist/solid-staking.so",
+    "deploy:st": "solana program deploy contracts/solid-staking/dist/solid-staking.so",
     "test:st": "cargo test-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml",
-
     "build:borrower": "cargo build-bpf --manifest-path=./contracts/borrower-operations/program/Cargo.toml",
     "deploy:borrower": "solana program deploy ./contracts/borrower-operations/program/target/deploy/borrower_operations.so",
-
     "build:pool": "cargo build-bpf --manifest-path=./contracts/stability-pool/program/Cargo.toml",
     "deploy:pool": "solana program deploy ./contracts/stability-pool/program/target/deploy/stability_pool.so",
-
     "build:staking": "cargo build-bpf --manifest-path=./contracts/solid-staking/program/Cargo.toml",
     "deploy:staking": "solana program deploy ./contracts/solid-staking/program/target/deploy/solid_staking.so",
-
-
     "build:trove": "cargo build-bpf --manifest-path=./contracts/trove-manager/program/Cargo.toml",
     "deploy:trove": "solana program deploy ./contracts/trove-manager/program/target/deploy/trove_manager.so"
-
-
-
-
+  },
+  "dependencies": {
+    "yarn": "^1.22.17"
   }
 }

@@ -577,17 +577,11 @@ pub enum Status {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Trove {
-    /// pool pubkey
-    pub pool_id_pubkey:Pubkey,
-
-    /// owner pubkey
     pub owner_pubkey:Pubkey,
-
+    pub status:u8,
     pub debt:u128,
     pub coll:u128,
     pub stake:u128,
-    pub status:u8,
-    pub array_index:u128,
 }
 impl Trove {
     pub fn is_active(&self)->bool {
