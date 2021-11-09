@@ -113,12 +113,6 @@ impl Processor {
                 max_fee_percentage,
                 sol_amount
             } => {
-                // let is_debt_increase_t =  match is_debt_increase
-                // {
-                //     [0] => false,
-                //     [1] => true,
-                //     _ => return Err(LiquityError::InvalidAccountInput),
-                // };
                 // Instruction: AdjustTrove
                 Self::process_adjust_trove(program_id, accounts, coll_withdrawal  as u128, solusd_change  as u128, is_debt_increase != 0, max_fee_percentage  as u128, sol_amount  as u128)
             }
@@ -267,7 +261,7 @@ impl Processor {
         let new_iCR = compute_cr(res.coll, res.debt, price);
         Ok(new_iCR)
     }
-    /*#[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     fn check_accounts(
         borrower_operations: &dyn BorrowerOperations,
         program_id: &Pubkey,
@@ -326,7 +320,7 @@ impl Processor {
             }
         }
         Ok(())
-    }*/
+    }
     fn  get_new_normal_icr_from_trove_change
     (
         coll:u128,
@@ -404,14 +398,11 @@ impl Processor {
         let authority_info = next_account_info(account_info_iter)?;
         let trove_manager_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
-        //let default_pool_info = next_account_info(account_info_iter)?;
-        //let stability_pool_info = next_account_info(account_info_iter)?;
-        let gas_pool_info = next_account_info(account_info_iter)?;
-        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        // let price_feed_info = next_account_info(account_info_iter)?;
-        //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
-        //let solid_staking_info = next_account_info(account_info_iter)?;
+        let solid_staking_info = next_account_info(account_info_iter)?;
+        let token_program_info = next_account_info(account_info_iter)?;
+        let gas_pool_info = next_account_info(account_info_iter)?;
+        let solusd_token_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
 
 
@@ -433,7 +424,6 @@ impl Processor {
 
         let token_program_id = *token_program_info.key;
         let market_price = ((get_pyth_price( pyth_price_info, clock )?).try_round_u64()?) as u128;
-        // let is_recovery_mode = _checkRecoveryMode(market_price);
         let is_recovery_mode = true;
 
         Self::require_valid_max_fee_percentage(max_fee_percentage, is_recovery_mode)?;
@@ -532,12 +522,8 @@ impl Processor {
         let trove_manager_info = next_account_info(account_info_iter)?;
         let active_pool_info = next_account_info(account_info_iter)?;
         let owner_id_info = next_account_info(account_info_iter)?;
-        //let default_pool_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
-        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        // let price_feed_info = next_account_info(account_info_iter)?;
-        //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;
@@ -709,9 +695,6 @@ impl Processor {
         let default_pool_info = next_account_info(account_info_iter)?;
         let stability_pool_info = next_account_info(account_info_iter)?;
         let gas_pool_info = next_account_info(account_info_iter)?;
-        //let coll_surplus_pool_info = next_account_info(account_info_iter)?;
-        // let price_feed_info = next_account_info(account_info_iter)?;
-        //let sorted_troves_info = next_account_info(account_info_iter)?;
         let solusd_token_info = next_account_info(account_info_iter)?;
         let solid_staking_info = next_account_info(account_info_iter)?;
         let token_program_info = next_account_info(account_info_iter)?;

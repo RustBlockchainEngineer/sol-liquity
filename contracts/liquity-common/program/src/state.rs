@@ -21,6 +21,9 @@ use std::convert::TryFrom;
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct StabilityPool {
+    /// account type
+    pub account_type: u8, 
+
     /// nonce is used to authorize this farm pool
     pub nonce: u8,
 
@@ -391,6 +394,9 @@ impl StabilityPool{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct FrontEnd {
+    /// account type
+    pub account_type: u8, 
+    
     /// pool pubkey
     pub pool_id_pubkey:Pubkey,
 
@@ -416,6 +422,9 @@ impl FrontEnd {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Deposit {
+    /// account type
+    pub account_type: u8, 
+
     /// pool pubkey
     pub pool_id_pubkey:Pubkey,
 
@@ -435,6 +444,9 @@ impl Deposit{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Snapshots {
+    /// account type
+    pub account_type: u8, 
+
     /// pool pubkey
     pub pool_id_pubkey:Pubkey,
 
@@ -511,6 +523,9 @@ impl Snapshots{
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct TroveManager {
+    /// account type
+    pub account_type: u8, 
+
     /// nonce is used to authorize this farm pool
     pub nonce: u8,
 
@@ -577,6 +592,9 @@ pub enum Status {
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
 pub struct Trove {
+    /// account type
+    pub account_type: u8, 
+    
     /// pool pubkey
     pub pool_id_pubkey:Pubkey,
 
