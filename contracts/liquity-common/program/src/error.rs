@@ -90,11 +90,9 @@ pub enum LiquityError {
     #[error("BorrowerOps: Invalid Composite debt")]
     InvalidCompositeDebt,
     
-
     /// BorrowerOps: Caller is not the BorrowerOperations contract
     #[error("TroveManager: Caller is not the BorrowerOperations contract")]
     NotTroveManagerSigner,
-    
 
     /// TroveManager: Cannot redeem when TCR < MCR
     #[error("TroveManager: Cannot redeem when TCR < MCR")]
@@ -115,6 +113,14 @@ pub enum LiquityError {
     /// Ivalid program derived address
     #[error("Invalid program derived address")]
     InvalidPdaAddress,
+
+    /// TroveManager: Cannot redeem when TCR < MCR
+    #[error("TroveManager: Cannot redeem when TCR < MCR")]
+    TCROverFlow,
+
+    /// BorrowerOperations: Cannot redeem when ICR < MCR
+    #[error("BorrowerOperations: Cannot redeem when ICR < MCR")]
+    ICROverFlow,
 }
 impl From<LiquityError> for ProgramError {
     fn from(e: LiquityError) -> Self {

@@ -353,14 +353,6 @@ pub fn get_market_price(
     Ok(market_price.try_round_u64().unwrap() as u128)
 }
 
-// --- Redemption fee function ---
-
-/*
-* This function has two impacts on the baseRate state variable:
-* 1) decays the baseRate based on time passed since last redemption or LUSD borrowing operation.
-* then,
-* 2) increases the baseRate based on the amount redeemed, as a proportion of total supply
-*/
 pub fn update_base_rate_from_redemption(trove_manager: &mut TroveManager, current_timestamp: u128, sol_drawn: u128, price: u128, total_solusd_supply: u128)->u128{
     let decayed_base_rate = calc_decayed_base_rate(trove_manager, current_timestamp);
 
@@ -370,8 +362,6 @@ pub fn update_base_rate_from_redemption(trove_manager: &mut TroveManager, curren
 
     let mut new_base_rate = decayed_base_rate + redeemed_solusd_fraction / BETA;
     new_base_rate = min(new_base_rate, DECIMAL_PRECISION);// cap baseRate at a maximum of 100%
-    //assert(newBaseRate <= DECIMAL_PRECISION); // This is already enforced in the line above
-    //assert(newBaseRate > 0); // Base rate is always non-zero after redemption
 
     // update the base_rate state variable
     trove_manager.base_rate = new_base_rate;
@@ -781,35 +771,6 @@ pub fn get_pending_sol_reward(trove_manager_data:&TroveManager, borrower_trove:&
     let pending_sol_reward = stake * reward_per_unit_staked / DECIMAL_PRECISION;
     return pending_sol_reward;
 }
-pub fn apply_pending_rewards(
-    trove_manager_data:&TroveManager, 
-    borrower_trove:&mut Trove, 
-    reward_snapshot:&mut RewardSnapshot, 
-    default_pool_data:&mut DefaultPool, 
-    active_pool_data:&mut ActivePool)
-{
-    if has_pending_rewards(trove_manager_data, borrower_trove, reward_snapshot) {
-        if borrower_trove.is_active() {
-            // Compute pending rewards
-            let pending_sol_reward = get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
-            let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
-
-            // Apply pending rewards to trove's state
-            borrower_trove.coll = borrower_trove.coll + pending_sol_reward;
-            borrower_trove.debt = borrower_trove.debt + pending_solusd_debt_reward;
-
-            reward_snapshot.update_trove_reward_snapshots(trove_manager_data);
-            // Transfer from DefaultPool to ActivePool
-            move_pending_trove_reward_to_active_pool(
-                trove_manager_data, 
-                pending_sol_reward, 
-                pending_solusd_debt_reward,
-                default_pool_data,
-                active_pool_data
-            );
-        }
-    }
-}
 pub fn move_pending_trove_reward_to_active_pool(
     trove_manager_data:&TroveManager,
     _solusd:u128, 
@@ -902,19 +863,39 @@ pub fn payout_solid_gains<'a>(
 
 }
 
+pub fn apply_pending_rewards(
+    trove_manager_data:&TroveManager, 
+    borrower_trove:&mut Trove, 
+    reward_snapshot:&mut RewardSnapshot, 
+    default_pool_data:&mut DefaultPool, 
+    active_pool_data:&mut ActivePool)
+{
+    if has_pending_rewards(trove_manager_data, borrower_trove, reward_snapshot) {
+        if borrower_trove.is_active() {
+            // Compute pending rewards
+            let pending_sol_reward = get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
+            let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
+
+            // Apply pending rewards to trove's state
+            borrower_trove.coll = borrower_trove.coll + pending_sol_reward;
+            borrower_trove.debt = borrower_trove.debt + pending_solusd_debt_reward;
+
+            reward_snapshot.update_trove_reward_snapshots(trove_manager_data);
+            // Transfer from DefaultPool to ActivePool
+            move_pending_trove_reward_to_active_pool(
+                trove_manager_data, 
+                pending_sol_reward, 
+                pending_solusd_debt_reward,
+                default_pool_data,
+                active_pool_data
+            );
+        }
+    }
+}
 pub fn close_trove(borrower_trove:&mut Trove, reward_snapshots:&mut RewardSnapshot){
-    //assert(closedStatus != Status.nonExistent && closedStatus != Status.active);
-
-    //uint TroveOwnersArrayLength = TroveOwners.length;
-    //_requireMoreThanOneTroveInSystem(TroveOwnersArrayLength);
-
-    //borrower_trove.status = closedStatus;
     borrower_trove.coll = 0;
     borrower_trove.debt = 0;
 
     reward_snapshots.sol = 0;
     reward_snapshots.solusd_debt = 0;
-
-    //_removeTroveOwner(_borrower, TroveOwnersArrayLength);
-    //sortedTroves.remove(_borrower);
 }
