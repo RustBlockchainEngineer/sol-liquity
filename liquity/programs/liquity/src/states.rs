@@ -162,6 +162,38 @@ pub struct DefaultPool {
 }
 
 
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct UserDeposit {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    /// deposited amount
+    pub deposit_amount:u64,
+}
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct Snapshot {
+    /// pool pubkey
+    pub pool_id_pubkey:Pubkey,
+
+    /// owner pubkey
+    pub owner_pubkey:Pubkey,
+
+    /// SOL snapshot
+    pub f_sol_snapshot:u64,
+
+    /// solUSD snapshot
+    pub f_solusd_snapshot:u64,
+}
+
+
 /// SOLID Staking struct
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
