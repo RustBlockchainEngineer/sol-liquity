@@ -7,6 +7,59 @@ pub struct LiquityState {
 }
 
 
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct TroveManager {
+    /// account type
+    pub account_type: u8, 
+
+    /// nonce is used to authorize this farm pool
+    pub nonce: u8,
+
+    /// BorrwoerOperations account
+    pub borrower_operations_id: Pubkey,
+
+    /// StabilityPool publickey
+    pub stability_pool_id: Pubkey,
+
+    /// Gas Pool publickey
+    pub gas_pool_id: Pubkey,
+
+    pub coll_surplus_pool_id: Pubkey,
+
+    pub solusd_token_pubkey: Pubkey,
+
+    pub solid_token_pubkey: Pubkey,
+
+    pub solid_staking_pubkey: Pubkey,
+
+    pub token_program_id: Pubkey,
+
+    pub default_pool_id: Pubkey,
+
+    pub active_pool_id: Pubkey,
+    pub oracle_program_id: Pubkey,
+    pub pyth_product_id: Pubkey,
+    pub pyth_price_id: Pubkey,
+
+    /// Currency market prices are quoted in
+    /// e.g. "USD" null padded (`*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"`) or a SPL token mint pubkey
+    pub quote_currency: [u8; 32],
+
+    pub base_rate:u128,
+
+    pub last_fee_operation_time:u128,
+    pub total_stakes:u128,
+    pub total_stakes_snapshot:u128,
+    pub total_collateral_snapshot:u128,
+    pub l_sol:u128,
+    pub l_solusd_debt:u128,
+    pub last_sol_error_redistribution:u128,
+    pub last_solusd_debt_error_redistribution:u128,
+
+}
+
+
 /// BorrowerOperations struct
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
@@ -84,4 +137,59 @@ pub struct StabilityPool {
     /// e.g. "USD" null padded (`*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"`) or a SPL token mint pubkey
     pub quote_currency: [u8; 32],
 
+}
+
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct ActivePool {
+    pub borrower_operations_address: Pubkey,
+    pub trove_manager_address: Pubkey,
+    pub stability_pool_address: Pubkey,
+    pub default_pool_address: Pubkey,
+    pub sol: u128,
+    pub solusd_debt: u128,
+}
+
+
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct DefaultPool {
+    pub trove_manager_address: Pubkey,
+    pub active_pool_address: Pubkey,
+    pub sol: u128,
+    pub solusd_debt: u128,
+}
+
+
+/// SOLID Staking struct
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq, BorshDeserialize, BorshSerialize, BorshSchema)]
+pub struct SOLIDStaking {
+    /// nonce is used to authorize this farm pool
+    pub nonce: u8,
+
+    /// spl-token program pubkey
+    pub token_program_pubkey: Pubkey,
+
+    /// SOLID pool token account
+    pub solid_pool_token_pubkey: Pubkey,
+
+    /// TroveManager account
+    pub trove_manager_id: Pubkey,
+
+    /// BorrwoerOperations account
+    pub borrower_operations_id: Pubkey,
+
+    /// ActivePool account
+    pub active_pool_id: Pubkey,
+
+    /// total staked SOLID amount
+    pub total_staked_amount:u128,
+
+    /// Running sum of SOL fees per-SOLID-staked
+    pub f_sol:u128,
+
+    /// Running sum of SOLID fees per-SOLID-staked
+    pub f_solusd:u128,
 }
