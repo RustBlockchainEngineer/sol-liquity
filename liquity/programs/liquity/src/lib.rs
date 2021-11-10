@@ -8,12 +8,15 @@ pub mod processor;
 pub mod error;
 /// constant
 pub mod constant;
+/// contexts
+pub mod contexts;
 
 use crate::{
     states::*,
     error::*,
     constant::*,
-    processor::*
+    processor::*,
+    contexts::*,
 };
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
