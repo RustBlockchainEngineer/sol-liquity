@@ -10,7 +10,7 @@ import {
 } from 'antd';
 import { useWallet } from '@solana/wallet-adapter-react';
 import moment from 'moment';
-import { adjustTrove, applyPendingRewards, closeTrove, createStabilityPool, liquidate, liquidateTroves, openTrove, provideToSP, redeemCollateral, withdrawFromSP } from '../../actions';
+import { adjustTrove, applyPendingRewards, closeTrove, createGlobalState, createStabilityPool, liquidate, liquidateTroves, openTrove, provideToSP, redeemCollateral, withdrawFromSP } from '../../actions';
 import BN from 'bn.js';
 import { AccountInfo, Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { getFilteredProgramAccounts } from '@solana/spl-name-service';
@@ -166,14 +166,85 @@ export const LiquityView = () => {
     }
     else{     console.log("connect your wallet");    }
   }
-
+  async function createGlobalStateUI() {
+    if(wallet.connected){
+      await createGlobalState(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function createTokenVaultUI() {
+    if(wallet.connected){
+      await createTokenVault(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function createUserTroveUI() {
+    if(wallet.connected){
+      await createUserTrove(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function depositCollateralUI() {
+    if(wallet.connected){
+      await depositCollateral(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function repayCollateralUI() {
+    if(wallet.connected){
+      await repayCollateral(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function withdrawCollateralUI() {
+    if(wallet.connected){
+      await withdrawCollateral(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function borrowSOLUSDUI() {
+    if(wallet.connected){
+      await borrowSOLUSD(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
+  async function repaySOLUSDUI() {
+    if(wallet.connected){
+      await repaySOLUSD(connection, wallet);
+    }
+    else{     console.log("connect your wallet");    }
+  }
   
   return (
     <>
     <br />
     <br />
     <br />
-    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createBO()}>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createGlobalStateUI()}>
+      Create Program State
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createTokenVaultUI()}>
+      Create Token Vault
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createUserTroveUI()}>
+      Create User Trove
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => depositCollateralUI()}>
+      Deposit Collateral
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => repayCollateralUI()}>
+      Repay Collateral
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => withdrawCollateralUI()}>
+      Withdraw Collateral
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => borrowSOLUSDUI()}>
+      Borrow SOLUSD
+    </Button>
+    <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => repaySOLUSDUI()}>
+      Repay SOLUSD
+    </Button>
+    {/* <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createBO()}>
       Create Borrower Operations
     </Button>
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => openTroveBO()}>
@@ -204,14 +275,14 @@ export const LiquityView = () => {
     </Button>
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => registerFrontend()}>
       Register Frontend
-    </Button>
+    </Button> */}
     
     {/* <br /><br />
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createTM()}>
       Create Trove Manager
     </Button> */}
 
-    <br /><br />
+    {/* <br /><br />
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => createSS()}>
       Create Solid Staking
     </Button>
@@ -237,7 +308,7 @@ export const LiquityView = () => {
     </Button>
     <Button htmlType="submit" style={{marginLeft: 30 + 'px'}} onClick={e => liquidateTrovesTM()}>
       Liquidate Troves
-    </Button>
+    </Button> */}
 
     </>
   );

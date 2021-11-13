@@ -3,3 +3,4 @@ target
 webpack
 node_modules
 .next
+.next/
