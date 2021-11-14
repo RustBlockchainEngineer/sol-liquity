@@ -20,7 +20,7 @@ pub struct CreateGlobalState <'info>{
     bump = nonce,
     payer = super_owner,
     )]
-    pub global_state:Account<'info, GlobalState>,
+    pub global_state:ProgramAccount<'info, GlobalState>,
     pub system_program: AccountInfo<'info>,
 
 }
@@ -36,7 +36,7 @@ pub struct CreateTokenVault<'info> {
     bump = nonce,
     payer = vault_owner,
     )]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub token_coll:Account<'info, TokenAccount>,
     pub mint_usd:AccountInfo<'info>,
@@ -56,9 +56,9 @@ pub struct CreateUserTrove<'info> {
     bump = nonce,
     payer = trove_owner,
     )]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     pub system_program: AccountInfo<'info>,
 }
 
@@ -68,9 +68,9 @@ pub struct DepositCollateral<'info> {
     #[account(signer)]
     pub owner:  AccountInfo<'info>,
     #[account(mut)]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut)]
@@ -84,9 +84,9 @@ pub struct WithdrawCollateral<'info> {
     #[account(signer)]
     pub owner:  AccountInfo<'info>,
     #[account(mut)]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut)]
@@ -100,9 +100,9 @@ pub struct RepayCollateral<'info> {
     #[account(signer)]
     pub owner:  AccountInfo<'info>,
     #[account(mut)]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut)]
@@ -117,9 +117,9 @@ pub struct BorrowUsd<'info> {
     #[account(signer)]
     pub owner:  AccountInfo<'info>,
     #[account(mut)]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut)]
@@ -137,9 +137,9 @@ pub struct RepayUsd<'info> {
     #[account(signer)]
     pub owner:  AccountInfo<'info>,
     #[account(mut)]
-    pub user_trove:Account<'info, UserTrove>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
-    pub token_vault:Account<'info, TokenVault>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
     pub mint_usd:AccountInfo<'info>,
     #[account(mut)]
