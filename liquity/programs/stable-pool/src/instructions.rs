@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, TokenAccount, ID};
+use anchor_spl::token::{self, TokenAccount,Mint, ID};
 
 
 use crate::{
@@ -21,6 +21,7 @@ pub struct CreateGlobalState <'info>{
     payer = super_owner,
     )]
     pub global_state:ProgramAccount<'info, GlobalState>,
+    pub mint_usd:Account<'info, Mint>,
     pub system_program: AccountInfo<'info>,
 
 }
@@ -29,17 +30,18 @@ pub struct CreateGlobalState <'info>{
 #[instruction(nonce:u8)]
 pub struct CreateTokenVault<'info> {
     #[account(signer)]
-    pub vault_owner:  AccountInfo<'info>,
+    pub payer:  AccountInfo<'info>,
     #[account(
     init,
-    seeds = [b"token-vault-seed",token_coll.key().as_ref()],
+    seeds = [b"token-vault-seed",mint_coll.key.as_ref()],
     bump = nonce,
-    payer = vault_owner,
+    payer = payer,
     )]
     pub token_vault:ProgramAccount<'info, TokenVault>,
+    pub global_state:ProgramAccount<'info, GlobalState>,
     #[account(mut)]
+    pub mint_coll:AccountInfo<'info>,
     pub token_coll:Account<'info, TokenAccount>,
-    pub mint_usd:AccountInfo<'info>,
     pub system_program: AccountInfo<'info>,
 
 
@@ -52,7 +54,7 @@ pub struct CreateUserTrove<'info> {
     pub trove_owner:  AccountInfo<'info>,
     #[account(
     init,
-    seeds = [b"token-vault-seed",token_vault.key().as_ref(),trove_owner.key.as_ref()],
+    seeds = [b"user-trove-seed",token_vault.key().as_ref(),trove_owner.key.as_ref()],
     bump = nonce,
     payer = trove_owner,
     )]
@@ -121,6 +123,8 @@ pub struct BorrowUsd<'info> {
     #[account(mut)]
     pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut)]
+    pub global_state:ProgramAccount<'info, GlobalState>,
+    #[account(mut)]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut)]
     pub mint_usd:AccountInfo<'info>,
@@ -140,6 +144,8 @@ pub struct RepayUsd<'info> {
     pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut)]
     pub token_vault:ProgramAccount<'info, TokenVault>,
+    #[account(mut)]
+    pub global_state:ProgramAccount<'info, GlobalState>,
     #[account(mut)]
     pub mint_usd:AccountInfo<'info>,
     #[account(mut)]

@@ -3,6 +3,7 @@ import { Connection, SystemProgram } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
+import { GLOBAL_STATE_TAG } from './ids';
 // This command makes an Lottery
 export async function depositCollateral(
   connection: Connection,
@@ -14,7 +15,7 @@ export async function depositCollateral(
 
   const [globalStateKey, nonce] =
     await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from('golbal-state-seed')],
+      [Buffer.from(GLOBAL_STATE_TAG)],
       program.programId,
     );
 

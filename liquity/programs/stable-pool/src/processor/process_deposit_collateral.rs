@@ -23,6 +23,7 @@ pub fn process_deposit_collateral(ctx: Context<DepositCollateral>, amount: u64) 
 
     token::transfer(cpi_ctx, amount)?;
 
+    ctx.accounts.token_vault.total_coll += amount;
     ctx.accounts.user_trove.locked_coll_balance += amount;
 
     Ok(())

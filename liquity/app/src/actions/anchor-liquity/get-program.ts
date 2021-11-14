@@ -1,14 +1,8 @@
 import * as anchor from '@project-serum/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
+import { STABLE_POOL_IDL, STABLE_POOL_PROGRAM_ID } from './ids';
 
-
-import idl from './idl.json';
-
-export const STABLE_POOL_PROGRAM_ID = new PublicKey(
-  'GmWiGFfV35KfSTS68fruWKFtc2rnR7wg1NtdMUQHyhQ1',
-);
-export const STABLE_POOL_IDL = idl;
 
 // This command makes an Lottery
 export function getProgramInstance(
@@ -29,7 +23,7 @@ export function getProgramInstance(
   const programId = STABLE_POOL_PROGRAM_ID;
 
   // Generate the program client from IDL.
-  const program = new anchor.Program(idl, programId, provider);
+  const program = new (anchor as any).Program(idl, programId, provider);
 
   return program;
 }

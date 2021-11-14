@@ -28,6 +28,7 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
     
     token::transfer(cpi_ctx, _amount)?;
 
+    ctx.accounts.token_vault.total_coll -= amount;
     ctx.accounts.user_trove.locked_coll_balance -= _amount;
 
     Ok(())

@@ -11,12 +11,12 @@ use crate::{
 
 pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64) -> ProgramResult {
 
-    assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount)?;
+    //assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount)?;
     // mint to user
     let cpi_accounts = MintTo {
         mint: ctx.accounts.mint_usd.clone(),
         to: ctx.accounts.user_token_usd.clone(),
-        authority: ctx.accounts.token_vault.to_account_info().clone(),
+        authority: ctx.accounts.global_state.to_account_info().clone(),
     };
 
     let cpi_program = ctx.accounts.token_program.clone();
@@ -25,6 +25,7 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64) -> ProgramResult
 
     token::mint_to(cpi_ctx, amount)?;
 
+    ctx.accounts.token_vault.total_debt += amount;
     ctx.accounts.user_trove.debt += amount;
 
     Ok(())

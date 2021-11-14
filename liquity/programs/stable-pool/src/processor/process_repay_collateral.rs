@@ -23,6 +23,7 @@ pub fn process_repay_collateral(ctx: Context<RepayCollateral>, amount: u64) -> P
 
     token::transfer(cpi_ctx, amount)?;
 
+    ctx.accounts.token_vault.total_coll += amount;
     ctx.accounts.user_trove.locked_coll_balance += amount;
 
     Ok(())
