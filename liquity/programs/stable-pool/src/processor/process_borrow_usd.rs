@@ -24,15 +24,14 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64) -> ProgramResult
     let seeds = [GLOBAL_STATE_TAG];
     let (global_state_key, bump) = Pubkey::find_program_address(&seeds, ctx.program_id);
 
+    let signer_seeds = &[
+        GLOBAL_STATE_TAG,
+        &[bump],
+    ];
+    let signer = &[&signer_seeds[..]];
 
-    let cpi_ctx = CpiContext::new_with_signer(
-        cpi_program, 
-        cpi_accounts,
-        &[
-            GLOBAL_STATE_TAG,
-            &[bump],
-        ],
-    );
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+
     token::mint_to(cpi_ctx, amount)?;
 
     ctx.accounts.token_vault.total_debt += amount;

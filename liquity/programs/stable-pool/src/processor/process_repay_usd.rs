@@ -27,15 +27,14 @@ pub fn process_repay_usd(ctx: Context<RepayUsd>, amount: u64) -> ProgramResult {
     let seeds = [GLOBAL_STATE_TAG];
     let (global_state_key, bump) = Pubkey::find_program_address(&seeds, ctx.program_id);
 
+    let signer_seeds = &[
+        GLOBAL_STATE_TAG,
+        &[bump],
+    ];
+    let signer = &[&signer_seeds[..]];
 
-    let cpi_ctx = CpiContext::new_with_signer(
-        cpi_program, 
-        cpi_accounts,
-        &[
-            GLOBAL_STATE_TAG,
-            &[bump],
-        ],
-    );
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+    
     token::burn(cpi_ctx, _amount)?;
 
     ctx.accounts.token_vault.total_debt -= _amount;
