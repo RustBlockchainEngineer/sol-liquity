@@ -13,6 +13,6 @@ export const USER_TROVE_TAG = "user-trove-seed"
 
 
 export const STABLE_POOL_PROGRAM_ID = new PublicKey(
-  '2BgvmQiDPBkEZpN9r6mqCetskcrdLc1XC62JDRKLWQzt',
+  'HaWmjYejDBvGboJxgS2nZiXEq4Jp9XrfGwT8zy5QBDVi',
 );
 export const STABLE_POOL_IDL = idl;

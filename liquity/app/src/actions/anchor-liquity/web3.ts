@@ -192,3 +192,22 @@ export async function createProgramAccountIfNotExist(
   return publicKey
 }
 
+export async function checkWalletATA(connection:Connection,walletPubkey:PublicKey,mint:string){
+  let parsedTokenAccounts = await connection.getParsedTokenAccountsByOwner(walletPubkey,
+    {
+      programId: TOKEN_PROGRAM_ID
+    },
+    'confirmed'
+  );
+  let result:any = null;
+  parsedTokenAccounts.value.forEach(async (tokenAccountInfo) => {
+    const tokenAccountPubkey = tokenAccountInfo.pubkey
+    const parsedInfo = tokenAccountInfo.account.data.parsed.info
+    const mintAddress = parsedInfo.mint
+    if(mintAddress === mint){
+      result = tokenAccountPubkey.toBase58();
+    }
+  });
+  return result;
+}
+

@@ -6,14 +6,13 @@ import { getProgramInstance } from './get-program';
 import {  GLOBAL_STATE_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
 import { AccountLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { createTokenAccountIfNotExist, sendTransaction } from './web3';
+import { checkWalletATA, createTokenAccountIfNotExist, sendTransaction } from './web3';
 import { TokenAccount } from '../../models';
 // This command makes an Lottery
 export async function repaySOLUSD(
   connection: Connection,
   wallet: any,
   amount:number,
-  accountByMint: Map<string, TokenAccount>,
   mintCollKey:PublicKey = WSOL_MINT_KEY,
 ) {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
@@ -40,8 +39,7 @@ export async function repaySOLUSD(
   const globalState = await program.account.globalState.fetch(globalStateKey);
   const tokenVault = await program.account.tokenVault.fetch(tokenVaultKey);
 
-  const paramUserUsdTokenAccount = accountByMint.get(globalState.mintUsd.toBase58());
-  const paramUserUsdTokenKey = paramUserUsdTokenAccount == undefined? undefined:paramUserUsdTokenAccount.pubkey;
+  const paramUserUsdTokenKey = await checkWalletATA(connection, wallet.publicKey,globalState.mintUsd.toBase58());
   
   const transaction = new Transaction()
   let instructions:TransactionInstruction[] = [];

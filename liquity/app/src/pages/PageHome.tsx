@@ -8,7 +8,6 @@ const connection = new anchor.web3.Connection('https://api.devnet.solana.com');
 
 const PageHome : React.FC = () => {
   const wallet:WalletContextState = useWallet();
-  const userTokenAccounts = useUserAccounts();
 
   async function createGlobalStateUI() {
     if(wallet.connected){
@@ -48,15 +47,13 @@ const PageHome : React.FC = () => {
   }
   async function borrowSOLUSDUI() {
     if(wallet.connected){
-      console.log("userTokenAccounts", userTokenAccounts)
-      await borrowSOLUSD(connection, wallet, 50 * 1000000, userTokenAccounts.accountByMint);
+      await borrowSOLUSD(connection, wallet, 50 * 1000000);
     }
     else{     console.log("connect your wallet");    }
   }
   async function repaySOLUSDUI() {
     if(wallet.connected){
-      console.log("userTokenAccounts", userTokenAccounts)
-      await repaySOLUSD(connection, wallet,  20 * 1000000,userTokenAccounts.accountByMint);
+      await repaySOLUSD(connection, wallet,  20 * 1000000);
     }
     else{     console.log("connect your wallet");    }
   }
