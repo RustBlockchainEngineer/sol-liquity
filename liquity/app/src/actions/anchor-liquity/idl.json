@@ -1,0 +1,399 @@
+{
+    "version": "0.0.0",
+    "name": "stable_pool",
+    "instructions": [
+      {
+        "name": "createGlobalState",
+        "accounts": [
+          {
+            "name": "superOwner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "globalState",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "nonce",
+            "type": "u8"
+          }
+        ]
+      },
+      {
+        "name": "createTokenVault",
+        "accounts": [
+          {
+            "name": "vaultOwner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "mintUsd",
+            "isMut": false,
+            "isSigner": false
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "nonce",
+            "type": "u8"
+          }
+        ]
+      },
+      {
+        "name": "createUserTrove",
+        "accounts": [
+          {
+            "name": "troveOwner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "nonce",
+            "type": "u8"
+          }
+        ]
+      },
+      {
+        "name": "depositCollateral",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "poolTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "userTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "withdrawCollateral",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "poolTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "userTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "repayCollateral",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "poolTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "userTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "borrowUsd",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "poolTokenColl",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "mintUsd",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "userTokenUsd",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "repayUsd",
+        "accounts": [
+          {
+            "name": "owner",
+            "isMut": false,
+            "isSigner": true
+          },
+          {
+            "name": "userTrove",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenVault",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "mintUsd",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "userTokenUsd",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "tokenProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    ],
+    "accounts": [
+      {
+        "name": "GlobalState",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "superOwner",
+              "type": "publicKey"
+            }
+          ]
+        }
+      },
+      {
+        "name": "TokenVault",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "vaultOwner",
+              "type": "publicKey"
+            },
+            {
+              "name": "tokenColl",
+              "type": "publicKey"
+            },
+            {
+              "name": "mintUsd",
+              "type": "publicKey"
+            }
+          ]
+        }
+      },
+      {
+        "name": "UserTrove",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "troveOwner",
+              "type": "publicKey"
+            },
+            {
+              "name": "tokenVault",
+              "type": "publicKey"
+            },
+            {
+              "name": "lockedCollBalance",
+              "type": "u64"
+            },
+            {
+              "name": "debt",
+              "type": "u64"
+            }
+          ]
+        }
+      }
+    ],
+    "errors": [
+      {
+        "code": 300,
+        "name": "Unauthorized",
+        "msg": "You are not authorized to perform this action."
+      },
+      {
+        "code": 301,
+        "name": "AlreadyInUse",
+        "msg": "AlreadyInUse"
+      },
+      {
+        "code": 302,
+        "name": "InvalidProgramAddress",
+        "msg": "InvalidProgramAddress"
+      },
+      {
+        "code": 303,
+        "name": "InvalidState",
+        "msg": "InvalidState"
+      },
+      {
+        "code": 304,
+        "name": "InvalidOwner",
+        "msg": "InvalidOwner"
+      },
+      {
+        "code": 305,
+        "name": "NotAllowed",
+        "msg": "NotAllowed"
+      }
+    ]
+  }
