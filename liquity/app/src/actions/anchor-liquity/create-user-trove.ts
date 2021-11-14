@@ -28,7 +28,7 @@ export async function createUserTrove(
     const userTrove = await program.account.userTrove.fetch(userTroveKey);
     console.log("fetched userTrove", userTrove);
     console.log("This user trove was already created!")
-    return;
+    return "already created!"; 
   }
   catch(e){
   }
@@ -47,5 +47,5 @@ export async function createUserTrove(
   catch(e){
     console.log("can't create user trove")
   }
-  console.log("created user trove=",userTroveKey.toBase58())
+  return "created user trove successfully!";
 }

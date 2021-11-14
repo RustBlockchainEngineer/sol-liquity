@@ -16,3 +16,4 @@ export const STABLE_POOL_PROGRAM_ID = new PublicKey(
   'HaWmjYejDBvGboJxgS2nZiXEq4Jp9XrfGwT8zy5QBDVi',
 );
 export const STABLE_POOL_IDL = idl;
+export const SOLUSD_DECIMALS = 6;

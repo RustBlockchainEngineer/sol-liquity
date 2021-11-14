@@ -83,4 +83,5 @@ export async function depositCollateral(
   let tx = await sendTransaction(connection, wallet, transaction, signers);
   console.log("tx id->",tx);
 
+  return "User deposited "+(amount / Math.pow(10, 9))+" SOL, transaction id = "+tx;
 }

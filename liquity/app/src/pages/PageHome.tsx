@@ -1,70 +1,73 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as anchor from '@project-serum/anchor';
 import { useWallet, WalletContextState } from '@solana/wallet-adapter-react';
 import { borrowSOLUSD, createGlobalState, createTokenVault, createUserTrove, depositCollateral, repayCollateral, repaySOLUSD, withdrawCollateral } from '../actions';
 import { Button } from '@material-ui/core';
-import { useUserAccounts }  from '../hooks'
 const connection = new anchor.web3.Connection('https://api.devnet.solana.com');
 
 const PageHome : React.FC = () => {
   const wallet:WalletContextState = useWallet();
+  const [dispInfo, setDispInfo] = useState('transaction result:');
 
   async function createGlobalStateUI() {
     if(wallet.connected){
-      await createGlobalState(connection, wallet);
+      const demoLog = await createGlobalState(connection, wallet);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function createTokenVaultUI() {
     if(wallet.connected){
-      await createTokenVault(connection, wallet);
+      const demoLog = await createTokenVault(connection, wallet);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function createUserTroveUI() {
     if(wallet.connected){
-      await createUserTrove(connection, wallet);
+      const demoLog = await createUserTrove(connection, wallet);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function depositCollateralUI() {
     if(wallet.connected){
-      await depositCollateral(connection, wallet, 1 * 1000000000);
+      const demoLog = await depositCollateral(connection, wallet, 1 * 1000000000);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function repayCollateralUI() {
     if(wallet.connected){
-      await repayCollateral(connection, wallet, 0.2 * 1000000000);
+      const demoLog = await repayCollateral(connection, wallet, 0.2 * 1000000000);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function withdrawCollateralUI() {
     if(wallet.connected){
-      await withdrawCollateral(connection, wallet, 1 * 1000000000);
+      const demoLog = await withdrawCollateral(connection, wallet, 1 * 1000000000);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function borrowSOLUSDUI() {
     if(wallet.connected){
-      await borrowSOLUSD(connection, wallet, 50 * 1000000);
+      const demoLog = await borrowSOLUSD(connection, wallet, 50 * 1000000);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   async function repaySOLUSDUI() {
     if(wallet.connected){
-      await repaySOLUSD(connection, wallet,  20 * 1000000);
+      const demoLog = await repaySOLUSD(connection, wallet,  20 * 1000000);
+      setDispInfo(demoLog);
     }
-    else{     console.log("connect your wallet");    }
+    else{     setDispInfo("connect your wallet");    }
   }
   
   return (
     <div
-      style={{
-        display: 'flex',
-        justifyContent: 'Left',
-        alignItems: 'Left',
-      }}
     >
     <br />
     <br />
@@ -77,6 +80,8 @@ const PageHome : React.FC = () => {
     <Button size="medium" color="primary" variant="outlined" onClick={e => createUserTroveUI()}>
       Create User Trove
     </Button>
+    <br />
+    <br />
     <Button size="medium" color="primary" variant="outlined" onClick={e => depositCollateralUI()}>
       Deposit Collateral
     </Button>
@@ -86,13 +91,19 @@ const PageHome : React.FC = () => {
     <Button size="medium" color="primary" variant="outlined" onClick={e => withdrawCollateralUI()}>
       Withdraw Collateral
     </Button>
+    <br />
+    <br />
     <Button size="medium" color="primary" variant="outlined" onClick={e => borrowSOLUSDUI()}>
       Borrow SOLUSD
     </Button>
     <Button size="medium" color="primary" variant="outlined" onClick={e => repaySOLUSDUI()}>
       Repay SOLUSD
     </Button>
+    <br />
+    <br />
+    {dispInfo}
     </div>
+
   );
 };
   

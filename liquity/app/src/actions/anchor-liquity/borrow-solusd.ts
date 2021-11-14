@@ -3,11 +3,10 @@ import { Connection, Keypair, PublicKey,  Transaction, TransactionInstruction } 
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
-import {  GLOBAL_STATE_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
+import {  GLOBAL_STATE_TAG, SOLUSD_DECIMALS, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
 import { AccountLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { checkWalletATA, createTokenAccountIfNotExist, sendTransaction } from './web3';
-import { TokenAccount } from '../../models';
 // This command makes an Lottery
 export async function borrowSOLUSD(
   connection: Connection,
@@ -81,5 +80,7 @@ export async function borrowSOLUSD(
   
   let tx = await sendTransaction(connection, wallet, transaction, signers);
   console.log("tx id->",tx);
+
+  return "User borrowed "+(amount / Math.pow(10, SOLUSD_DECIMALS))+" SOLUSD , transaction id = "+tx;
 
 }
