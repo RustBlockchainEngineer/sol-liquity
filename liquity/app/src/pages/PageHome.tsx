@@ -29,19 +29,19 @@ const PageHome : React.FC = () => {
   }
   async function depositCollateralUI() {
     if(wallet.connected){
-      await depositCollateral(connection, wallet);
+      await depositCollateral(connection, wallet, 1 * 1000000000);
     }
     else{     console.log("connect your wallet");    }
   }
   async function repayCollateralUI() {
     if(wallet.connected){
-      await repayCollateral(connection, wallet);
+      await repayCollateral(connection, wallet, 0.2 * 1000000000);
     }
     else{     console.log("connect your wallet");    }
   }
   async function withdrawCollateralUI() {
     if(wallet.connected){
-      await withdrawCollateral(connection, wallet);
+      await withdrawCollateral(connection, wallet, 1 * 1000000000);
     }
     else{     console.log("connect your wallet");    }
   }

@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-
+import idl from './idl.json';
 
 export const WSOL_MINT_KEY = new PublicKey(
     'So11111111111111111111111111111111111111112',
@@ -10,9 +10,9 @@ export const TOKEN_VAULT_TAG = "token-vault-seed"
 export const USER_TROVE_TAG = "user-trove-seed"
 
 
-import idl from './idl.json';
+
 
 export const STABLE_POOL_PROGRAM_ID = new PublicKey(
-  '7diveo3fmjU42AUXnRLVtJYXGNEnR6XXGAnBd9kxpTxf',
+  '2BgvmQiDPBkEZpN9r6mqCetskcrdLc1XC62JDRKLWQzt',
 );
 export const STABLE_POOL_IDL = idl;

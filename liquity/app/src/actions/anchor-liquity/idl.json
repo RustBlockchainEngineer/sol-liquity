@@ -16,6 +16,11 @@
           "isSigner": false
         },
         {
+          "name": "mintUsd",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
           "isMut": false,
           "isSigner": false
@@ -32,7 +37,7 @@
       "name": "createTokenVault",
       "accounts": [
         {
-          "name": "vaultOwner",
+          "name": "payer",
           "isMut": false,
           "isSigner": true
         },
@@ -42,12 +47,17 @@
           "isSigner": false
         },
         {
-          "name": "tokenColl",
+          "name": "globalState",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mintColl",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "mintUsd",
+          "name": "tokenColl",
           "isMut": false,
           "isSigner": false
         },
@@ -237,6 +247,11 @@
           "isSigner": false
         },
         {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "poolTokenColl",
           "isMut": true,
           "isSigner": false
@@ -283,6 +298,11 @@
           "isSigner": false
         },
         {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "mintUsd",
           "isMut": true,
           "isSigner": false
@@ -315,6 +335,10 @@
           {
             "name": "superOwner",
             "type": "publicKey"
+          },
+          {
+            "name": "mintUsd",
+            "type": "publicKey"
           }
         ]
       }
@@ -325,7 +349,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "vaultOwner",
+            "name": "mintColl",
             "type": "publicKey"
           },
           {
@@ -333,8 +357,12 @@
             "type": "publicKey"
           },
           {
-            "name": "mintUsd",
-            "type": "publicKey"
+            "name": "totalColl",
+            "type": "u64"
+          },
+          {
+            "name": "totalDebt",
+            "type": "u64"
           }
         ]
       }
@@ -344,14 +372,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "troveOwner",
-            "type": "publicKey"
-          },
-          {
-            "name": "tokenVault",
-            "type": "publicKey"
-          },
           {
             "name": "lockedCollBalance",
             "type": "u64"

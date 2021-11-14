@@ -1,4 +1,5 @@
 import * as anchor from '@project-serum/anchor';
+import * as serumCmn from "@project-serum/common";
 import { Connection, SystemProgram } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
@@ -13,27 +14,29 @@ export async function createGlobalState(
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
   const program = getProgramInstance(connection, wallet);
-
+console.log(program)
   const [globalStateKey, nonce] =
     await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(GLOBAL_STATE_TAG)],
       program.programId,
     );
-  const globalState = await program.account.globalState.fetch(globalStateKey);
-  console.log("fetched globalState", globalState);
-  if(globalState){
-    console.log("already created!")
+  try{
+    const globalState = await program.account.globalState.fetch(globalStateKey);
+    console.log("already created")
+    console.log("globalState",globalState);
     return;
   }
-
-  const solusdToken = await Token.createMint(connection, wallet, globalStateKey, null, 6, TOKEN_PROGRAM_ID)
-
+  catch(e){
+    console.log(e)
+  }
+  
+  const solusdToken = await serumCmn.createMint(program.provider,globalStateKey,6);
   try{
     await program.rpc.createGlobalState(nonce, {
       accounts: {
         superOwner: wallet.publicKey,
         globalState: globalStateKey,
-        mintUsd: solusdToken.publicKey,
+        mintUsd: solusdToken,
         systemProgram: SystemProgram.programId,
       },
     });
@@ -41,4 +44,5 @@ export async function createGlobalState(
   catch(e){
     console.log("can't create global state")
   }
+  console.log("created global state=",globalStateKey.toBase58())
 }

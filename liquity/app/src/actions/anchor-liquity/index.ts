@@ -8,3 +8,4 @@ export * from './repay-collateral';
 export * from './repay-solusd';
 export * from './withdraw-collateral';
 export * from './ids';
+export * from './web3';

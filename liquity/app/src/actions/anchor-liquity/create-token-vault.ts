@@ -22,37 +22,36 @@ export async function createTokenVault(
     );
   const globalState = await program.account.globalState.fetch(globalStateKey);
   console.log("fetched globalState", globalState);
-  if(globalState){
-    console.log("already created!")
-    return;
-  }
   
   const [tokenVaultKey, nonce] =
     await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(TOKEN_VAULT_TAG), mintCollKey.toBuffer()],
       program.programId,
     );
-  const tokenVault = await program.account.tokenVault.fetch(tokenVaultKey);
-  console.log("fetched tokenVault", tokenVault);
-  if(tokenVault){
-    console.log("This token vault was already created!")
-    return;
-  }
+    try{
+      const tokenVault = await program.account.tokenVault.fetch(tokenVaultKey);
+      console.log("fetched tokenVault", tokenVault);
+      console.log("This token vault was already created!")
+      return;
+    }
+    catch(e){
+    }
+  
 
   const tokenCollKey = await serumCmn.createTokenAccount(
-    program.provider,
-    mintCollKey,
-    tokenVaultKey
-);
+      program.provider,
+      mintCollKey,
+      tokenVaultKey
+  );
 
   try{
     await program.rpc.createTokenVault(nonce, {
       accounts: {
-        vaultOwner: wallet.publicKey,
+        payer: wallet.publicKey,
         tokenVault: tokenVaultKey,
-        tokenColl: tokenCollKey,
+        globalState: globalStateKey,
         mintColl: mintCollKey,
-        mintUSD: globalState.mintUsd,
+        tokenColl: tokenCollKey,
         systemProgram: SystemProgram.programId
       },
     });
@@ -60,4 +59,5 @@ export async function createTokenVault(
   catch(e){
     console.log("can't create token vault")
   }
+  console.log("created token vault=",tokenVaultKey.toBase58())
 }

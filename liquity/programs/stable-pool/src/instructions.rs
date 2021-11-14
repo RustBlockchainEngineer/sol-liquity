@@ -16,7 +16,7 @@ pub struct CreateGlobalState <'info>{
     pub super_owner:  AccountInfo<'info>,
     #[account(
     init,
-    seeds = [b"golbal-state-seed"],
+    seeds = [GLOBAL_STATE_TAG],
     bump = nonce,
     payer = super_owner,
     )]
@@ -33,7 +33,7 @@ pub struct CreateTokenVault<'info> {
     pub payer:  AccountInfo<'info>,
     #[account(
     init,
-    seeds = [b"token-vault-seed",mint_coll.key.as_ref()],
+    seeds = [TOKEN_VAULT_TAG,mint_coll.key.as_ref()],
     bump = nonce,
     payer = payer,
     )]
@@ -54,7 +54,7 @@ pub struct CreateUserTrove<'info> {
     pub trove_owner:  AccountInfo<'info>,
     #[account(
     init,
-    seeds = [b"user-trove-seed",token_vault.key().as_ref(),trove_owner.key.as_ref()],
+    seeds = [USER_TROVE_TAG,token_vault.key().as_ref(),trove_owner.key.as_ref()],
     bump = nonce,
     payer = trove_owner,
     )]

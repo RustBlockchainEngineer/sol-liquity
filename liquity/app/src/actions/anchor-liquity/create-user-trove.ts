@@ -24,13 +24,15 @@ export async function createUserTrove(
     [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),wallet.publicKey.toBuffer()],
     program.programId,
   );
-
-  const userTrove = await program.account.userTrove.fetch(userTroveKey);
-  console.log("fetched userTrove", userTrove);
-  if(userTrove){
+  try{
+    const userTrove = await program.account.userTrove.fetch(userTroveKey);
+    console.log("fetched userTrove", userTrove);
     console.log("This user trove was already created!")
     return;
   }
+  catch(e){
+  }
+  
 
   try{
     await program.rpc.createUserTrove(nonceTrove, {
@@ -45,4 +47,5 @@ export async function createUserTrove(
   catch(e){
     console.log("can't create user trove")
   }
+  console.log("created user trove=",userTroveKey.toBase58())
 }
