@@ -3,12 +3,13 @@ import * as anchor from '@project-serum/anchor';
 import { useWallet, WalletContextState } from '@solana/wallet-adapter-react';
 import { borrowSOLUSD, createGlobalState, createTokenVault, createUserTrove, depositCollateral, repayCollateral, repaySOLUSD, withdrawCollateral } from '../actions';
 import { Button } from '@material-ui/core';
-
+import { useUserAccounts }  from '../hooks'
 const connection = new anchor.web3.Connection('https://api.devnet.solana.com');
 
 const PageHome : React.FC = () => {
   const wallet:WalletContextState = useWallet();
-  
+  const userTokenAccounts = useUserAccounts();
+
   async function createGlobalStateUI() {
     if(wallet.connected){
       await createGlobalState(connection, wallet);
@@ -47,13 +48,15 @@ const PageHome : React.FC = () => {
   }
   async function borrowSOLUSDUI() {
     if(wallet.connected){
-      await borrowSOLUSD(connection, wallet);
+      console.log("userTokenAccounts", userTokenAccounts)
+      await borrowSOLUSD(connection, wallet, 50 * 1000000, userTokenAccounts.accountByMint);
     }
     else{     console.log("connect your wallet");    }
   }
   async function repaySOLUSDUI() {
     if(wallet.connected){
-      await repaySOLUSD(connection, wallet);
+      console.log("userTokenAccounts", userTokenAccounts)
+      await repaySOLUSD(connection, wallet,  20 * 1000000,userTokenAccounts.accountByMint);
     }
     else{     console.log("connect your wallet");    }
   }
