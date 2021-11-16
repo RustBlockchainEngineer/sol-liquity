@@ -3,7 +3,7 @@ import * as anchor from '@project-serum/anchor';
 import { useWallet, WalletContextState } from '@solana/wallet-adapter-react';
 import { borrowSOLUSD, createGlobalState, createTokenVault, createUserTrove, depositCollateral, repayCollateral, repaySOLUSD, withdrawCollateral } from '../actions';
 import { Button } from '@material-ui/core';
-const connection = new anchor.web3.Connection('https://api.devnet.solana.com');
+const connection = new anchor.web3.Connection('http://api.devnet.solana.com');
 
 const PageHome : React.FC = () => {
   const wallet:WalletContextState = useWallet();
