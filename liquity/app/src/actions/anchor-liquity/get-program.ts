@@ -1,5 +1,5 @@
 import * as anchor from '@project-serum/anchor';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 import { STABLE_POOL_IDL, STABLE_POOL_PROGRAM_ID } from './ids';
 

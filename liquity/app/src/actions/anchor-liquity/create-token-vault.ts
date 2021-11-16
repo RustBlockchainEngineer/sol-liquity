@@ -1,5 +1,4 @@
 import * as anchor from '@project-serum/anchor';
-import * as serumCmn from "@project-serum/common";
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 

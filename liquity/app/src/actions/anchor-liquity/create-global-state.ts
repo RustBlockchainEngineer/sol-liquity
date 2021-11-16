@@ -1,12 +1,10 @@
 import * as anchor from '@project-serum/anchor';
-import * as serumCmn from "@project-serum/common";
-import { Connection, Keypair, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Connection, Keypair, SystemProgram,  TransactionInstruction } from '@solana/web3.js';
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
 import { GLOBAL_STATE_TAG, SOLUSD_DECIMALS } from './ids';
-import { sendTransaction } from './web3';
-import { MintLayout, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { MintLayout,  TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { initializeMint } from '@project-serum/serum/lib/token-instructions';
 // This command makes an Lottery
 export async function createGlobalState(
