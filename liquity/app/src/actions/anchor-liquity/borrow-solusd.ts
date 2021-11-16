@@ -53,7 +53,7 @@ export async function borrowSOLUSD(
     connection, 
     paramUserUsdTokenKey, 
     wallet.publicKey, 
-    mintCollKey.toBase58(),
+    globalState.mintUsd.toBase58(),
     accountRentExempt,
     transaction,
     signers
