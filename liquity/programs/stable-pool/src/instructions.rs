@@ -45,11 +45,11 @@ pub struct CreateTokenVault<'info> {
         payer = payer,
         constraint = payer.key() == global_state.super_owner
     )]
-    pub token_vault: Box<Account<'info, TokenVault>>,
+    pub token_vault: ProgramAccount<'info, TokenVault>,
 
     #[account(seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
-    pub global_state: Box<Account<'info, GlobalState>>,
+    pub global_state: ProgramAccount<'info, GlobalState>,
 
     pub mint_coll:Box<Account<'info, Mint>>,
 
@@ -59,7 +59,7 @@ pub struct CreateTokenVault<'info> {
         seeds = [TOKEN_VAULT_POOL_TAG, token_vault.key().as_ref()],
         bump = token_coll_nonce,
         payer = payer)]
-    pub token_coll:Box<Account<'info, TokenAccount>>,
+    pub token_coll:ProgramAccount<'info, TokenAccount>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -76,12 +76,12 @@ pub struct CreateUserTrove<'info> {
     bump = user_trove_nonce,
     payer = trove_owner,
     )]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut,
         constraint = mint_coll.key() == token_vault.mint_coll)]
     pub mint_coll:Box<Account<'info, Mint>>,
@@ -98,12 +98,12 @@ pub struct DepositCollateral<'info> {
     #[account(mut,
         seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
         bump = user_trove_nonce)]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut,
         seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
         bump = token_coll_nonce,
@@ -126,12 +126,12 @@ pub struct WithdrawCollateral<'info> {
     #[account(mut,
         seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
         bump = user_trove_nonce)]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut,
         seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
         bump = token_coll_nonce,
@@ -154,12 +154,12 @@ pub struct RepayCollateral<'info> {
     #[account(mut,
         seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
         bump = user_trove_nonce)]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(mut,
         seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
         bump = token_coll_nonce,
@@ -183,15 +183,15 @@ pub struct BorrowUsd<'info> {
     #[account(mut,
         seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
         bump = user_trove_nonce)]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
-    pub global_state: Box<Account<'info, GlobalState>>,
+    pub global_state: ProgramAccount<'info, GlobalState>,
     #[account(mut,
         seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
         bump = token_coll_nonce,
@@ -219,15 +219,15 @@ pub struct RepayUsd<'info> {
     #[account(mut,
         seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
         bump = user_trove_nonce)]
-    pub user_trove:Box<Account<'info, UserTrove>>,
+    pub user_trove:ProgramAccount<'info, UserTrove>,
     #[account(mut,
         seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
         bump = token_vault_nonce,
     )]
-    pub token_vault:Box<Account<'info, TokenVault>>,
+    pub token_vault:ProgramAccount<'info, TokenVault>,
     #[account(seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
-    pub global_state: Box<Account<'info, GlobalState>>,
+    pub global_state: ProgramAccount<'info, GlobalState>,
     #[account(
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce)]
