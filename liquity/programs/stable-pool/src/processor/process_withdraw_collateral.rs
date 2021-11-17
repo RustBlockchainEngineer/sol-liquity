@@ -21,14 +21,7 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
 
     let cpi_program = ctx.accounts.token_program.to_account_info().clone();
 
-    let signer_seeds = &[
-        TOKEN_VAULT_TAG,
-        ctx.accounts.mint_coll.to_account_info().key.as_ref(),
-        &[token_vault_nonce]
-    ];
-    let signer = &[&signer_seeds[..]];
-
-    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts);
     
     token::transfer(cpi_ctx, _amount)?;
 
