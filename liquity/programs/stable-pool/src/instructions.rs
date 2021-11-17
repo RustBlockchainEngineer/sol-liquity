@@ -194,11 +194,6 @@ pub struct BorrowUsd<'info> {
         seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
     pub global_state: ProgramAccount<'info, GlobalState>,
-    #[account(
-        seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
-        bump = token_coll_nonce,
-    )]
-    pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(mut,
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce,
