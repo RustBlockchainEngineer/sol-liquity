@@ -3,7 +3,7 @@ import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction } f
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
-import {  TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
+import {  GLOBAL_STATE_TAG, TOKEN_VAULT_POOL_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
 import { closeAccount } from '@project-serum/serum/lib/token-instructions'
 import { AccountLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -13,63 +13,87 @@ export async function repayCollateral(
   connection: Connection,
   wallet: any,
   amount:number,
+  userCollAddress: string | null = null,
   mintCollKey:PublicKey = WSOL_MINT_KEY,
 ) {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
   const program = getProgramInstance(connection, wallet);
 
-  const [tokenVaultKey] =
+  const [globalStateKey] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(GLOBAL_STATE_TAG)],
+      program.programId,
+    );
+  const globalState = await program.account.globalState.fetch(globalStateKey);
+  console.log("fetched globalState", globalState);
+
+  const [tokenVaultKey, tokenVaultNonce] =
     await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(TOKEN_VAULT_TAG), mintCollKey.toBuffer()],
       program.programId,
     );
-  const [userTroveKey] =
+  const [tokenCollKey, tokenCollNonce] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(TOKEN_VAULT_POOL_TAG), tokenVaultKey.toBuffer()],
+      program.programId,
+    );
+  const [userTroveKey, userTroveNonce] =
   await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),wallet.publicKey.toBuffer()],
     program.programId,
   );
 
-  const tokenVault = await program.account.tokenVault.fetch(tokenVaultKey);
-
   const transaction = new Transaction()
   let instructions:TransactionInstruction[] = [];
   const signers:Keypair[] = [];
 
-  let wrappedSolKey = null;
+  let userCollKey = null;
+
   if (mintCollKey.toBase58() === WSOL_MINT_KEY.toBase58()) {
     let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
       AccountLayout.span
       );
-      wrappedSolKey = await createTokenAccountIfNotExist(
+    userCollKey = await createTokenAccountIfNotExist(
       program.provider.connection, 
       null, 
       wallet.publicKey, 
       mintCollKey.toBase58(),
-      accountRentExempt+amount,
+      accountRentExempt + amount,
       transaction,
       signers
       )
   }
+  else if(userCollAddress == null){
+    console.log("user doesn't have any collateral");
+    return "user doesn't have any collateral";
+  }
   
-  const repayInstruction = await program.instruction.repayCollateral(new anchor.BN(amount), {
-    accounts: {
-      owner: wallet.publicKey,
-      userTrove: userTroveKey,
-      tokenVault: tokenVaultKey,
-      poolTokenColl: tokenVault.tokenColl,
-      userTokenColl: wrappedSolKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    },
-  });
-  instructions.push(repayInstruction);
+  const depositInstruction = await program.instruction.repayCollateral(
+    new anchor.BN(amount), 
+    tokenVaultNonce,
+    userTroveNonce,
+    tokenCollNonce,
+    {
+      accounts: {
+        owner: wallet.publicKey,
+        userTrove: userTroveKey,
+        tokenVault: tokenVaultKey,
+        poolTokenColl: tokenCollKey,
+        userTokenColl: userCollKey,
+        mintColl: mintCollKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      },
+    }
+  );
+  instructions.push(depositInstruction);
 
   
 
   if (mintCollKey.toBase58() === WSOL_MINT_KEY.toBase58()) {
     instructions.push(
       closeAccount({
-        source: wrappedSolKey,
+        source: userCollKey,
         destination: wallet.publicKey,
         owner:wallet.publicKey
       })

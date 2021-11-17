@@ -9,11 +9,12 @@ export const GLOBAL_STATE_TAG = "golbal-state-seed"
 export const TOKEN_VAULT_TAG = "token-vault-seed"
 export const USER_TROVE_TAG = "user-trove-seed"
 
-
-
+export const SOLUSD_MINT_TAG = "solusd-mint";
+export const TOKEN_VAULT_POOL_TAG = "token-vauld-pool";
 
 export const STABLE_POOL_PROGRAM_ID = new PublicKey(
-  'FGEJK5wJ7w5VwZfQKQ8gzBsFB1NWGSrmSz4H3coCmFcH',
+  '6AtVTqgzFmBRbmCn3ixvp7y3dqYxvHqaCg5GbQCGLfUd',
 );
+
 export const STABLE_POOL_IDL = idl;
-export const SOLUSD_DECIMALS = 6;
+export const SOLUSD_DECIMALS = 6; 

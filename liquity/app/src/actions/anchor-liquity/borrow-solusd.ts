@@ -3,9 +3,9 @@ import { Connection, Keypair, PublicKey,  Transaction, TransactionInstruction } 
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
-import {  GLOBAL_STATE_TAG, SOLUSD_DECIMALS, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
+import {  GLOBAL_STATE_TAG, SOLUSD_DECIMALS, SOLUSD_MINT_TAG, TOKEN_VAULT_POOL_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
-import { AccountLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { checkWalletATA, createTokenAccountIfNotExist, sendTransaction } from './web3';
 // This command makes an Lottery
 export async function borrowSOLUSD(
@@ -16,29 +16,31 @@ export async function borrowSOLUSD(
 ) {
   if (!wallet.publicKey) throw new WalletNotConnectedError();
 
-  
-
   const program = getProgramInstance(connection, wallet);
 
-  const [globalStateKey] =
+  const [globalStateKey, globalStateNonce] =
     await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(GLOBAL_STATE_TAG)],
       program.programId,
     );
     
-  const [tokenVaultKey] =
+  const [tokenVaultKey, tokenVaultNonce] =
     await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from(TOKEN_VAULT_TAG), mintCollKey.toBuffer()],
       program.programId,
     );
-  const [userTroveKey] =
+  const [userTroveKey, userTroveNonce] =
   await anchor.web3.PublicKey.findProgramAddress(
     [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),wallet.publicKey.toBuffer()],
     program.programId,
   );
+  const [mintUsdKey, mintUsdNonce] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(SOLUSD_MINT_TAG)],
+      program.programId,
+    );
 
   const globalState = await program.account.globalState.fetch(globalStateKey);
-  const tokenVault = await program.account.tokenVault.fetch(tokenVaultKey);
 
   const paramUserUsdTokenKey = await checkWalletATA(connection, wallet.publicKey,globalState.mintUsd.toBase58());
 
@@ -46,32 +48,35 @@ export async function borrowSOLUSD(
   let instructions:TransactionInstruction[] = [];
   const signers:Keypair[] = [];
 
-  let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
-    AccountLayout.span
-    );
   const userUsdTokenKey = await createTokenAccountIfNotExist(
     connection, 
     paramUserUsdTokenKey, 
     wallet.publicKey, 
     globalState.mintUsd.toBase58(),
-    accountRentExempt,
+    null,
     transaction,
     signers
   )
-
   
-  const borrowInstruction = await program.instruction.borrowUsd(new anchor.BN(amount), {
-    accounts: {
-      owner: wallet.publicKey,
-      userTrove: userTroveKey,
-      tokenVault: tokenVaultKey,
-      globalState: globalStateKey,
-      poolTokenColl: tokenVault.tokenColl,
-      mintUsd: globalState.mintUsd,
-      userTokenUsd: userUsdTokenKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    },
-  });
+  const borrowInstruction = await program.instruction.borrowUsd(
+    new anchor.BN(amount), 
+    tokenVaultNonce,
+    userTroveNonce,
+    globalStateNonce,
+    mintUsdNonce,
+    {
+      accounts: {
+        owner: wallet.publicKey,
+        tokenVault: tokenVaultKey,
+        userTrove: userTroveKey,
+        globalState: globalStateKey,
+        mintUsd: mintUsdKey,
+        userTokenUsd: userUsdTokenKey,
+        mintColl: mintCollKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      },
+    }
+  );
   instructions.push(borrowInstruction);
 
   instructions.forEach((instruction)=>{
