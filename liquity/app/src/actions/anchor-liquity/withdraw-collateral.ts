@@ -6,7 +6,7 @@ import { getProgramInstance } from './get-program';
 import {  GLOBAL_STATE_TAG, TOKEN_VAULT_POOL_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
 import { closeAccount } from '@project-serum/serum/lib/token-instructions'
-import { AccountLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import {  TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { createTokenAccountIfNotExist, sendTransaction } from './web3';
 // This command makes an Lottery
 export async function withdrawCollateral(

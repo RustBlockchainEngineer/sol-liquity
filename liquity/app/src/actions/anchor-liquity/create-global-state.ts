@@ -35,9 +35,8 @@ export async function createGlobalState(
   
   let instructions:TransactionInstruction[] = [];
   const signers:Keypair[] = [];
-  let tx = "";
   try{
-    tx = await program.rpc.createGlobalState(
+    await program.rpc.createGlobalState(
       globalStateNonce, 
       mintUsdNonce, 
       {

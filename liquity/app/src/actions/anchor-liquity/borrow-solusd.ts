@@ -3,7 +3,7 @@ import { Connection, Keypair, PublicKey,  Transaction, TransactionInstruction } 
 import { WalletNotConnectedError } from '@solana/wallet-adapter-base';
 
 import { getProgramInstance } from './get-program';
-import {  GLOBAL_STATE_TAG, SOLUSD_DECIMALS, SOLUSD_MINT_TAG, TOKEN_VAULT_POOL_TAG, TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
+import {  GLOBAL_STATE_TAG, SOLUSD_DECIMALS, SOLUSD_MINT_TAG,  TOKEN_VAULT_TAG, USER_TROVE_TAG, WSOL_MINT_KEY } from './ids';
 
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { checkWalletATA, createTokenAccountIfNotExist, sendTransaction } from './web3';
