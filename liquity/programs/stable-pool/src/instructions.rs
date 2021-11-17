@@ -22,7 +22,7 @@ pub struct CreateGlobalState <'info>{
 
     #[account(init,
         mint::decimals = SOLUSD_DECIMALS,
-        mint::authority = global_state,
+        mint::authority = global_state.key(),
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce,
         payer = super_owner)]
