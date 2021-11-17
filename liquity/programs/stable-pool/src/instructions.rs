@@ -12,14 +12,6 @@ use crate::{
 pub struct CreateGlobalState <'info>{
     pub super_owner:  Signer<'info>,
 
-    #[account(init,
-        mint::decimals = SOLUSD_DECIMALS,
-        mint::authority = global_state,
-        seeds = [SOLUSD_MINT_TAG],
-        bump = mint_usd_nonce,
-        payer = super_owner)]
-    pub mint_usd:Box<Account<'info, Mint>>,
-
     #[account(
     init,
     seeds = [GLOBAL_STATE_TAG],
@@ -27,6 +19,14 @@ pub struct CreateGlobalState <'info>{
     payer = super_owner,
     )]
     pub global_state:Box<Account<'info, GlobalState>>,
+
+    #[account(init,
+        mint::decimals = SOLUSD_DECIMALS,
+        mint::authority = global_state,
+        seeds = [SOLUSD_MINT_TAG],
+        bump = mint_usd_nonce,
+        payer = super_owner)]
+    pub mint_usd:Box<Account<'info, Mint>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
