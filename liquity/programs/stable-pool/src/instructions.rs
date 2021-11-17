@@ -177,7 +177,7 @@ pub struct RepayCollateral<'info> {
 
 
 #[derive(Accounts)]
-#[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, token_coll_nonce: u8, mint_usd_nonce: u8)]
+#[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8)]
 pub struct BorrowUsd<'info> {
     pub owner:  Signer<'info>,
     #[account(mut,
