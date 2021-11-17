@@ -32,6 +32,6 @@ pub mod stable_pool {
     pub fn withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8) -> ProgramResult { process_withdraw_collateral(ctx, amount, token_vault_nonce, user_trove_nonce, token_coll_nonce) }
     pub fn repay_collateral(ctx: Context<RepayCollateral>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8) -> ProgramResult { process_repay_collateral(ctx, amount, token_vault_nonce, user_trove_nonce, token_coll_nonce) }
 
-    pub fn borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, token_coll_nonce: u8, mint_usd_nonce: u8) -> ProgramResult { process_borrow_usd(ctx, amount, token_vault_nonce, user_trove_nonce, global_state_nonce, token_coll_nonce, mint_usd_nonce) }
+    pub fn borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult { process_borrow_usd(ctx, amount, token_vault_nonce, user_trove_nonce, global_state_nonce, mint_usd_nonce) }
     pub fn repay_usd(ctx: Context<RepayUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult { process_repay_usd(ctx, amount, token_vault_nonce, user_trove_nonce, global_state_nonce, mint_usd_nonce) }
 }
