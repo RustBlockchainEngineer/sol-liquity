@@ -189,7 +189,8 @@ pub struct BorrowUsd<'info> {
         bump = token_vault_nonce,
     )]
     pub token_vault:ProgramAccount<'info, TokenVault>,
-    #[account(seeds = [GLOBAL_STATE_TAG],
+    #[account(mut,
+        seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
     pub global_state: ProgramAccount<'info, GlobalState>,
     #[account(mut,
@@ -198,6 +199,7 @@ pub struct BorrowUsd<'info> {
     )]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(
+        mut,
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce)]
     pub mint_usd:Account<'info, Mint>,
@@ -225,10 +227,11 @@ pub struct RepayUsd<'info> {
         bump = token_vault_nonce,
     )]
     pub token_vault:ProgramAccount<'info, TokenVault>,
-    #[account(seeds = [GLOBAL_STATE_TAG],
+    #[account(mut,
+        seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
     pub global_state: ProgramAccount<'info, GlobalState>,
-    #[account(
+    #[account(mut,
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce)]
     pub mint_usd:Account<'info, Mint>,
