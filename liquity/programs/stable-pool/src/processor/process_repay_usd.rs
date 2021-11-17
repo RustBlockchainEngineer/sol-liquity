@@ -16,7 +16,7 @@ pub fn process_repay_usd(ctx: Context<RepayUsd>, amount: u64, token_vault_nonce:
     let cpi_accounts = Burn {
         mint: ctx.accounts.mint_usd.to_account_info().clone(),
         to: ctx.accounts.user_token_usd.to_account_info().clone(),
-        authority: ctx.accounts.global_state.to_account_info().clone(),
+        authority: ctx.accounts.owner.to_account_info().clone(),
     };
 
     let cpi_program = ctx.accounts.token_program.to_account_info().clone();
