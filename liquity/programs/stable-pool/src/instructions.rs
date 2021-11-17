@@ -193,27 +193,26 @@ pub struct BorrowUsd<'info> {
         seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
     pub global_state: ProgramAccount<'info, GlobalState>,
-    #[account(mut,
+    #[account(
         seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
         bump = token_coll_nonce,
     )]
     pub pool_token_coll:Account<'info, TokenAccount>,
     #[account(
-        mut,
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce)]
     pub mint_usd:Account<'info, Mint>,
-    #[account(mut,
+    #[account(
         constraint = user_token_usd.owner == owner.key(),
-        constraint = user_token_usd.mint == global_state.mint_usd)]
+        constraint = user_token_usd.mint == mint_usd)]
     pub user_token_usd:Account<'info, TokenAccount>,
-    #[account(mut,
+    #[account(
         constraint = mint_coll.key() == token_vault.mint_coll)]
     pub mint_coll:Account<'info, Mint>,
     pub token_program:Program<'info, Token>,
 }
 
-
+ 
 #[derive(Accounts)]
 #[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8)]
 pub struct RepayUsd<'info> {
@@ -237,7 +236,7 @@ pub struct RepayUsd<'info> {
     pub mint_usd:Account<'info, Mint>,
     #[account(mut,
         constraint = user_token_usd.owner == owner.key(),
-        constraint = user_token_usd.mint == global_state.mint_usd)]
+        constraint = user_token_usd.mint == mint_usd)]
     pub user_token_usd:Account<'info, TokenAccount>,
     #[account(mut,
         constraint = mint_coll.key() == token_vault.mint_coll)]
