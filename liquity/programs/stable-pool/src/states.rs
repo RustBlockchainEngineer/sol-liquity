@@ -16,6 +16,7 @@ pub struct TokenVault {
     pub total_debt: u64,
 }
 
+
 #[account]
 #[derive(Default)]
 pub struct UserTrove {
