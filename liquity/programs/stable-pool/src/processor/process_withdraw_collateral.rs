@@ -23,7 +23,7 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
 
     let signer_seeds = &[
         TOKEN_VAULT_TAG,
-        ctx.accounts.mint_coll.key().as_ref(),
+        ctx.accounts.mint_coll.to_account_info().key.as_ref(),
         &[token_vault_nonce]
     ];
     let signer = &[&signer_seeds[..]];
