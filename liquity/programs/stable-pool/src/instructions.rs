@@ -10,16 +10,7 @@ use crate::{
 #[derive(Accounts)]
 #[instruction(global_state_nonce:u8, mint_usd_nonce:u8)]
 pub struct CreateGlobalState <'info>{
-    #[account(mut)]
     pub super_owner:  Signer<'info>,
-
-    #[account(
-    init,
-    seeds = [GLOBAL_STATE_TAG],
-    bump = global_state_nonce,
-    payer = super_owner,
-    )]
-    pub global_state:Box<Account<'info, GlobalState>>,
 
     #[account(init,
         mint::decimals = SOLUSD_DECIMALS,
@@ -28,6 +19,14 @@ pub struct CreateGlobalState <'info>{
         bump = mint_usd_nonce,
         payer = super_owner)]
     pub mint_usd:Box<Account<'info, Mint>>,
+
+    #[account(
+    init,
+    seeds = [GLOBAL_STATE_TAG],
+    bump = global_state_nonce,
+    payer = super_owner,
+    )]
+    pub global_state:Box<Account<'info, GlobalState>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -38,7 +37,6 @@ pub struct CreateGlobalState <'info>{
 #[derive(Accounts)]
 #[instruction(token_vault_nonce:u8, global_state_nonce:u8, token_coll_nonce:u8)]
 pub struct CreateTokenVault<'info> {
-    #[account(mut)]
     pub payer:  Signer<'info>,
     #[account(
         init,
@@ -71,7 +69,6 @@ pub struct CreateTokenVault<'info> {
 #[derive(Accounts)]
 #[instruction(user_trove_nonce:u8, token_vault_nonce:u8)]
 pub struct CreateUserTrove<'info> {
-    #[account(mut)]
     pub trove_owner:  Signer<'info>,
     #[account(
     init,
