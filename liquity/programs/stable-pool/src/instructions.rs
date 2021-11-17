@@ -199,7 +199,7 @@ pub struct BorrowUsd<'info> {
         bump = token_coll_nonce,
     )]
     pub pool_token_coll:Account<'info, TokenAccount>,
-    #[account(
+    #[account(mut,
         seeds = [SOLUSD_MINT_TAG],
         bump = mint_usd_nonce,
         constraint = mint_usd.key() == global_state.mint_usd
