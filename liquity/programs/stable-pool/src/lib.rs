@@ -12,6 +12,8 @@ pub mod constant;
 pub mod instructions;
 /// utils
 pub mod utils;
+/// pyth
+pub mod pyth;
 
 use crate::{
     instructions::*,
