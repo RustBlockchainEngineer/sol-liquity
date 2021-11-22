@@ -10,7 +10,7 @@ export const TOKEN_VAULT_TAG = "token-vault-seed"
 export const USER_TROVE_TAG = "user-trove-seed"
 
 export const SOLUSD_MINT_TAG = "solusd-mint";
-export const TOKEN_VAULT_POOL_TAG = "token-vauld-pool";
+export const TOKEN_VAULT_POOL_TAG = "token-vault-pool";
 
 export const STABLE_POOL_PROGRAM_ID = new PublicKey(
   '6AtVTqgzFmBRbmCn3ixvp7y3dqYxvHqaCg5GbQCGLfUd',

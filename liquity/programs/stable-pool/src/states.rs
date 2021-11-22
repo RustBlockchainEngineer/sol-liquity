@@ -5,6 +5,7 @@ use anchor_lang::prelude::*;
 pub struct GlobalState {
     pub super_owner: Pubkey,
     pub mint_usd: Pubkey,
+    
 }
 
 #[account]
@@ -14,6 +15,10 @@ pub struct TokenVault {
     pub token_coll: Pubkey,
     pub total_coll: u64,
     pub total_debt: u64,
+    
+    pub oracle_program: Pubkey,
+    pub pyth_product: Pubkey,
+    pub pyth_price: Pubkey,
 }
 
 

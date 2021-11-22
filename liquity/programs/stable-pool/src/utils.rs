@@ -109,10 +109,9 @@ pub fn get_pyth_price(pyth_price_info: &AccountInfo, clock: &Clock) -> Result<Pr
 }
 
 pub fn _get_market_price(
-    oracle_program_id:Pubkey, 
-    quote_currency:[u8; 32], 
-    pyth_product_info:&AccountInfo, 
-    pyth_price_info:&AccountInfo, 
+    oracle_program_id:Pubkey,
+    pyth_product_info:&AccountInfo,
+    pyth_price_info:&AccountInfo,
     clock:&Clock
 )->Result<u64>{
     // get market price
@@ -152,12 +151,22 @@ pub fn _get_market_price(
     }
 
     let _quote_currency = get_pyth_product_quote_currency(pyth_product)?;
-    if quote_currency != _quote_currency {
-        msg!("Lending market quote currency does not match the oracle quote currency");
-        return Err(StablePoolError::InvalidOracleConfig.into());
-    }
+    // if quote_currency != _quote_currency {
+    //     msg!("Lending market quote currency does not match the oracle quote currency");
+    //     return Err(StablePoolError::InvalidOracleConfig.into());
+    // }
 
     let market_price = get_pyth_price(pyth_price_info, clock)?;
     
     Ok(u64::try_from(market_price.to_imprecise().ok_or(StablePoolError::MathOverflow)?).unwrap_or(0))
+}
+
+
+pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64, market_price: u64)-> ProgramResult{
+    
+    let debt_limit = market_price * locked_coll_balance;
+    if debt_limit < user_debt + amount {
+        return Err(StablePoolError::NotAllowed.into())
+    }
+    Ok(())
 }

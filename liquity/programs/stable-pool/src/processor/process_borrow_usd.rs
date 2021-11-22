@@ -9,8 +9,15 @@ use crate::{
 };
 
 pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult {
+    let market_price = _get_market_price(
+        *ctx.accounts.oracle_program.key,
+        ctx.accounts.pyth_product,
+        ctx.accounts.pyth_price,
+        &ctx.accounts.clock
+    );
+    
+    assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount, market_price)?;
 
-    assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount)?;
     // mint to user
     let cpi_accounts = MintTo {
         mint: ctx.accounts.mint_usd.to_account_info().clone(),
@@ -33,14 +40,5 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonc
     ctx.accounts.token_vault.total_debt += amount;
     ctx.accounts.user_trove.debt += amount;
 
-    Ok(())
-}
-
-fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64)-> ProgramResult{
-    let market_price = get_market_price();
-    let debt_limit = market_price * locked_coll_balance;
-    if debt_limit < user_debt + amount {
-        return Err(StablePoolError::NotAllowed.into())
-    }
     Ok(())
 }

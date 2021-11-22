@@ -28,9 +28,11 @@ pub struct CreateGlobalState <'info>{
         payer = super_owner)]
     pub mint_usd:Account<'info, Mint>,
 
+
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
+    pub clock: Sysvar<'info, Clock>,
 
 }
 
@@ -60,6 +62,10 @@ pub struct CreateTokenVault<'info> {
         bump = token_coll_nonce,
         payer = payer)]
     pub token_coll:ProgramAccount<'info, TokenAccount>,
+    
+    pub oracle_program: AccountInfo<'info>,
+    pub pyth_product: AccountInfo<'info>,
+    pub pyth_price: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -208,6 +214,11 @@ pub struct BorrowUsd<'info> {
         constraint = mint_coll.key() == token_vault.mint_coll)]
     pub mint_coll:Account<'info, Mint>,
     pub token_program:Program<'info, Token>,
+    
+    pub oracle_program: AccountInfo<'info>,
+    pub pyth_product: AccountInfo<'info>,
+    pub pyth_price: AccountInfo<'info>,
+    pub clock: Program<'info, Clock>,
 }
 
  
