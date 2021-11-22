@@ -18,6 +18,18 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonc
     
     assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount, market_price)?;
 
+    let solusd_fee = trigger_borrowing_fee(
+        &borrower_operation_info.clone(),
+        &authority_info.clone(),
+        &trove_manager_info.clone(),
+        &solusd_token_info.clone(),
+        &token_program_info.clone(),
+        &solid_staking_info.clone(),
+        &solid_staking_token_pool_info.clone(),
+        borrower_operations.nonce,
+        solusd_change,
+        max_fee_percentage)?;
+
     // mint to user
     let cpi_accounts = MintTo {
         mint: ctx.accounts.mint_usd.to_account_info().clone(),

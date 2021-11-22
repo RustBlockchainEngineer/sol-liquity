@@ -170,3 +170,43 @@ pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64
     }
     Ok(())
 }
+
+
+
+pub fn trigger_borrowing_fee<'a>(
+    borrower_operation_info:&AccountInfo<'a>,
+    authority_info:&AccountInfo<'a>,
+    trove_manager_info:&AccountInfo<'a>,
+    solusd_token_info: &AccountInfo<'a>,
+    token_program_info: &AccountInfo<'a>,
+    solid_staking_info: &AccountInfo<'a>,
+    solid_staking_token_pool_info: &AccountInfo<'a>,
+    nonce:u8,
+    solusd_amount: u128,
+    max_fee_percentage: u128
+)->Result<u128, ProgramError> {
+    let trove_manager = TroveManager::try_from_slice(&trove_manager_info.data.borrow_mut())?;
+    decay_base_rate_from_borrowing(&trove_manager, borrower_operation_info)?;
+    let solusd_fee:u128 = get_borrowing_fee(&trove_manager, solusd_amount);
+    if !(solusd_fee * DECIMAL_PRECISION / solusd_amount <= max_fee_percentage){
+        return Err(LiquityError::FeeExceeded.into());
+    }
+
+    let mut solid_staking = SOLIDStaking::try_from_slice(&solid_staking_info.data.borrow_mut())?;
+    solid_staking.increase_f_solusd(solusd_fee);
+
+    token_mint_to(            
+        borrower_operation_info.key,
+        token_program_info.clone(),
+        solusd_token_info.clone(),
+        solid_staking_token_pool_info.clone(),
+        authority_info.clone(),
+        nonce,
+        solusd_fee as u64,
+    )?;
+
+    trove_manager.serialize(&mut &mut trove_manager_info.data.borrow_mut()[..])?;
+    solid_staking.serialize(&mut &mut solid_staking_info.data.borrow_mut()[..])?;
+
+    Ok(solusd_fee)
+}
