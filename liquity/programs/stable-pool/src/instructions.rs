@@ -154,35 +154,6 @@ pub struct WithdrawCollateral<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8)]
-pub struct RepayCollateral<'info> {
-    pub owner:  Signer<'info>,
-    #[account(mut,
-        seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), owner.key().as_ref()],
-        bump = user_trove_nonce)]
-    pub user_trove:ProgramAccount<'info, UserTrove>,
-    #[account(mut,
-        seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
-        bump = token_vault_nonce,
-    )]
-    pub token_vault:ProgramAccount<'info, TokenVault>,
-    #[account(mut,
-        seeds = [TOKEN_VAULT_POOL_TAG,token_vault.key().as_ref()],
-        bump = token_coll_nonce,
-    )]
-    pub pool_token_coll:Account<'info, TokenAccount>,
-    #[account(mut,
-        constraint = user_token_coll.owner == owner.key(),
-        constraint = user_token_coll.mint == token_vault.mint_coll)]
-    pub user_token_coll:Account<'info, TokenAccount>,
-    #[account(mut,
-        constraint = mint_coll.key() == token_vault.mint_coll)]
-    pub mint_coll:Account<'info, Mint>,
-    pub token_program:Program<'info, Token>,
-}
-
-
-#[derive(Accounts)]
 #[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8)]
 pub struct BorrowUsd<'info> {
     pub owner:  Signer<'info>,

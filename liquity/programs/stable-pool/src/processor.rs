@@ -15,9 +15,6 @@ pub use process_deposit_collateral::*;
 pub mod process_withdraw_collateral;
 pub use process_withdraw_collateral::*;
 
-pub mod process_repay_collateral;
-pub use process_repay_collateral::*;
-
 pub mod process_borrow_usd;
 pub use process_borrow_usd::*;
 

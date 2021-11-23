@@ -41,13 +41,10 @@ pub enum BorrowerOperationsInstruction {
     ///   8. `[]` program id
     ///   9. `[]` amount
     OpenTrove{
-        /// SOURCE amount to transfer, output to DESTINATION is based on the exchange rate
         max_fee_percentage: u64,
 
-        /// Minimum amount of DESTINATION token to output, prevents excessive slippage
         solusd_amount: u64,
         
-        /// Minimum amount of DESTINATION token to output, prevents excessive slippage
         coll_increase:u64,
     },
 

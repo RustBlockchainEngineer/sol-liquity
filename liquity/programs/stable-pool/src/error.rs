@@ -20,4 +20,7 @@ pub enum StablePoolError {
     InvalidOracleConfig,
     #[msg("InvalidAccountInput")]
     InvalidAccountInput,
+    
+    #[msg("PreciseError")]
+    PreciseError,
 }

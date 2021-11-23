@@ -5,3 +5,6 @@ pub const SOLUSD_MINT_TAG:&[u8] = b"solusd-mint";
 pub const TOKEN_VAULT_POOL_TAG:&[u8] = b"token-vault-pool";
 
 pub const SOLUSD_DECIMALS: u8 = 6;
+
+pub const PERCENT_DIVIDER: u128 = 1000000; // 110%
+pub const MCR: u128 = 1100000; // 110%
