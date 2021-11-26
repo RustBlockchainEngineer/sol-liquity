@@ -25,6 +25,7 @@ pub struct TokenVault {
 #[account]
 #[derive(Default)]
 pub struct UserTrove {
+    pub owner: Pubkey,
     pub locked_coll_balance: u64,
     pub debt: u64
 }

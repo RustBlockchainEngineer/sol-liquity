@@ -28,7 +28,6 @@ pub struct CreateGlobalState <'info>{
         payer = super_owner)]
     pub mint_usd:Account<'info, Mint>,
 
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
@@ -225,3 +224,32 @@ pub struct RepayUsd<'info> {
     pub mint_coll:Account<'info, Mint>,
     pub token_program:Program<'info, Token>,
 }
+
+
+#[derive(Accounts)]
+#[instruction(global_state_nonce: u8, token_vault_nonce: u8, user_trove_nonce: u8)]
+pub struct LiquidateTrove<'info> {
+    pub liquidator:  Signer<'info>,
+
+    #[account(mut,
+        seeds = [TOKEN_VAULT_TAG,mint_coll.key().as_ref()],
+        bump = token_vault_nonce,
+    )]
+    pub token_vault:ProgramAccount<'info, TokenVault>,
+    #[account(mut,
+        seeds = [USER_TROVE_TAG,token_vault.key().as_ref(), user_trove_owner.key.as_ref()],
+        bump = user_trove_nonce)]
+    pub user_trove:ProgramAccount<'info, UserTrove>,
+    pub user_trove_owner: AccountInfo<'info>,
+    #[account(mut,
+        seeds = [GLOBAL_STATE_TAG],
+        bump = global_state_nonce)]
+    pub global_state: ProgramAccount<'info, GlobalState>,
+    
+    #[account(mut,
+        constraint = mint_coll.key() == token_vault.mint_coll)]
+    pub mint_coll:Account<'info, Mint>,
+
+    pub token_program:Program<'info, Token>,
+}
+

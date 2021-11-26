@@ -20,3 +20,6 @@ pub use process_borrow_usd::*;
 
 pub mod process_repay_usd;
 pub use process_repay_usd::*;
+
+pub mod process_liquidate_trove;
+pub use process_liquidate_trove::*;
