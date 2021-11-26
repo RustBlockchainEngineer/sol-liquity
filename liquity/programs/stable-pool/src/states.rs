@@ -28,6 +28,21 @@ impl TokenVault {
         let tcr = compute_cr(self.total_coll, self.total_debt, market_price);
         return tcr < CCR ;
     }
+    pub fn get_current_icr(&self, user_trove: &UserTrove)->u128 {
+        let pending_sol_reward = self.get_pending_sol_reward(user_trove);
+        let pending_solusd_debt_reward = get_pending_solusd_debt_reward(user_trove);
+
+        let current_sol = user_trove.locked_coll_balance + pending_sol_reward;
+        let current_solusd = user_trove.debt + pending_solusd_debt_reward;
+
+        return (current_sol, current_solusd);
+    }
+    pub fn get_pending_sol_reward(&self, user_trove: &UserTrove)->u128 {
+        0
+    }
+    pub fn get_pending_solusd_reward(&self, user_trove: &UserTrove)->u128 {
+        0
+    }
 }
 
 #[account]

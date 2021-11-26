@@ -250,6 +250,12 @@ pub struct LiquidateTrove<'info> {
         constraint = mint_coll.key() == token_vault.mint_coll)]
     pub mint_coll:Account<'info, Mint>,
 
+    
+    pub oracle_program: AccountInfo<'info>,
+    pub pyth_product: AccountInfo<'info>,
+    pub pyth_price: AccountInfo<'info>,
+    pub clock: Program<'info, Clock>,
+
     pub token_program:Program<'info, Token>,
 }
 

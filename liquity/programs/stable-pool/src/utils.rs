@@ -9,10 +9,6 @@ use std::convert::TryInto;
 use std::convert::TryFrom;
 use spl_math::{precise_number::PreciseNumber};
 
-pub fn get_market_price()->u64 {
-    253
-}
-
 pub fn get_pyth_product_quote_currency(pyth_product: &Product) -> Result<[u8; 32]> {
     const LEN: usize = 14;
     const KEY: &[u8; LEN] = b"quote_currency";
@@ -110,12 +106,12 @@ pub fn get_pyth_price(pyth_price_info: &AccountInfo, clock: &Clock) -> Result<Pr
     Ok(market_price)
 }
 
-pub fn _get_market_price(
+pub fn get_market_price(
     oracle_program_id:Pubkey,
     pyth_product_info:&AccountInfo,
     pyth_price_info:&AccountInfo,
     clock:&Clock
-)->Result<u64>{
+)->Result<u128>{
     // get market price
     if &oracle_program_id != pyth_product_info.owner {
         msg!("Pyth product account provided is not owned by the lending market oracle program");
@@ -160,7 +156,7 @@ pub fn _get_market_price(
 
     let market_price = get_pyth_price(pyth_price_info, clock)?;
     
-    Ok(u64::try_from(market_price.to_imprecise().ok_or(StablePoolError::MathOverflow)?).unwrap_or(0))
+    Ok(market_price.to_imprecise().ok_or(StablePoolError::MathOverflow)?)
 }
 
 
@@ -275,4 +271,11 @@ pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
     else {// if (_debt == 0)
         return MAX;
     }
+}
+
+pub fn get_total_from_batch_liquidate_recovery_mode() -> (u64, u64) {
+    
+}
+pub fn get_total_from_batch_liquidate_normal_mode() -> (u64, u64) {
+
 }
