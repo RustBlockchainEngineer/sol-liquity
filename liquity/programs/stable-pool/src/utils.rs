@@ -4,6 +4,7 @@ use crate::{
     error::*,
     constant::*,
 };
+use std::u128::MAX;
 use std::convert::TryInto;
 use std::convert::TryFrom;
 use spl_math::{precise_number::PreciseNumber};
@@ -167,7 +168,7 @@ pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64
     
     let debt_limit = precise_number_u64(market_price)
         .checked_mul(&precise_number_u64(locked_coll_balance)).ok_or(StablePoolError::PreciseError.into())?
-        .checked_mul(&precise_number_128(PERCENT_DIVIDER)).ok_or(StablePoolError::PreciseError.into())?
+        .checked_mul(&precise_number_128(DECIMAL_PRECISION)).ok_or(StablePoolError::PreciseError.into())?
         .checked_div(&precise_number_128(MCR)).ok_or(StablePoolError::PreciseError.into())?.to_imprecise().ok_or(StablePoolError::PreciseError.into())?;
 
     if debt_limit < (user_debt + amount) as u128 {
@@ -185,107 +186,93 @@ pub fn precise_number_u128(num: u128)->&PreciseNumber{
 }
 
 
-pub fn liquidate_normal_mode(
-    trove_manager: &mut TroveManager,
-    active_pool:&mut ActivePool,
-    default_pool:&mut DefaultPool,
-    borrower_trove:&mut Trove,
-    reward_snapshots:&mut RewardSnapshot,
-    _solusd_in_stab_pool:u128,
-)->LiquidationValues{
-    let mut vars = LocalVariablesInnerSingleLiquidateFunction::new();
-    let mut single_liquidation = LiquidationValues::new();
-
-    //if (TroveOwners.length <= 1) {return singleLiquidation;} // don't liquidate if last trove
-    let (entire_trove_debt, entire_trove_coll, pending_debt_reward, pending_coll_reward) = get_entire_debt_and_coll(trove_manager, borrower_trove, reward_snapshots);
-    single_liquidation.entire_trove_debt = entire_trove_debt;
-    single_liquidation.entire_trove_coll = entire_trove_coll;
-    vars.pending_debt_reward = pending_debt_reward;
-    vars.pending_coll_reward = pending_coll_reward;
-
-    move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
-    remove_stake(trove_manager,borrower_trove);
-
-    single_liquidation.coll_gas_compensation = get_coll_gas_compensation(single_liquidation.entire_trove_coll);
-    single_liquidation.solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
-    let coll_to_liquidate = single_liquidation.entire_trove_coll - single_liquidation.coll_gas_compensation;
-
-    let (_debt_to_offset, _coll_to_send_to_sp, _debt_to_redistribute, _coll_to_liquidate) = get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, coll_to_liquidate, _solusd_in_stab_pool);
-    single_liquidation.debt_to_offset = _debt_to_offset;
-    single_liquidation.coll_to_send_to_sp = _coll_to_send_to_sp;
-    single_liquidation.debt_to_redistribute = _debt_to_redistribute;
-    single_liquidation.coll_to_redistribute = _coll_to_liquidate;
-
-    //_closeTrove(_borrower, Status.closedByLiquidation); --in frontend
-    return single_liquidation;
-
+pub fn min(a: u128, b: u128)-> u128{
+    if a < b {a} else {b}
 }
-pub fn liquidate_recovery_mode(
-    trove_manager: &mut TroveManager,
-    active_pool:&mut ActivePool,
-    default_pool:&mut DefaultPool,
-    borrower_trove:&mut Trove,
-    reward_snapshots:&mut RewardSnapshot,
-    _icr:u128,
-    _solusd_in_stab_pool:u128,
-    _tcr:u128,
-    _price:u128
+pub fn max(a: u128, b: u128)-> u128{
+    if a >= b {a} else {b}
+}
 
-)->LiquidationValues{
-    let mut vars = LocalVariablesInnerSingleLiquidateFunction::new();
-    let mut single_liquidation = LiquidationValues::new();
+/* 
+* Multiply two decimal numbers and use normal rounding rules:
+* -round product up if 19'th mantissa digit >= 5
+* -round product down if 19'th mantissa digit < 5
+*
+* Used only inside the exponentiation, _decPow().
+*/
+pub fn dec_mul(x : u128, y :u128)-> u128{
+    let prod_xy = x * y;
+    let dec_prod = (prod_xy + DECIMAL_PRECISION / 2) / DECIMAL_PRECISION;
+    return dec_prod;
+}
 
-    //if (TroveOwners.length <= 1) {return singleLiquidation;} // don't liquidate if last trove
-    let (entire_trove_debt, entire_trove_coll, pending_debt_reward, pending_coll_reward) = get_entire_debt_and_coll(trove_manager, borrower_trove, reward_snapshots);
-    single_liquidation.entire_trove_debt = entire_trove_debt;
-    single_liquidation.entire_trove_coll = entire_trove_coll;
-    vars.pending_debt_reward = pending_debt_reward;
-    vars.pending_coll_reward = pending_coll_reward;
-
-    single_liquidation.coll_gas_compensation = get_coll_gas_compensation(single_liquidation.entire_trove_coll);
-    single_liquidation.solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
-    vars.coll_to_liquidate = single_liquidation.entire_trove_coll - single_liquidation.coll_gas_compensation;
-
-    // If ICR <= 100%, purely redistribute the Trove across all active Troves
-    if _icr <= _100PCT {
-        move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
-        remove_stake(trove_manager,borrower_trove);
-
-        single_liquidation.debt_to_offset = 0;
-        single_liquidation.coll_to_send_to_sp = 0;
-        single_liquidation.debt_to_redistribute = single_liquidation.entire_trove_debt;
-        single_liquidation.coll_to_redistribute = vars.coll_to_liquidate;
-
-        close_trove(borrower_trove, reward_snapshots);
+/* 
+* _decPow: Exponentiation function for 18-digit decimal base, and integer exponent n.
+* 
+* Uses the efficient "exponentiation by squaring" algorithm. O(log(n)) complexity. 
+* 
+* Called by two functions that represent time in units of minutes:
+* 1) TroveManager._calcDecayedBaseRate
+* 2) CommunityIssuance._getCumulativeIssuanceFraction 
+* 
+* The exponent is capped to avoid reverting due to overflow. The cap 525600000 equals
+* "minutes in 1000 years": 60 * 24 * 365 * 1000
+* 
+* If a period of > 1000 years is ever used as an exponent in either of the above functions, the result will be
+* negligibly different from just passing the cap, since: 
+*
+* In function 1), the decayed base rate will be 0 for 1000 years or > 1000 years
+* In function 2), the difference in tokens issued at 1000 years and any time > 1000 years, will be negligible
+*/
+pub fn dec_pow(base:u128, minutes:u128)->u128{
+    let mut _minutes = minutes;
+    let mut _base = base;
+    if _minutes > 525600000 {
+        // cap to avoid overflow
+        _minutes = 525600000;
     }
-    else if (_icr > _100PCT) && (_icr < MCR) {
-        move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
-        remove_stake(trove_manager,borrower_trove);
-
-        let (_debt_to_offset, _coll_to_send_to_sp, _debt_to_redistribute, _coll_to_liquidate) = get_offset_and_redistribution_vals(single_liquidation.entire_trove_debt, vars.coll_to_liquidate, _solusd_in_stab_pool);
-        //_closeTrove(_borrower, Status.closedByLiquidation); -- in frontend
+    if _minutes == 0 {
+        return DECIMAL_PRECISION;
     }
-    /*
-    * If 110% <= ICR < current TCR (accounting for the preceding liquidations in the current sequence)
-    * and there is SOLUSD in the Stability Pool, only offset, with no redistribution,
-    * but at a capped rate of 1.1 and only if the whole debt can be liquidated.
-    * The remainder due to the capped rate will be claimable as collateral surplus.
-    */
-    else if (_icr >= MCR) && (_icr < _tcr) && (single_liquidation.entire_trove_debt <= _solusd_in_stab_pool) {
-        move_pending_trove_reward_to_active_pool(trove_manager, vars.pending_debt_reward, vars.pending_coll_reward, default_pool, active_pool);
-        //assert(_LUSDInStabPool != 0);
-        remove_stake(trove_manager,borrower_trove);
-        get_capped_offset_vals(&mut single_liquidation, _price);
+    let mut y = DECIMAL_PRECISION;
+    let mut x = _base;
+    let mut n = _minutes;
 
-        //_closeTrove(_borrower, Status.closedByLiquidation); -- in frontend
-        if single_liquidation.coll_surplus > 0 {
-            //collSurplusPool.accountSurplus(_borrower, singleLiquidation.collSurplus); --in frontend
+    // Exponentiation-by-squaring
+    while n > 1 {
+        if n % 2 == 0 {
+            x = dec_mul(x, x);
+            n = n / 2;
+        }
+        else { // if (n % 2 != 0)
+            y = dec_mul(x, y);
+            x = dec_mul(x, x);
+            n = (n - 1) / 2;
         }
     }
-    else{
-        let zero_vals = LiquidationValues::new();
-        return zero_vals;
-    }
-    return single_liquidation;
 
+    return dec_mul(x, y);
+}
+
+pub fn get_absolute_difference(a: u128, b: u128)->u128{
+    if a >= b {a - b} else {b - a}
+}
+
+pub fn compute_nominal_cr(coll: u128, debt: u128)->u128{
+    if debt > 0 {
+        coll * NICR_PRECISION / debt
+    }
+    else {
+        MAX
+    }
+}
+pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
+    if debt > 0 {
+        let new_coll_ratio = coll * price / debt;
+        return new_coll_ratio;
+    }
+    // Return the maximal value for uint256 if the Trove has a debt of 0. Represents "infinite" CR.
+    else {// if (_debt == 0)
+        return MAX;
+    }
 }

@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-
+use crate::{
+    constant::*,
+    utils::*
+};
 #[account]
 #[derive(Default)]
 pub struct GlobalState {
@@ -20,7 +23,12 @@ pub struct TokenVault {
     pub pyth_product: Pubkey,
     pub pyth_price: Pubkey,
 }
-
+impl TokenVault {
+    pub fn check_recovery_mode(&self, market_price: u128) -> bool {
+        let tcr = compute_cr(self.total_coll, self.total_debt, market_price);
+        return tcr < CCR ;
+    }
+}
 
 #[account]
 #[derive(Default)]
