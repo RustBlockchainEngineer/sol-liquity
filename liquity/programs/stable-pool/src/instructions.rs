@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Accounts)]
-#[instruction(global_state_nonce:u8, mint_usd_nonce:u8)]
+#[instruction(global_state_nonce:u8, mint_usd_nonce:u8, stability_pool_nonce:u8)]
 pub struct CreateGlobalState <'info>{
     pub super_owner:  Signer<'info>,
 
@@ -27,6 +27,14 @@ pub struct CreateGlobalState <'info>{
         bump = mint_usd_nonce,
         payer = super_owner)]
     pub mint_usd:Account<'info, Mint>,
+
+    #[account(init,
+        token::mint = mint_usd,
+        token::authority = global_state,
+        seeds = [STABILITY_POOL_TAG, global_state.key().as_ref()],
+        bump = stability_pool_nonce,
+        payer = payer)]
+    pub stability_solusd_pool:ProgramAccount<'info, TokenAccount>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,

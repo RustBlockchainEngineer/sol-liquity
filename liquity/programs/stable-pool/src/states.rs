@@ -8,6 +8,7 @@ use crate::{
 pub struct GlobalState {
     pub super_owner: Pubkey,
     pub mint_usd: Pubkey,
+    pub stability_solusd_pool: Pubkey,
     
 }
 

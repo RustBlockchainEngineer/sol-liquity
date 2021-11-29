@@ -23,3 +23,12 @@ pub use process_repay_usd::*;
 
 pub mod process_liquidate_trove;
 pub use process_liquidate_trove::*;
+
+pub mod process_sp_deposit;
+pub use process_sp_deposit::*;
+
+pub mod process_sp_withdraw;
+pub use process_sp_withdraw::*;
+
+pub mod process_sp_sol_gain_to_trove;
+pub use process_sp_sol_gain_to_trove::*;

@@ -26,8 +26,8 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod stable_pool {
     use super::*;
 
-    pub fn create_global_state(ctx: Context<CreateGlobalState>, global_state_nonce:u8, mint_usd_nonce:u8) -> ProgramResult { 
-        process_create_global_state(ctx, global_state_nonce, mint_usd_nonce) 
+    pub fn create_global_state(ctx: Context<CreateGlobalState>, global_state_nonce:u8, mint_usd_nonce:u8, stability_pool_nonce:u8) -> ProgramResult { 
+        process_create_global_state(ctx, global_state_nonce, mint_usd_nonce, stability_pool_nonce) 
     }
     pub fn create_token_vault(ctx: Context<CreateTokenVault>, token_vault_nonce:u8, global_state_nonce:u8, token_coll_nonce:u8) -> ProgramResult { 
         process_create_token_vault(ctx, token_vault_nonce, global_state_nonce, token_coll_nonce)
