@@ -3,6 +3,7 @@ use crate::{
     pyth::*,
     error::*,
     constant::*,
+    states::*,
 };
 use std::u128::MAX;
 use std::convert::TryInto;
@@ -273,9 +274,165 @@ pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
     }
 }
 
-pub fn get_total_from_batch_liquidate_recovery_mode() -> (u64, u64) {
-    
-}
-pub fn get_total_from_batch_liquidate_normal_mode() -> (u64, u64) {
+pub fn get_total_from_batch_liquidate_normal_mode(
+    trove_manager_data:&mut TroveManager,
+    active_pool:&mut ActivePool,
+    default_pool:&mut DefaultPool,
+    price:u128,
+    solusd_in_stab_pool: u128,
+    borrower_address:&Pubkey,
+    borrower_trove:&mut Trove,
+    reward_snapshot:&mut RewardSnapshot
+)->LiquidationTotals{
+    let mut vars = LocalVariablesLiquidationSequence::new();
+    let mut single_liquidation = LiquidationValues::new();
 
+    vars.remaining_solusd_in_stab_pool = solusd_in_stab_pool;
+    
+    vars.user = Option::from(*borrower_address);
+
+    let mut totals = LiquidationTotals::new();
+
+    if borrower_trove.is_active() {
+        vars.icr = get_current_icr(trove_manager_data, borrower_trove, reward_snapshot, price);
+        
+        if vars.icr < MCR {
+            single_liquidation = liquidate_normal_mode(
+                trove_manager_data, 
+                active_pool, 
+                default_pool, 
+                borrower_trove, 
+                reward_snapshot, 
+                vars.remaining_solusd_in_stab_pool, 
+                );
+        
+            vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+
+            // Add liquidation values to their respective running totals
+            add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+        }
+    }
+
+    totals
+}
+pub fn redistribute_debt_and_coll(
+    trove_manager:&mut TroveManager,
+    active_pool:&mut ActivePool,
+    default_pool:&mut DefaultPool,
+    debt:u128,
+    coll:u128
+){
+    if debt == 0 {
+        return;
+    }
+
+    /*
+    * Add distributed coll and debt rewards-per-unit-staked to the running totals. Division uses a "feedback"
+    * error correction, to keep the cumulative error low in the running totals l_sol and l_solusd_debt:
+    *
+    * 1) Form numerators which compensate for the floor division errors that occurred the last time this
+    * function was called.
+    * 2) Calculate "per-unit-staked" ratios.
+    * 3) Multiply each ratio back by its denominator, to reveal the current floor division error.
+    * 4) Store these errors for use in the next correction when this function is called.
+    * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
+    */
+    let sol_numerator = coll * DECIMAL_PRECISION + trove_manager.last_sol_error_redistribution;
+    let solusd_debt_numerator = debt * DECIMAL_PRECISION + trove_manager.last_solusd_debt_error_redistribution;
+
+    // Get the per-unit-staked terms
+    let sol_reward_per_unit_staked = sol_numerator / trove_manager.total_stakes;
+    let solusd_debt_reward_per_unit_staked = solusd_debt_numerator / trove_manager.total_stakes;
+
+    trove_manager.last_sol_error_redistribution = sol_numerator - sol_reward_per_unit_staked * trove_manager.total_stakes;
+    trove_manager.last_solusd_debt_error_redistribution = solusd_debt_numerator - solusd_debt_reward_per_unit_staked * trove_manager.total_stakes;
+
+    // Add per-unit-staked terms to the running totals
+    trove_manager.l_sol += sol_reward_per_unit_staked;
+    trove_manager.l_solusd_debt += solusd_debt_reward_per_unit_staked;
+
+    active_pool.decrease_solusd_debt(debt);
+    default_pool.increase_solusd_debt(debt);
+
+    active_pool.sol -= coll;
+    default_pool.sol += coll;
+
+}
+pub fn get_total_from_batch_liquidate_recovery_mode(
+    trove_manager_data:&mut TroveManager,
+    active_pool:&mut ActivePool,
+    default_pool:&mut DefaultPool,
+    price:u128,
+    solusd_in_stab_pool: u128,
+    borrower_address:&Pubkey,
+    borrower_trove:&mut Trove,
+    reward_snapshot:&mut RewardSnapshot
+)->LiquidationTotals{
+    let mut vars = LocalVariablesLiquidationSequence::new();
+    let mut single_liquidation = LiquidationValues::new();
+
+    vars.remaining_solusd_in_stab_pool = solusd_in_stab_pool;
+    vars.back_to_normal_mode = 0;
+    vars.entire_system_debt = active_pool.solusd_debt + default_pool.solusd_debt;
+    vars.entire_system_coll = active_pool.sol + default_pool.sol;
+    vars.user = Option::from(*borrower_address);
+
+    let mut totals = LiquidationTotals::new();
+
+    if borrower_trove.is_active() {
+        vars.icr = get_current_icr(trove_manager_data, borrower_trove, reward_snapshot, price);
+        
+        if vars.back_to_normal_mode == 0 {
+            if vars.icr < MCR || vars.remaining_solusd_in_stab_pool > 0 {
+                let tcr = compute_cr(vars.entire_system_coll, vars.entire_system_debt, price);
+                single_liquidation = liquidate_recovery_mode(
+                    trove_manager_data, 
+                    active_pool, 
+                    default_pool, 
+                    borrower_trove, 
+                    reward_snapshot, 
+                    vars.icr, 
+                    vars.remaining_solusd_in_stab_pool, 
+                    tcr, 
+                    price);
+                
+                    // update aggregate trackers
+                    vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+                    vars.entire_system_debt -= single_liquidation.debt_to_offset;
+                    vars.entire_system_coll -= vars.entire_system_coll - single_liquidation.coll_to_send_to_sp - single_liquidation.coll_gas_compensation - single_liquidation.coll_surplus;
+
+                    // Add liquidation values to their respective running totals
+                    
+                    add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+                    vars.back_to_normal_mode = check_potential_not_recovery_mode(trove_manager_data, vars.entire_system_coll, vars.entire_system_debt, price);
+                    
+            }
+            else if vars.back_to_normal_mode == 1 && vars.icr < MCR {
+                single_liquidation = liquidate_normal_mode(trove_manager_data, active_pool, default_pool, borrower_trove, reward_snapshot, vars.remaining_solusd_in_stab_pool);
+                vars.remaining_solusd_in_stab_pool -= single_liquidation.debt_to_offset;
+
+                // Add liquidation values to their respective running totals
+                add_liquidation_values_to_totals(&mut totals, &single_liquidation);
+
+            }
+        }
+    }
+
+    totals
+}
+
+pub fn check_potential_not_recovery_mode(trove_manager:&TroveManager, entire_system_coll:u128, entire_system_debt:u128, price:u128)->u8{
+    let tcr = compute_cr(entire_system_coll, entire_system_debt, price);
+    return if tcr < CCR {0} else {1};
+}
+pub fn add_liquidation_values_to_totals(totals:&mut LiquidationTotals, single_liquidation:&LiquidationValues){
+    totals.total_coll_gas_compensation += single_liquidation.coll_gas_compensation;
+    totals.total_solusd_gas_compensation += single_liquidation.solusd_gas_compensation;
+    totals.total_debt_in_sequence += single_liquidation.entire_trove_debt;
+    totals.total_coll_in_sequence += single_liquidation.entire_trove_coll;
+    totals.total_debt_to_offset += single_liquidation.debt_to_offset;
+    totals.total_coll_to_send_to_sp += single_liquidation.coll_to_send_to_sp;
+    totals.total_debt_to_redistribute += single_liquidation.debt_to_redistribute;
+    totals.total_coll_to_redistribute += single_liquidation.coll_to_redistribute;
+    totals.total_coll_surplus += single_liquidation.coll_surplus;
 }

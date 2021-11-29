@@ -18,10 +18,10 @@ pub fn process_liquidate_trove(ctx: Context<LiquidateTrove>, global_state_nonce:
     let recovery_mode = ctx.accounts.token_vault.check_recovery_mode(market_price);
     let mut (total_debt_to_offset, total_coll_to_send_to_sp) = (0,0);
     if recovery_mode {
-        (total_debt_to_offset, total_coll_to_send_to_sp) = get_total_from_batch_liquidate_recovery_mode();
+        (total_debt_to_offset, total_coll_to_send_to_sp) = get_total_from_batch_liquidate_recovery_mode(ctx.accounts.user_trove);
     }
     else {
-        (total_debt_to_offset, total_coll_to_send_to_sp) = get_total_from_batch_liquidate_normal_mode();
+        (total_debt_to_offset, total_coll_to_send_to_sp) = get_total_from_batch_liquidate_normal_mode(ctx.accounts.user_trove);
     }
 
     //offset
