@@ -570,7 +570,7 @@ pub struct TroveManager {
     pub last_sol_error_redistribution:u128,
     pub last_solusd_debt_error_redistribution:u128,
 
-}
+} 
 impl TroveManager{
     pub fn check_recovery_mode(&self, price: u128, active_pool_data: &ActivePool, default_pool_data: &DefaultPool)->u8{
         let entire_system_coll = active_pool_data.sol + default_pool_data.sol;

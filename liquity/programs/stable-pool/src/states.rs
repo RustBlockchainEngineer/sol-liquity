@@ -19,7 +19,7 @@ pub struct TokenVault {
     pub token_coll: Pubkey,
     pub total_coll: u64,
     pub total_debt: u64,
-    
+
     pub oracle_program: Pubkey,
     pub pyth_product: Pubkey,
     pub pyth_price: Pubkey,
@@ -52,4 +52,12 @@ pub struct UserTrove {
     pub owner: Pubkey,
     pub locked_coll_balance: u64,
     pub debt: u64
+}
+
+
+#[account]
+#[derive(Default)]
+pub struct SPUserInfo {
+    pub owner: Pubkey,
+    pub deposit_balance: u64,
 }

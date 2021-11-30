@@ -6,27 +6,26 @@ use crate::{
     instructions::*
 };
 
-pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8) -> ProgramResult {
+pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8) -> ProgramResult {
     msg!("withdrawing ...");
     
     let mut _amount = amount;
-    if amount > ctx.accounts.user_trove.locked_coll_balance {
-        _amount = ctx.accounts.user_trove.locked_coll_balance;
+    if amount > ctx.accounts.sp_user_info.deposit_balance {
+        _amount = ctx.accounts.sp_user_info.deposit_balance;
     }
     
     // transfer from pool to user
     let cpi_accounts = Transfer {
-        from: ctx.accounts.pool_token_coll.to_account_info(),
-        to: ctx.accounts.user_token_coll.to_account_info(),
-        authority: ctx.accounts.token_vault.to_account_info(),
+        from: ctx.accounts.stability_solusd_pool.to_account_info(),
+        to: ctx.accounts.user_solusd_token.to_account_info(),
+        authority: ctx.accounts.global_state.to_account_info(),
     };
 
     let cpi_program = ctx.accounts.token_program.to_account_info();
 
     let signer_seeds = &[
-        TOKEN_VAULT_TAG,
-        ctx.accounts.token_vault.mint_coll.as_ref(),
-        &[token_vault_nonce]
+        GLOBAL_STATE_TAG,
+        &[global_state_nonce]
     ];
     let signer = &[&signer_seeds[..]];
 
@@ -35,8 +34,7 @@ pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, token_vault_no
     token::transfer(cpi_ctx, _amount)?;
 
     msg!("updating ...");
-    ctx.accounts.token_vault.total_coll -= amount;
-    ctx.accounts.user_trove.locked_coll_balance -= _amount;
+    ctx.accounts.sp_user_info.deposit_balance -= _amount;
 
     Ok(())
 }
