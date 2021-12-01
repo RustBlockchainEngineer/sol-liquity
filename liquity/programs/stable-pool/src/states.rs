@@ -8,7 +8,9 @@ use crate::{
 pub struct GlobalState {
     pub super_owner: Pubkey,
     pub mint_usd: Pubkey,
+
     pub stability_solusd_pool: Pubkey,
+    pub total_solusd_amount: u64,
     
 }
 
@@ -17,8 +19,14 @@ pub struct GlobalState {
 pub struct TokenVault {
     pub mint_coll: Pubkey,
     pub token_coll: Pubkey,
+
     pub total_coll: u64,
     pub total_debt: u64,
+
+    pub active_total_coll: u64,
+    pub default_total_coll: u64,
+    pub active_total_debt: u64,
+    pub default_total_debt: u64,
 
     pub oracle_program: Pubkey,
     pub pyth_product: Pubkey,
@@ -33,7 +41,7 @@ impl TokenVault {
         let pending_sol_reward = self.get_pending_sol_reward(user_trove);
         let pending_solusd_debt_reward = get_pending_solusd_debt_reward(user_trove);
 
-        let current_sol = user_trove.locked_coll_balance + pending_sol_reward;
+        let current_sol = user_trove.coll + pending_sol_reward;
         let current_solusd = user_trove.debt + pending_solusd_debt_reward;
 
         return (current_sol, current_solusd);
@@ -50,14 +58,51 @@ impl TokenVault {
 #[derive(Default)]
 pub struct UserTrove {
     pub owner: Pubkey,
-    pub locked_coll_balance: u64,
+    pub state: u8,
+    pub coll: u64,
     pub debt: u64
 }
-
-
+impl UserTrove {
+    pub fn is_closed(&self)->bool{
+        self.state == 0
+    }
+    pub fn close(&mut self) {
+        self.state = 0;
+        self.coll = 0;
+        self.debt = 0;
+    }
+}
 #[account]
 #[derive(Default)]
 pub struct SPUserInfo {
     pub owner: Pubkey,
     pub deposit_balance: u64,
+}
+
+
+pub struct LiquidationTotals {
+    pub total_coll_in_sequence:u128,
+    pub total_debt_in_sequence:u128,
+    pub total_coll_gas_compensation:u128,
+    pub total_solusd_gas_compensation:u128,
+    pub total_debt_to_offset:u128,
+    pub total_coll_to_send_to_sp:u128,
+    pub total_debt_to_redistribute:u128,
+    pub total_coll_to_redistribute:u128,
+    pub total_coll_surplus:u128,
+}
+impl LiquidationTotals{
+    pub fn new()->LiquidationTotals{
+        LiquidationTotals{
+            total_coll_in_sequence:0,
+            total_debt_in_sequence:0,
+            total_coll_gas_compensation:0,
+            total_solusd_gas_compensation:0,
+            total_debt_to_offset:0,
+            total_coll_to_send_to_sp:0,
+            total_debt_to_redistribute:0,
+            total_coll_to_redistribute:0,
+            total_coll_surplus:0,
+        }
+    }
 }

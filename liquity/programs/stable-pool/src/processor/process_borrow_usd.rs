@@ -16,7 +16,7 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonc
         &ctx.accounts.clock
     )?;
 
-    assert_debt_allowed(ctx.accounts.user_trove.locked_coll_balance, ctx.accounts.user_trove.debt, amount, market_price)?;
+    assert_debt_allowed(ctx.accounts.user_trove.coll, ctx.accounts.user_trove.debt, amount, market_price)?;
 
     // mint to user
     let cpi_accounts = MintTo {

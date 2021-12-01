@@ -10,8 +10,8 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
     msg!("withdrawing ...");
     
     let mut _amount = amount;
-    if amount > ctx.accounts.user_trove.locked_coll_balance {
-        _amount = ctx.accounts.user_trove.locked_coll_balance;
+    if amount > ctx.accounts.user_trove.coll {
+        _amount = ctx.accounts.user_trove.coll;
     }
     
     // transfer from pool to user
@@ -36,7 +36,7 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
 
     msg!("updating ...");
     ctx.accounts.token_vault.total_coll -= _amount;
-    ctx.accounts.user_trove.locked_coll_balance -= _amount;
+    ctx.accounts.user_trove.coll -= _amount;
 
     Ok(())
 }

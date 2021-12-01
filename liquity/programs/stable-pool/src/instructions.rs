@@ -249,6 +249,7 @@ pub struct LiquidateTrove<'info> {
         bump = user_trove_nonce)]
     pub user_trove:ProgramAccount<'info, UserTrove>,
     pub user_trove_owner: AccountInfo<'info>,
+    
     #[account(mut,
         seeds = [GLOBAL_STATE_TAG],
         bump = global_state_nonce)]
@@ -257,6 +258,8 @@ pub struct LiquidateTrove<'info> {
     #[account(mut,
         constraint = mint_coll.key() == token_vault.mint_coll)]
     pub mint_coll:Account<'info, Mint>,
+
+    pub stability_solusd_pool:Account<'info, TokenAccount>,
 
     
     pub oracle_program: AccountInfo<'info>,

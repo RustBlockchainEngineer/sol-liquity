@@ -273,10 +273,3 @@ pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
         return MAX;
     }
 }
-
-pub fn get_total_from_batch_liquidate_recovery_mode(user_trove: UserTrove) -> (u64, u64) {
-    
-}
-pub fn get_total_from_batch_liquidate_normal_mode(user_trove: UserTrove) -> (u64, u64) {
-
-}
