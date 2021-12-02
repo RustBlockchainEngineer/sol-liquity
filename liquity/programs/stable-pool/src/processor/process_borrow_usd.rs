@@ -11,8 +11,8 @@ use crate::{
 pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult {
     let market_price = get_market_price(
         *ctx.accounts.oracle_program.key,
-        ctx.accounts.pyth_product,
-        ctx.accounts.pyth_price,
+        &ctx.accounts.pyth_product,
+        &ctx.accounts.pyth_price,
         &ctx.accounts.clock
     )?;
 

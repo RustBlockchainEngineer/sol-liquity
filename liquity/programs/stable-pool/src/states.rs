@@ -10,7 +10,8 @@ pub struct GlobalState {
     pub mint_usd: Pubkey,
 
     pub stability_solusd_pool: Pubkey,
-    pub total_solusd_amount: u64,
+    pub sp_solusd_amount: u64,
+    pub sp_sol_amount: u64,
     
 }
 
@@ -33,24 +34,9 @@ pub struct TokenVault {
     pub pyth_price: Pubkey,
 }
 impl TokenVault {
-    pub fn check_recovery_mode(&self, market_price: u128) -> bool {
+    pub fn check_recovery_mode(&self, market_price: u64) -> bool {
         let tcr = compute_cr(self.total_coll, self.total_debt, market_price);
         return tcr < CCR ;
-    }
-    pub fn get_current_icr(&self, user_trove: &UserTrove)->u128 {
-        let pending_sol_reward = self.get_pending_sol_reward(user_trove);
-        let pending_solusd_debt_reward = get_pending_solusd_debt_reward(user_trove);
-
-        let current_sol = user_trove.coll + pending_sol_reward;
-        let current_solusd = user_trove.debt + pending_solusd_debt_reward;
-
-        return (current_sol, current_solusd);
-    }
-    pub fn get_pending_sol_reward(&self, user_trove: &UserTrove)->u128 {
-        0
-    }
-    pub fn get_pending_solusd_reward(&self, user_trove: &UserTrove)->u128 {
-        0
     }
 }
 
@@ -81,15 +67,15 @@ pub struct SPUserInfo {
 
 
 pub struct LiquidationTotals {
-    pub total_coll_in_sequence:u128,
-    pub total_debt_in_sequence:u128,
-    pub total_coll_gas_compensation:u128,
-    pub total_solusd_gas_compensation:u128,
-    pub total_debt_to_offset:u128,
-    pub total_coll_to_send_to_sp:u128,
-    pub total_debt_to_redistribute:u128,
-    pub total_coll_to_redistribute:u128,
-    pub total_coll_surplus:u128,
+    pub total_coll_in_sequence:u64,
+    pub total_debt_in_sequence:u64,
+    pub total_coll_gas_compensation:u64,
+    pub total_solusd_gas_compensation:u64,
+    pub total_debt_to_offset:u64,
+    pub total_coll_to_send_to_sp:u64,
+    pub total_debt_to_redistribute:u64,
+    pub total_coll_to_redistribute:u64,
+    pub total_coll_surplus:u64,
 }
 impl LiquidationTotals{
     pub fn new()->LiquidationTotals{

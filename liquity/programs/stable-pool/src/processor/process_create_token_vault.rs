@@ -10,8 +10,8 @@ pub fn process_create_token_vault(ctx: Context<CreateTokenVault>, token_vault_no
     ctx.accounts.token_vault.total_coll = 0;
     ctx.accounts.token_vault.total_debt = 0;
 
-    ctx.accounts.global_state.oracle_program = *ctx.accounts.oracle_program.key;
-    ctx.accounts.global_state.pyth_product = *ctx.accounts.pyth_product.key;
-    ctx.accounts.global_state.pyth_price = *ctx.accounts.pyth_price.key;
+    ctx.accounts.token_vault.oracle_program = *ctx.accounts.oracle_program.key;
+    ctx.accounts.token_vault.pyth_product = *ctx.accounts.pyth_product.key;
+    ctx.accounts.token_vault.pyth_price = *ctx.accounts.pyth_price.key;
     Ok(())
 }

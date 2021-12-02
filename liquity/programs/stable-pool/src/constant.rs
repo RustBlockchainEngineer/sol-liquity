@@ -8,12 +8,12 @@ pub const STABILITY_POOL_TAG:&[u8] = b"stability-pool";
 pub const SOLUSD_DECIMALS: u8 = 6;
 
 // Minimum collateral ratio for individual troves
-pub const MCR: u128 = 1_100_000_000_000_000_000; // 110%
+pub const MCR: u64 = 1_100_000_000; // 110%
 
-pub const _100PCT: u128 = 1_000_000_000_000_000_000; // 110%
+pub const _100PCT: u64 = 1_000_000_000; // 110%
 
 // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, Recovery Mode is triggered.
-pub const CCR: u128 = 1_500_000_000_000_000_000; // 150%
+pub const CCR: u64 = 1_500_000_000; // 150%
 
-pub const DECIMAL_PRECISION:u128 = 1_000_000_000_000_000_000;
-pub const NICR_PRECISION:u128 = 100_000_000_000_000_000_000;
+pub const DECIMAL_PRECISION:u64 = 1_000_000_000;
+pub const NICR_PRECISION:u64 = 100_000_000;

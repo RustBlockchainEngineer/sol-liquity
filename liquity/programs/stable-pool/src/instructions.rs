@@ -33,7 +33,7 @@ pub struct CreateGlobalState <'info>{
         token::authority = global_state,
         seeds = [STABILITY_POOL_TAG],
         bump = stability_pool_nonce,
-        payer = payer)]
+        payer = super_owner)]
     pub stability_solusd_pool:ProgramAccount<'info, TokenAccount>,
 
     pub system_program: Program<'info, System>,
@@ -196,7 +196,7 @@ pub struct BorrowUsd<'info> {
     pub oracle_program: AccountInfo<'info>,
     pub pyth_product: AccountInfo<'info>,
     pub pyth_price: AccountInfo<'info>,
-    pub clock: Program<'info, Clock>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
  
@@ -260,12 +260,11 @@ pub struct LiquidateTrove<'info> {
     pub mint_coll:Account<'info, Mint>,
 
     pub stability_solusd_pool:Account<'info, TokenAccount>,
-
     
     pub oracle_program: AccountInfo<'info>,
     pub pyth_product: AccountInfo<'info>,
     pub pyth_price: AccountInfo<'info>,
-    pub clock: Program<'info, Clock>,
+    pub clock: Sysvar<'info, Clock>,
 
     pub token_program:Program<'info, Token>,
 }

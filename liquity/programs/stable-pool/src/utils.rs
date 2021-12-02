@@ -5,7 +5,7 @@ use crate::{
     constant::*,
     states::*,
 };
-use std::u128::MAX;
+use std::u64::MAX;
 use std::convert::TryInto;
 use std::convert::TryFrom;
 use spl_math::{precise_number::PreciseNumber};
@@ -112,7 +112,7 @@ pub fn get_market_price(
     pyth_product_info:&AccountInfo,
     pyth_price_info:&AccountInfo,
     clock:&Clock
-)->Result<u128>{
+)->Result<u64>{
     // get market price
     if &oracle_program_id != pyth_product_info.owner {
         msg!("Pyth product account provided is not owned by the lending market oracle program");
@@ -157,36 +157,27 @@ pub fn get_market_price(
 
     let market_price = get_pyth_price(pyth_price_info, clock)?;
     
-    Ok(market_price.to_imprecise().ok_or(StablePoolError::MathOverflow)?)
+    Ok(market_price.to_u64()?)
 }
 
 
 pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64, market_price: u64)-> ProgramResult{
     
-    let debt_limit = precise_number_u64(market_price)
-        .checked_mul(&precise_number_u64(locked_coll_balance)).ok_or(StablePoolError::PreciseError.into())?
-        .checked_mul(&precise_number_128(DECIMAL_PRECISION)).ok_or(StablePoolError::PreciseError.into())?
-        .checked_div(&precise_number_128(MCR)).ok_or(StablePoolError::PreciseError.into())?.to_imprecise().ok_or(StablePoolError::PreciseError.into())?;
+    let debt_limit = market_price
+        .checked_mul(locked_coll_balance).unwrap()
+        .checked_mul(DECIMAL_PRECISION).unwrap()
+        .checked_div(MCR).unwrap();
 
-    if debt_limit < (user_debt + amount) as u128 {
+    if debt_limit < (user_debt + amount) as u64 {
         return Err(StablePoolError::NotAllowed.into())
     }
     Ok(())
 }
 
-pub fn precise_number_u64(num: u64)->&PreciseNumber{
-    &PreciseNumber::new(num as u128);
-}
-
-pub fn precise_number_u128(num: u128)->&PreciseNumber{
-    &PreciseNumber::new(num);
-}
-
-
-pub fn min(a: u128, b: u128)-> u128{
+pub fn min(a: u64, b: u64)-> u64{
     if a < b {a} else {b}
 }
-pub fn max(a: u128, b: u128)-> u128{
+pub fn max(a: u64, b: u64)-> u64{
     if a >= b {a} else {b}
 }
 
@@ -197,7 +188,7 @@ pub fn max(a: u128, b: u128)-> u128{
 *
 * Used only inside the exponentiation, _decPow().
 */
-pub fn dec_mul(x : u128, y :u128)-> u128{
+pub fn dec_mul(x : u64, y :u64)-> u64{
     let prod_xy = x * y;
     let dec_prod = (prod_xy + DECIMAL_PRECISION / 2) / DECIMAL_PRECISION;
     return dec_prod;
@@ -221,7 +212,7 @@ pub fn dec_mul(x : u128, y :u128)-> u128{
 * In function 1), the decayed base rate will be 0 for 1000 years or > 1000 years
 * In function 2), the difference in tokens issued at 1000 years and any time > 1000 years, will be negligible
 */
-pub fn dec_pow(base:u128, minutes:u128)->u128{
+pub fn dec_pow(base:u64, minutes:u64)->u64{
     let mut _minutes = minutes;
     let mut _base = base;
     if _minutes > 525600000 {
@@ -251,11 +242,11 @@ pub fn dec_pow(base:u128, minutes:u128)->u128{
     return dec_mul(x, y);
 }
 
-pub fn get_absolute_difference(a: u128, b: u128)->u128{
+pub fn get_absolute_difference(a: u64, b: u64)->u64{
     if a >= b {a - b} else {b - a}
 }
 
-pub fn compute_nominal_cr(coll: u128, debt: u128)->u128{
+pub fn compute_nominal_cr(coll: u64, debt: u64)->u64{
     if debt > 0 {
         coll * NICR_PRECISION / debt
     }
@@ -263,7 +254,7 @@ pub fn compute_nominal_cr(coll: u128, debt: u128)->u128{
         MAX
     }
 }
-pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
+pub fn compute_cr(coll: u64, debt: u64, price: u64)->u64{
     if debt > 0 {
         let new_coll_ratio = coll * price / debt;
         return new_coll_ratio;
@@ -273,3 +264,35 @@ pub fn compute_cr(coll: u128, debt: u128, price: u128)->u128{
         return MAX;
     }
 }
+
+
+
+pub trait ToPrecise {
+    fn to_precise(&self)-> Result<PreciseNumber>;
+}
+
+pub trait ToU64U128 {
+    fn to_u64(&self) -> Result<u64>;
+    fn to_u128(&self) -> Result<u128>;
+}
+
+impl ToPrecise for u64 {
+    fn to_precise(&self)-> Result<PreciseNumber> {
+        Ok(PreciseNumber::new(*self as u128).ok_or(StablePoolError::PreciseError)?)
+    }
+}
+
+impl ToPrecise for u128 {
+    fn to_precise(&self)-> Result<PreciseNumber> {
+        Ok(PreciseNumber::new(*self).ok_or(StablePoolError::PreciseError)?)
+    }
+}
+impl ToU64U128 for PreciseNumber {
+    fn to_u64(&self) -> Result<u64> {
+        Ok(u64::try_from(self.to_imprecise().ok_or(StablePoolError::PreciseError)?).unwrap_or(0))
+    }
+    fn to_u128(&self) -> Result<u128> {
+        Ok(self.to_imprecise().ok_or(StablePoolError::PreciseError)?)
+    }
+}
+
