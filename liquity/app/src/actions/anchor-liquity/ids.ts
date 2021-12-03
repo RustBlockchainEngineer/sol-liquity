@@ -13,7 +13,7 @@ export const SOLUSD_MINT_TAG = "solusd-mint";
 export const TOKEN_VAULT_POOL_TAG = "token-vault-pool";
 
 export const STABLE_POOL_PROGRAM_ID = new PublicKey(
-  '6AtVTqgzFmBRbmCn3ixvp7y3dqYxvHqaCg5GbQCGLfUd',
+  'GXLiBmmESNvVGpLnrUsARcHg3rScmMQ6NSQt8yfMbvRq',
 );
 
 export const STABLE_POOL_IDL = idl;
