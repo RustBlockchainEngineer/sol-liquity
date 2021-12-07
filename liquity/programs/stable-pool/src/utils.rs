@@ -174,6 +174,87 @@ pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64
     Ok(())
 }
 
+
+pub fn payout_solid_gains<'a>(
+    pool_data: &StabilityPool,
+    frontend:&FrontEnd,
+    depositor_frontend:&FrontEnd,
+    snapshots:&Snapshots,
+    user_deposit:&Deposit,
+    epoch_to_scale:&EpochToScale, 
+    epoch_to_plus_scale:&EpochToScale,
+
+    community_issuance_pool:&Pubkey,
+    token_program: AccountInfo<'a>,
+    source: AccountInfo<'a>,
+    frontend_dest: AccountInfo<'a>,
+    depositor_dest: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    nonce: u8,
+){
+    // Pay out front end's SOLID gain
+    let frontend_solid_gain = pool_data.get_frontend_solid_gain(snapshots,frontend, epoch_to_scale, epoch_to_plus_scale);
+    if frontend_solid_gain > 0 {
+        // transfer SOLID token
+        //_communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);--implemented
+        token_transfer(
+            community_issuance_pool,
+            token_program.clone(),
+            source.clone(),
+            frontend_dest.clone(),
+            authority.clone(),
+            nonce,
+            frontend_solid_gain.try_into().unwrap()
+        ).unwrap();
+    }
+
+    let depositor_solid_gain = pool_data.get_depositor_solid_gain(snapshots, user_deposit, depositor_frontend, epoch_to_scale, epoch_to_plus_scale);
+    if depositor_solid_gain > 0 {
+        // transfer SOLID token
+        //_communityIssuance.sendLQTY(_depositor, depositorLQTYGain); --implemented
+        token_transfer(
+            community_issuance_pool,
+            token_program.clone(),
+            source.clone(),
+            depositor_dest.clone(),
+            authority.clone(),
+            nonce,
+            depositor_solid_gain.try_into().unwrap()
+        ).unwrap();
+    }
+
+}
+
+pub fn apply_pending_rewards(
+    trove_manager_data:&TroveManager, 
+    borrower_trove:&mut Trove, 
+    reward_snapshot:&mut RewardSnapshot, 
+    default_pool_data:&mut DefaultPool, 
+    active_pool_data:&mut ActivePool)
+{
+    if has_pending_rewards(trove_manager_data, borrower_trove, reward_snapshot) {
+        if borrower_trove.is_active() {
+            // Compute pending rewards
+            let pending_sol_reward = get_pending_sol_reward(trove_manager_data,borrower_trove, reward_snapshot);
+            let pending_solusd_debt_reward = get_pending_solusd_debt_reward(trove_manager_data, borrower_trove, reward_snapshot);
+
+            // Apply pending rewards to trove's state
+            borrower_trove.coll = borrower_trove.coll + pending_sol_reward;
+            borrower_trove.debt = borrower_trove.debt + pending_solusd_debt_reward;
+
+            reward_snapshot.update_trove_reward_snapshots(trove_manager_data);
+            // Transfer from DefaultPool to ActivePool
+            move_pending_trove_reward_to_active_pool(
+                trove_manager_data, 
+                pending_sol_reward, 
+                pending_solusd_debt_reward,
+                default_pool_data,
+                active_pool_data
+            );
+        }
+    }
+}
+
 pub fn min(a: u64, b: u64)-> u64{
     if a < b {a} else {b}
 }
