@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  Burn, ID};
 
 use crate::{
     constant::*,
@@ -8,7 +7,7 @@ use crate::{
     states::*
 };
 
-pub fn process_liquidate_trove(ctx: Context<LiquidateTrove>, global_state_nonce: u8, token_vault_nonce: u8, user_trove_nonce: u8) -> ProgramResult {
+pub fn process_liquidate_trove(ctx: Context<LiquidateTrove>, _global_state_nonce: u8, _token_vault_nonce: u8, _user_trove_nonce: u8) -> ProgramResult {
 
     let market_price = get_market_price(
         *ctx.accounts.oracle_program.key,
@@ -59,8 +58,6 @@ pub fn get_total_from_batch_liquidate_recovery_mode(global_state:&mut GlobalStat
     }
     else if icr >= MCR && icr < tcr && solusd_in_stab_pool >= debt {
         let capped_coll_portion = debt * MCR / price;
-        // single_liquidation.coll_gas_compensation = get_coll_gas_compensation(capped_coll_portion);
-        // single_liquidation.solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
 
         totals.total_debt_to_offset = debt;
         totals.total_coll_to_send_to_sp = capped_coll_portion;
@@ -86,12 +83,9 @@ pub fn get_total_from_batch_liquidate_normal_mode(global_state:&mut GlobalState,
     let solusd_in_stab_pool = global_state.sp_solusd_amount;
 
     let icr = compute_cr(coll, debt, price);
-    let tcr = compute_cr(token_vault.total_coll, token_vault.total_debt, price);
+    let _tcr = compute_cr(token_vault.total_coll, token_vault.total_debt, price);
 
     if icr < MCR {
-        // totals.total_coll_gas_compensation = get_coll_gas_compensation(single_liquidation.entire_trove_coll);
-        // totals.total_solusd_gas_compensation = SOLUSD_GAS_COMPENSATION;
-
         let coll_to_liquidate = coll - totals.total_coll_gas_compensation;
         
         totals.total_debt_to_offset = if debt < solusd_in_stab_pool {debt} else {solusd_in_stab_pool};

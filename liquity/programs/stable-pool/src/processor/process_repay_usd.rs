@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  Burn, ID};
+use anchor_spl::token::{self,  Burn};
 
 use crate::{
     constant::*,
     instructions::*,
 };
 
-pub fn process_repay_usd(ctx: Context<RepayUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult {
+pub fn process_repay_usd(ctx: Context<RepayUsd>, amount: u64, _token_vault_nonce: u8, _user_trove_nonce: u8, _global_state_nonce: u8, _mint_usd_nonce: u8) -> ProgramResult {
 
     let mut _amount = amount;
     if ctx.accounts.user_trove.debt < amount {
@@ -23,7 +23,7 @@ pub fn process_repay_usd(ctx: Context<RepayUsd>, amount: u64, token_vault_nonce:
     
     let signer_seeds = &[
         GLOBAL_STATE_TAG,
-        &[global_state_nonce],
+        &[_global_state_nonce],
     ];
     let signer = &[&signer_seeds[..]];
 

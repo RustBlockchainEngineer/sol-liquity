@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { StablePool } from '../target/types/stable_pool';
 
-describe('ratio', () => {
+describe('liquity', () => {
 
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.Provider.env());

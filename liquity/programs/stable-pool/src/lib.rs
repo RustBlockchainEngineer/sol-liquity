@@ -56,7 +56,4 @@ pub mod stable_pool {
     pub fn sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8) -> ProgramResult { 
         process_sp_withdraw(ctx, amount, global_state_nonce, sp_user_info_nonce, stability_pool_nonce) 
     }
-    pub fn sp_sol_gain_to_trove(ctx: Context<SPGainToTrove>, amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8) -> ProgramResult { 
-        process_sp_sol_gain_to_trove(ctx, amount, global_state_nonce, sp_user_info_nonce, stability_pool_nonce) 
-    }
 }

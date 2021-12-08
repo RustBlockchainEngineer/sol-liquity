@@ -198,7 +198,6 @@ pub struct BorrowUsd<'info> {
     pub pyth_price: AccountInfo<'info>,
     pub clock: Sysvar<'info, Clock>,
 }
-
  
 #[derive(Accounts)]
 #[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8)]
@@ -232,7 +231,6 @@ pub struct RepayUsd<'info> {
     pub mint_coll:Account<'info, Mint>,
     pub token_program:Program<'info, Token>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(global_state_nonce: u8, token_vault_nonce: u8, user_trove_nonce: u8)]
@@ -269,7 +267,6 @@ pub struct LiquidateTrove<'info> {
     pub token_program:Program<'info, Token>,
 }
 
-
 #[derive(Accounts)]
 #[instruction(amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8)]
 pub struct SPDeposit<'info> {
@@ -299,40 +296,9 @@ pub struct SPDeposit<'info> {
     pub token_program:Program<'info, Token>,
 }
 
-
 #[derive(Accounts)]
 #[instruction(amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8)]
 pub struct SPWithdraw<'info> {
-    pub owner:  Signer<'info>,
-
-    #[account(mut,
-        seeds = [GLOBAL_STATE_TAG],
-        bump = global_state_nonce)]
-    pub global_state: ProgramAccount<'info, GlobalState>,
-
-    #[account(mut,
-        seeds = [GLOBAL_STATE_TAG],
-        bump = sp_user_info_nonce)]
-    pub sp_user_info: ProgramAccount<'info, SPUserInfo>,
-
-    #[account(mut,
-        seeds = [STABILITY_POOL_TAG],
-        bump = stability_pool_nonce,
-    )]
-    pub stability_solusd_pool:Account<'info, TokenAccount>,
-
-    #[account(mut,
-        constraint = user_solusd_token.owner == owner.key(),
-        constraint = user_solusd_token.mint == global_state.mint_usd)]
-    pub user_solusd_token:Account<'info, TokenAccount>,
-    
-    pub token_program:Program<'info, Token>,
-}
-
-
-#[derive(Accounts)]
-#[instruction(amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8)]
-pub struct SPGainToTrove<'info> {
     pub owner:  Signer<'info>,
 
     #[account(mut,

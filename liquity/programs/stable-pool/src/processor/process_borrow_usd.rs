@@ -1,14 +1,13 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  MintTo, ID};
+use anchor_spl::token::{self,  MintTo};
 
 use crate::{
-    error::*,
     constant::*,
     instructions::*,
     utils::*,
 };
 
-pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, global_state_nonce: u8, mint_usd_nonce: u8) -> ProgramResult {
+pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, _token_vault_nonce: u8, _user_trove_nonce: u8, _global_state_nonce: u8, _mint_usd_nonce: u8) -> ProgramResult {
     let market_price = get_market_price(
         *ctx.accounts.oracle_program.key,
         &ctx.accounts.pyth_product,
@@ -29,7 +28,7 @@ pub fn process_borrow_usd(ctx: Context<BorrowUsd>, amount: u64, token_vault_nonc
 
     let signer_seeds = &[
         GLOBAL_STATE_TAG,
-        &[global_state_nonce],
+        &[_global_state_nonce],
     ];
     let signer = &[&signer_seeds[..]];
 

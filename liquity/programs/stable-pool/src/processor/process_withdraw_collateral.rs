@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  Transfer, ID};
+use anchor_spl::token::{self,  Transfer};
 
 use crate::{
     constant::*,
     instructions::*
 };
 
-pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8) -> ProgramResult {
+pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64, _token_vault_nonce: u8, _user_trove_nonce: u8, _token_coll_nonce: u8) -> ProgramResult {
     msg!("withdrawing ...");
     
     let mut _amount = amount;
@@ -26,7 +26,7 @@ pub fn process_withdraw_collateral(ctx: Context<WithdrawCollateral>, amount: u64
     let signer_seeds = &[
         TOKEN_VAULT_TAG,
         ctx.accounts.token_vault.mint_coll.as_ref(),
-        &[token_vault_nonce]
+        &[_token_vault_nonce]
     ];
     let signer = &[&signer_seeds[..]];
 

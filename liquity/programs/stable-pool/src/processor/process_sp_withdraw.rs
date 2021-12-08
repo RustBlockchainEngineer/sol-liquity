@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  Transfer, ID};
+use anchor_spl::token::{self,  Transfer};
 
 use crate::{
     constant::*,
     instructions::*
 };
 
-pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8) -> ProgramResult {
+pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, _global_state_nonce: u8, _sp_user_info_nonce: u8, _stability_pool_nonce: u8) -> ProgramResult {
     msg!("withdrawing ...");
     
     let mut _amount = amount;
@@ -25,7 +25,7 @@ pub fn process_sp_withdraw(ctx: Context<SPWithdraw>, amount: u64, global_state_n
 
     let signer_seeds = &[
         GLOBAL_STATE_TAG,
-        &[global_state_nonce]
+        &[_global_state_nonce]
     ];
     let signer = &[&signer_seeds[..]];
 

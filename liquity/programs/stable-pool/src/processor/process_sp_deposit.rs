@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self,  Transfer, ID};
+use anchor_spl::token::{self,  Transfer};
 
 use crate::{
     instructions::*
 };
 
-pub fn process_sp_deposit(ctx: Context<SPDeposit>, amount: u64, global_state_nonce: u8, sp_user_info_nonce: u8, stability_pool_nonce: u8) -> ProgramResult {
+pub fn process_sp_deposit(ctx: Context<SPDeposit>, amount: u64, _global_state_nonce: u8, _sp_user_info_nonce: u8, _stability_pool_nonce: u8) -> ProgramResult {
     
     // transfer from user to pool
     let cpi_accounts = Transfer {

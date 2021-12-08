@@ -29,6 +29,3 @@ pub use process_sp_deposit::*;
 
 pub mod process_sp_withdraw;
 pub use process_sp_withdraw::*;
-
-pub mod process_sp_sol_gain_to_trove;
-pub use process_sp_sol_gain_to_trove::*;
