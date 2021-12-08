@@ -9,4 +9,5 @@ cluster = "devnet"
 wallet = "./test-keypair.json"
 
 [scripts]
-test = "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/stable_pool.ts"
+unit-test = "ts-mocha -p ./tsconfig.json -t 1000000 tests/**/stable_pool.ts"
