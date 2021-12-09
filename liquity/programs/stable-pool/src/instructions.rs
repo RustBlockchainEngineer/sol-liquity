@@ -103,7 +103,7 @@ pub struct CreateUserTrove<'info> {
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
-
+ 
 #[derive(Accounts)]
 #[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8)]
 pub struct DepositCollateral<'info> {
@@ -278,7 +278,7 @@ pub struct SPDeposit<'info> {
     pub global_state: ProgramAccount<'info, GlobalState>,
 
     #[account(mut,
-        seeds = [GLOBAL_STATE_TAG],
+        seeds = [SP_USER_INFO],
         bump = sp_user_info_nonce)]
     pub sp_user_info: ProgramAccount<'info, SPUserInfo>,
 
