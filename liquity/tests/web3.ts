@@ -1,6 +1,5 @@
-import { ACCOUNT_LAYOUT } from '@project-serum/common/dist/lib/token'
 import { initializeAccount } from '@project-serum/serum/lib/token-instructions'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { TOKEN_PROGRAM_ID, AccountLayout } from '@solana/spl-token'
 import {
   Keypair,
   Commitment,
@@ -140,7 +139,7 @@ export async function createTokenAccountIfNotExist(
       owner,
       TOKEN_PROGRAM_ID,
       lamports,
-      ACCOUNT_LAYOUT,
+      AccountLayout,
       transaction,
       signer
     )

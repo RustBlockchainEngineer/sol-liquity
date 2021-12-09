@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount,Mint};
 
-
 use crate::{
     states::*,
     constant::*,
@@ -40,7 +39,6 @@ pub struct CreateGlobalState <'info>{
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
     pub clock: Sysvar<'info, Clock>,
-
 }
 
 #[derive(Accounts)]
@@ -103,7 +101,7 @@ pub struct CreateUserTrove<'info> {
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
- 
+
 #[derive(Accounts)]
 #[instruction(amount: u64, token_vault_nonce: u8, user_trove_nonce: u8, token_coll_nonce: u8)]
 pub struct DepositCollateral<'info> {

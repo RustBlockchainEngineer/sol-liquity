@@ -262,6 +262,95 @@ export async function depositCollateral(
   console.log("depositCollateral txid = ", tx);
 }
 
+
+export async function withdrawCollateral(
+  connection: anchor.web3.Connection,
+  wallet: any,
+  amount: number,
+  userTokenAccount: anchor.web3.PublicKey = undefined,
+  collateralTokenMint: anchor.web3.PublicKey = SOL_MINT_ADDRESS,
+) {
+  const program = getLiquityProgram(connection, wallet);
+
+  let [tokenVaultKey, tokenVaultKeyNonce] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(TOKEN_VAULT_TAG), collateralTokenMint.toBuffer()],
+      program.programId
+    );
+  let [userTroveKey, userTroveKeyNonce] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+  let [tokenVaultPoolKey, tokenVaultPoolKeyNonce] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(TOKEN_VAULT_POOL_TAG), tokenVaultKey.toBuffer()],
+      program.programId
+    );
+  const signers = []
+  const instructions = []
+  const transaction = new anchor.web3.Transaction();
+  if (!userTokenAccount) {
+    let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
+      AccountLayout.span
+      );
+      const wsolUserAccount = anchor.web3.Keypair.generate();
+      signers.push(wsolUserAccount)
+      userTokenAccount = wsolUserAccount.publicKey;
+      instructions.push(
+        SystemProgram.createAccount({
+          fromPubkey: wallet.publicKey,
+          newAccountPubkey: userTokenAccount,
+          lamports: accountRentExempt,
+          space: AccountLayout.span,
+          programId: program.programId
+        })
+      )
+      instructions.push(
+        initializeAccount({
+          account: userTokenAccount,
+          mint: collateralTokenMint,
+          owner: wallet.publicKey
+        })
+      )
+  }
+  instructions.push(
+    program.instruction.withdrawCollateral(
+      new anchor.BN(amount),
+      userTroveKeyNonce,
+      tokenVaultKeyNonce,
+      tokenVaultPoolKeyNonce,
+      {
+        accounts: {
+          owner: wallet.publicKey,
+          userTrove: userTroveKey,
+          tokenVault: tokenVaultKey,
+          poolTokenColl: tokenVaultPoolKey,
+          mintColl: collateralTokenMint,
+          userTokenColl: userTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID
+        },
+      }
+    )
+  )
+  if (collateralTokenMint.toBase58() === SOL_MINT_ADDRESS.toBase58()) {
+    instructions.push(
+      closeAccount({
+        source: userTokenAccount,
+        destination: wallet.publicKey,
+        owner:wallet.publicKey
+      })
+    )
+  }
+  instructions.forEach((instruction)=>{
+    transaction.add(instruction);
+  })
+  
+  let tx = await sendTransaction(connection, wallet, transaction, signers);
+  console.log("withdrawCollateral txid = ", tx);
+}
+
+
 export async function borrowSOLUSD(
   connection: anchor.web3.Connection,
   wallet: any,
@@ -311,7 +400,7 @@ export async function borrowSOLUSD(
     signers
   )
   
-  const borrowInstruction = await program.instruction.borrowUsd(
+  const tx = await program.rpc.borrowUsd(
     new anchor.BN(amount), 
     tokenVaultNonce,
     userTroveNonce,
@@ -332,15 +421,11 @@ export async function borrowSOLUSD(
         pythPrice: tokenVault.pythPrice,
         clock: SYSVAR_CLOCK_PUBKEY,
       },
+      instructions: transaction.instructions,
+      signers
     }
   );
-  instructions.push(borrowInstruction);
-
-  instructions.forEach((instruction)=>{
-    transaction.add(instruction);
-  })
   
-  let tx = await sendTransaction(connection, wallet, transaction, signers);
   console.log("tx id->",tx);
 
 }
