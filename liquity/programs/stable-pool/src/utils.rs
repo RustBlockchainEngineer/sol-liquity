@@ -300,7 +300,7 @@ impl ToU64U128 for PreciseNumber {
 }
 
 
-pub fn pow(x:u64, y:u64)->u64{
+pub fn pow(x:u64, y:u8)->u64{
     let mut result = x;
     let mut index = y;
     while y > 1 {
