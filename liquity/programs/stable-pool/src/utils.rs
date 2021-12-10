@@ -165,10 +165,9 @@ pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64
     let debt_limit = market_price
         .checked_mul(locked_coll_balance).unwrap()
         .checked_mul(DECIMAL_PRECISION).unwrap()
-        .checked_div(MCR)
-        .checked_mul(pow(10, usd_decimals))
-        .checked_div(pow(10, coll_decimals))
-        .unwrap();
+        .checked_div(MCR).unwrap()
+        .checked_mul(pow(10, usd_decimals)).unwrap()
+        .checked_div(pow(10, coll_decimals)).unwrap();
     msg!("debt_limit = {}", debt_limit);
     msg!("user_debt + amount = {}", user_debt + amount);
     if debt_limit < (user_debt + amount) as u64 {
