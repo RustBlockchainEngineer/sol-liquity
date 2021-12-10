@@ -166,7 +166,8 @@ pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64
         .checked_mul(locked_coll_balance).unwrap()
         .checked_mul(DECIMAL_PRECISION).unwrap()
         .checked_div(MCR).unwrap();
-
+    msg!("debt_limit = {}", debt_limit);
+    msg!("user_debt + amount = {}", user_debt + amount);
     if debt_limit < (user_debt + amount) as u64 {
         return Err(StablePoolError::NotAllowed.into())
     }
