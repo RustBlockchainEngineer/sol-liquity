@@ -4,7 +4,7 @@ import { GLOBAL_STATE_TAG, LIQUITY_PROGRAM_ID, PYTH_PRICE_SOL, PYTH_PRODUCT_SOL,
 import idl from "../target/idl/stable_pool.json";
 import { StablePool } from "../target/types/stable_pool";
 import { AccountLayout } from "@solana/spl-token";
-import { SystemProgram } from "@solana/web3.js";
+import { SystemProgram, Transaction } from "@solana/web3.js";
 import { checkWalletATA, createTokenAccountIfNotExist, sendTransaction } from "./web3";
 
 export function getLiquityProgram(
@@ -176,7 +176,6 @@ export async function depositCollateral(
   wallet: any,
   amount: number,
   collateralTokenMint: anchor.web3.PublicKey = SOL_MINT_ADDRESS,
-  userTokenAccount: anchor.web3.PublicKey = undefined,
 ) {
   const program = getLiquityProgram(connection, wallet);
 
@@ -197,30 +196,21 @@ export async function depositCollateral(
     );
   const signers = []
   const instructions = []
-  const transaction = new anchor.web3.Transaction();
-  if (collateralTokenMint.toBase58() === SOL_MINT_ADDRESS.toBase58()) {
+  const transaction = new Transaction()
+  let userTokenAccount = await checkWalletATA(connection, wallet.publicKey, collateralTokenMint.toBase58());
+  if (collateralTokenMint.toBase58() === SOL_MINT_ADDRESS.toBase58() && !userTokenAccount) {
     let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
       AccountLayout.span
       );
-      const wsolUserAccount = anchor.web3.Keypair.generate();
-      signers.push(wsolUserAccount)
-      userTokenAccount = wsolUserAccount.publicKey;
-      instructions.push(
-        SystemProgram.createAccount({
-          fromPubkey: wallet.publicKey,
-          newAccountPubkey: userTokenAccount,
-          lamports: accountRentExempt + amount,
-          space: AccountLayout.span,
-          programId: program.programId
-        })
-      )
-      instructions.push(
-        initializeAccount({
-          account: userTokenAccount,
-          mint: collateralTokenMint,
-          owner: wallet.publicKey
-        })
-      )
+    userTokenAccount = await createTokenAccountIfNotExist(
+      connection,
+      userTokenAccount,
+      wallet.publicKey,
+      SOL_MINT_ADDRESS.toBase58(),
+      accountRentExempt + amount,
+      instructions,
+      signers
+    )
   }
   else if(!userTokenAccount){
     console.log("user doesn't have any collateral");
@@ -267,7 +257,6 @@ export async function withdrawCollateral(
   connection: anchor.web3.Connection,
   wallet: any,
   amount: number,
-  userTokenAccount: anchor.web3.PublicKey = undefined,
   collateralTokenMint: anchor.web3.PublicKey = SOL_MINT_ADDRESS,
 ) {
   const program = getLiquityProgram(connection, wallet);
@@ -290,30 +279,19 @@ export async function withdrawCollateral(
   const signers = []
   const instructions = []
   const transaction = new anchor.web3.Transaction();
-  if (!userTokenAccount) {
-    let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
-      AccountLayout.span
-      );
-      const wsolUserAccount = anchor.web3.Keypair.generate();
-      signers.push(wsolUserAccount)
-      userTokenAccount = wsolUserAccount.publicKey;
-      instructions.push(
-        SystemProgram.createAccount({
-          fromPubkey: wallet.publicKey,
-          newAccountPubkey: userTokenAccount,
-          lamports: accountRentExempt,
-          space: AccountLayout.span,
-          programId: program.programId
-        })
-      )
-      instructions.push(
-        initializeAccount({
-          account: userTokenAccount,
-          mint: collateralTokenMint,
-          owner: wallet.publicKey
-        })
-      )
-  }
+  let userTokenAccount = await checkWalletATA(connection, wallet.publicKey, collateralTokenMint.toBase58());
+  let accountRentExempt = await connection.getMinimumBalanceForRentExemption(
+    AccountLayout.span
+    );
+  userTokenAccount = await createTokenAccountIfNotExist(
+    connection,
+    userTokenAccount,
+    wallet.publicKey,
+    SOL_MINT_ADDRESS.toBase58(),
+    accountRentExempt,
+    instructions,
+    signers
+  )
   instructions.push(
     program.instruction.withdrawCollateral(
       new anchor.BN(amount),
@@ -386,7 +364,6 @@ export async function borrowSOLUSD(
 
   const paramUserUsdTokenKey = await checkWalletATA(connection, wallet.publicKey,globalState.mintUsd.toBase58());
 
-  const transaction = new anchor.web3.Transaction()
   let instructions = [];
   const signers = [];
 
@@ -396,7 +373,7 @@ export async function borrowSOLUSD(
     wallet.publicKey, 
     globalState.mintUsd.toBase58(),
     null,
-    transaction,
+    instructions,
     signers
   )
   
@@ -421,7 +398,7 @@ export async function borrowSOLUSD(
         pythPrice: tokenVault.pythPrice,
         clock: SYSVAR_CLOCK_PUBKEY,
       },
-      instructions: transaction.instructions,
+      instructions: instructions,
       signers
     }
   );
@@ -551,54 +528,3 @@ export async function liquidateTrove(
   );
   console.log("tx id->",tx);
 }
-
-// export async function spDeposit(
-//   connection: anchor.web3.Connection,
-//   wallet: any,
-//   amount: number,
-// ) {
-//   const program = getLiquityProgram(connection, wallet);
-
-//   const [globalStateKey, globalStateNonce] =
-//     await anchor.web3.PublicKey.findProgramAddress(
-//       [Buffer.from(GLOBAL_STATE_TAG)],
-//       program.programId,
-//     );
-//   const tokenVault = await program.account.tokenVault.fetchNullable(vaultToLiquidte)
-  
-//   const [tokenVaultKey, tokenVaultNonce] =
-//     await anchor.web3.PublicKey.findProgramAddress(
-//       [Buffer.from(TOKEN_VAULT_TAG), tokenVault.mintColl.toBuffer()],
-//       program.programId,
-//     );
-//   const [userTroveKey, userTroveNonce] =
-//   await anchor.web3.PublicKey.findProgramAddress(
-//     [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),wallet.publicKey.toBuffer()],
-//     program.programId,
-//   );
-//   const userTrove = await program.account.userTrove.fetchNullable(userTroveKey)
-//   const globalState = await program.account.globalState.fetchNullable(globalStateKey)
-//   const tx = await program.rpc.liquidateTrove(
-//     new anchor.BN(amount),
-//     globalStateNonce,
-//     tokenVaultNonce,
-//     userTroveNonce,
-//     {
-//       accounts: {
-//         liquidator: wallet.publicKey,
-//         tokenVault: tokenVaultKey,
-//         userTrove: userTroveKey,
-//         userTroveOwner: userTrove.owner,
-//         globalState: globalStateKey,
-//         mintColl: tokenVault.mintColl,
-//         stabilitySolusdPool: globalState.stabilitySolusdPool,
-//         oracleProgram: tokenVault.oracleProgram,
-//         pythProduct: tokenVault.pythProduct,
-//         pythPrice: tokenVault.pythPrice,
-//         clock: SYSVAR_CLOCK_PUBKEY,
-//         tokenProgram: TOKEN_PROGRAM_ID,
-//       },
-//     }
-//   );
-//   console.log("tx id->",tx);
-// }

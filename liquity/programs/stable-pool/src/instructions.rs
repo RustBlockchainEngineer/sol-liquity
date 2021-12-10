@@ -33,7 +33,7 @@ pub struct CreateGlobalState <'info>{
         seeds = [STABILITY_POOL_TAG],
         bump = stability_pool_nonce,
         payer = super_owner)]
-    pub stability_solusd_pool:ProgramAccount<'info, TokenAccount>,
+    pub stability_solusd_pool:Account<'info, TokenAccount>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -66,7 +66,7 @@ pub struct CreateTokenVault<'info> {
         seeds = [TOKEN_VAULT_POOL_TAG, token_vault.key().as_ref()],
         bump = token_coll_nonce,
         payer = payer)]
-    pub token_coll:ProgramAccount<'info, TokenAccount>,
+    pub token_coll:Account<'info, TokenAccount>,
     
     pub oracle_program: AccountInfo<'info>,
     pub pyth_product: AccountInfo<'info>,

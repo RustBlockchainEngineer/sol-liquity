@@ -7,7 +7,8 @@ import {
   PublicKey,
   Transaction,
   TransactionSignature,
-  SystemProgram
+  SystemProgram,
+  TransactionInstruction
 } from '@solana/web3.js'
 
 export const commitment: Commitment = 'confirmed'
@@ -125,7 +126,7 @@ export async function createTokenAccountIfNotExist(
   mintAddress: string,
   lamports: number | null,
 
-  transaction: Transaction,
+  instructions: TransactionInstruction[],
   signer: Array<Keypair>
 ) {
   let publicKey
@@ -140,11 +141,11 @@ export async function createTokenAccountIfNotExist(
       TOKEN_PROGRAM_ID,
       lamports,
       AccountLayout,
-      transaction,
+      instructions,
       signer
     )
 
-    transaction.add(
+    instructions.push(
       initializeAccount({
         account: publicKey,
         mint: new PublicKey(mintAddress),
@@ -164,7 +165,7 @@ export async function createProgramAccountIfNotExist(
   lamports: number | null,
   layout: any,
 
-  transaction: Transaction,
+  instructions: TransactionInstruction[],
   signer: Array<Keypair>
 ) {
   let publicKey
@@ -175,7 +176,7 @@ export async function createProgramAccountIfNotExist(
     const newAccount = new Keypair()
     publicKey = newAccount.publicKey
 
-    transaction.add(
+    instructions.push(
       SystemProgram.createAccount({
         fromPubkey: owner,
         newAccountPubkey: publicKey,
