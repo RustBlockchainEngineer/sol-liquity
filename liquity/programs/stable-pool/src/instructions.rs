@@ -182,7 +182,7 @@ pub struct BorrowUsd<'info> {
         constraint = mint_usd.key() == global_state.mint_usd
     )]
     pub mint_usd:Account<'info, Mint>,
-    #[account(
+    #[account(mut,
         constraint = user_token_usd.owner == owner.key(),
         constraint = user_token_usd.mint == mint_usd.key())]
     pub user_token_usd:Account<'info, TokenAccount>,

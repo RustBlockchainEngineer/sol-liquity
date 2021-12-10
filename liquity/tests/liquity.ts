@@ -482,7 +482,8 @@ export async function repaySOLUSD(
 export async function liquidateTrove(
   connection: anchor.web3.Connection,
   wallet: any,
-  vaultToLiquidte:anchor.web3.PublicKey,
+  troveToLiquidte:anchor.web3.PublicKey,
+  mintCollKey:anchor.web3.PublicKey = SOL_MINT_ADDRESS,
 ) {
   const program = getLiquityProgram(connection, wallet);
 
@@ -491,19 +492,19 @@ export async function liquidateTrove(
       [Buffer.from(GLOBAL_STATE_TAG)],
       program.programId,
     );
-  const tokenVault = await program.account.tokenVault.fetchNullable(vaultToLiquidte)
-  
   const [tokenVaultKey, tokenVaultNonce] =
     await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from(TOKEN_VAULT_TAG), tokenVault.mintColl.toBuffer()],
+      [Buffer.from(TOKEN_VAULT_TAG), mintCollKey.toBuffer()],
       program.programId,
     );
+  const tokenVault = await program.account.tokenVault.fetchNullable(tokenVaultKey)
+  
+  const userTrove = await program.account.userTrove.fetchNullable(troveToLiquidte)
   const [userTroveKey, userTroveNonce] =
   await anchor.web3.PublicKey.findProgramAddress(
-    [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),wallet.publicKey.toBuffer()],
+    [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),userTrove.owner.toBuffer()],
     program.programId,
   );
-  const userTrove = await program.account.userTrove.fetchNullable(userTroveKey)
   const globalState = await program.account.globalState.fetchNullable(globalStateKey)
   const tx = await program.rpc.liquidateTrove(
     globalStateNonce,
@@ -527,4 +528,25 @@ export async function liquidateTrove(
     }
   );
   console.log("tx id->",tx);
+}
+
+export async function getTroveKeyFromOwner(
+  connection: anchor.web3.Connection,
+  wallet:any,
+  troveOwner: anchor.web3.PublicKey,
+  mintCollKey:anchor.web3.PublicKey = SOL_MINT_ADDRESS,
+) {
+  const program = getLiquityProgram(connection, wallet);
+
+  const [tokenVaultKey] =
+    await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(TOKEN_VAULT_TAG), mintCollKey.toBuffer()],
+      program.programId,
+    );
+  const [userTroveKey] =
+  await anchor.web3.PublicKey.findProgramAddress(
+    [Buffer.from(USER_TROVE_TAG), tokenVaultKey.toBuffer(),troveOwner.toBuffer()],
+    program.programId,
+  );
+  return userTroveKey;
 }
