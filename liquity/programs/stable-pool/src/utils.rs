@@ -302,9 +302,9 @@ impl ToU64U128 for PreciseNumber {
 pub fn pow(x:u64, y:u8)->u64{
     let mut result = x;
     let mut index = y;
-    while y > 1 {
+    while index > 1 {
         result *= x;
-        y -= 1;
+        index -= 1;
     }
     return result;
 }
