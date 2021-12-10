@@ -160,12 +160,15 @@ pub fn get_market_price(
 }
 
 
-pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64, market_price: u64)-> ProgramResult{
+pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64, market_price: u64, coll_decimals: u8, usd_decimals: u8)-> ProgramResult{
     msg!("market sol price = {}", market_price);
     let debt_limit = market_price
         .checked_mul(locked_coll_balance).unwrap()
         .checked_mul(DECIMAL_PRECISION).unwrap()
-        .checked_div(MCR).unwrap();
+        .checked_div(MCR)
+        .checked_mul(pow(10, usd_decimals))
+        .checked_div(pow(10, coll_decimals))
+        .unwrap();
     msg!("debt_limit = {}", debt_limit);
     msg!("user_debt + amount = {}", user_debt + amount);
     if debt_limit < (user_debt + amount) as u64 {
@@ -296,3 +299,13 @@ impl ToU64U128 for PreciseNumber {
     }
 }
 
+
+pub fn pow(x:u64, y:u64)->u64{
+    let mut result = x;
+    let mut index = y;
+    while y > 1 {
+        result *= x;
+        y -= 1;
+    }
+    return result;
+}
