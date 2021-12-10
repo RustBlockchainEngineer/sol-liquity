@@ -161,7 +161,7 @@ pub fn get_market_price(
 
 
 pub fn assert_debt_allowed(locked_coll_balance: u64, user_debt: u64, amount: u64, market_price: u64)-> ProgramResult{
-    
+    msg!("market sol price = {}", market_price);
     let debt_limit = market_price
         .checked_mul(locked_coll_balance).unwrap()
         .checked_mul(DECIMAL_PRECISION).unwrap()
